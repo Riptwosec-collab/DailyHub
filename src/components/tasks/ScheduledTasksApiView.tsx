@@ -122,7 +122,15 @@ export function ScheduledTasksApiView() {
   }
 
   if (isLoading) return <LoadingState title="Loading scheduled tasks" description="กำลังดึงรายการ task จาก /api/scheduled-tasks" />;
-  if (error) return <ErrorState message={error} onRetry={loadTasks} />;
+  if (error) {
+    return (
+      <ErrorState
+        title="Scheduled tasks loading failed"
+        description={error}
+        onRetry={loadTasks}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
