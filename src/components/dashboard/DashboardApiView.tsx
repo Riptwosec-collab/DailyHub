@@ -59,10 +59,34 @@ export function DashboardApiView() {
   const latestPriority = Math.max(...runs.map((run) => run.priorityScore), 0);
 
   const summaryCards = [
-    { label: "Active Tasks", value: activeCount, hint: `${runningCount} running now`, tone: "green" as const, icon: "⏱" },
-    { label: "Latest Priority", value: `${latestPriority}/100`, hint: "from latest task runs", tone: "purple" as const, icon: "◎" },
-    { label: "Unread Alerts", value: unreadCount, hint: "notifications from API", tone: "blue" as const, icon: "●" },
-    { label: "Failed Tasks", value: failedCount, hint: failedCount > 0 ? "needs review" : "healthy", tone: failedCount > 0 ? ("red" as const) : ("green" as const), icon: "!" },
+    {
+      label: "Active Tasks",
+      value: activeCount,
+      hint: `${runningCount} running now`,
+      tone: "green" as const,
+      icon: "⏱",
+    },
+    {
+      label: "Latest Priority",
+      value: `${latestPriority}/100`,
+      hint: "from latest task runs",
+      tone: "purple" as const,
+      icon: "◎",
+    },
+    {
+      label: "Unread Alerts",
+      value: unreadCount,
+      hint: "notifications from API",
+      tone: "blue" as const,
+      icon: "●",
+    },
+    {
+      label: "Failed Tasks",
+      value: failedCount,
+      hint: failedCount > 0 ? "needs review" : "healthy",
+      tone: failedCount > 0 ? ("red" as const) : ("green" as const),
+      icon: "!",
+    },
   ];
 
   const latestNotifications = useMemo(() => notifications.slice(0, 4), [notifications]);
@@ -97,8 +121,13 @@ export function DashboardApiView() {
     }
   }
 
-  if (isLoading) return <LoadingState title="Loading dashboard" description="กำลังดึงข้อมูล Dashboard จาก API routes" />;
-  if (error) return <ErrorState message={error} onRetry={loadDashboard} />;
+  if (isLoading) {
+    return <LoadingState title="Loading dashboard" description="กำลังดึงข้อมูล Dashboard จาก API routes" />;
+  }
+
+  if (error) {
+    return <ErrorState title="Dashboard loading failed" description={error} onRetry={loadDashboard} />;
+  }
 
   return (
     <div className="space-y-8">
@@ -107,12 +136,12 @@ export function DashboardApiView() {
           <div className="absolute -right-28 -top-28 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="absolute -bottom-32 left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
           <div className="relative">
-            <Badge tone="purple">Phase 17 API-connected UI</Badge>
+            <Badge tone="purple">API-connected UI</Badge>
             <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">
-              DailyHub AI Dashboard ต่อ API จริงแล้ว
+              DailyHub AI Dashboard
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              หน้านี้ fetch ข้อมูลจาก /api/scheduled-tasks, /api/task-runs และ /api/notifications แทนการ import mock-data โดยตรง พร้อมใช้กับ Supabase จาก Phase 12–16
+              หน้านี้ fetch ข้อมูลจาก API routes จริง พร้อมใช้กับ Supabase, OpenAI และ Telegram integration
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Badge tone="blue">API Fetch</Badge>
@@ -160,7 +189,7 @@ export function DashboardApiView() {
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-200">AI Command Box</p>
             <h2 className="mt-3 text-2xl font-black text-white">สั่ง Run Task ผ่าน API</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">ตอนนี้คำสั่ง Run Daily Brief จะเรียก /api/scheduled-tasks/:id/run-now จริง</p>
+            <p className="mt-3 text-sm leading-6 text-slate-300">คำสั่ง Run Daily Brief จะเรียก API run-now จริง</p>
           </div>
           <div className="space-y-4">
             <div className="flex flex-col gap-3 md:flex-row">
@@ -180,7 +209,9 @@ export function DashboardApiView() {
             <p className="text-sm font-semibold text-cyan-200">Active Scheduled Tasks</p>
             <h2 className="mt-1 text-2xl font-black text-white">งานที่เปิดใช้งานอยู่</h2>
           </div>
-          <Button variant="secondary" onClick={loadDashboard} type="button">Refresh</Button>
+          <Button variant="secondary" onClick={loadDashboard} type="button">
+            Refresh
+          </Button>
         </div>
         {activeTasks.length === 0 ? (
           <EmptyState title="No active tasks" description="ลองสร้าง Scheduled Task ใหม่หรือเปิดใช้งาน task ที่ paused อยู่" />
@@ -194,7 +225,9 @@ export function DashboardApiView() {
                     <h3 className="mt-4 line-clamp-2 text-base font-black text-white">{task.name}</h3>
                     <p className="mt-2 text-sm text-slate-400">{task.type}</p>
                   </div>
-                  <span className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-cyan-100">{task.scheduleType}</span>
+                  <span className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-cyan-100">
+                    {task.scheduleType}
+                  </span>
                 </div>
                 <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-slate-400">
                   <p>Last Run: {formatDateTime(task.lastRunAt)}</p>
