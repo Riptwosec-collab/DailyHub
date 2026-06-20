@@ -155,7 +155,7 @@ export function TaskResultsApiView() {
                   <div>
                     <div className="flex flex-wrap gap-2">
                       <Badge tone={run.status === "success" ? "green" : run.status === "failed" ? "red" : "purple"}>{run.status}</Badge>
-                      <Badge tone={clampScore(run.priorityScore) >= 80 ? "red" : clampScore(run.priorityScore) >= 60 ? "blue" : "slate"}>Score {clampScore(run.priorityScore)}</Badge>
+                      <Badge tone={clampScore(run.priorityScore) >= 80 ? "red" : clampScore(run.priorityScore) >= 60 ? "blue" : "gray"}>Score {clampScore(run.priorityScore)}</Badge>
                     </div>
                     <h2 className="mt-3 text-xl font-black text-white">{run.gptOutput.title}</h2>
                     <p className="mt-2 text-sm text-slate-400">{task?.name ?? run.taskId}</p>
