@@ -9,8 +9,10 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "◈" },
   { href: "/scheduled-tasks", label: "Scheduled Tasks", icon: "⏱" },
   { href: "/scheduled-tasks/create", label: "Create Task", icon: "+" },
+  { href: "/templates", label: "Templates", icon: "▣" },
   { href: "/task-results", label: "Task Results", icon: "◎" },
   { href: "/notifications", label: "Notifications", icon: "●" },
+  { href: "/settings", label: "Settings", icon: "⚙" },
   { href: "/admin", label: "Admin", icon: "◇" },
 ];
 
@@ -41,8 +43,8 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
       </Link>
 
       <div className="mt-6 rounded-3xl border border-cyan-400/20 bg-cyan-400/[0.08] p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">Final Build</p>
-        <p className="mt-2 text-sm leading-6 text-slate-300">Dashboard, API, Scheduler, OpenAI, Telegram, Supabase, Admin และ Deploy พร้อมใช้งาน</p>
+        <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">Phase 27</p>
+        <p className="mt-2 text-sm leading-6 text-slate-300">Dashboard, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน</p>
       </div>
 
       <nav className="mt-7 space-y-2">
