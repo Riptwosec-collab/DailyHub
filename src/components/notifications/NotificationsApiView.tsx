@@ -136,7 +136,15 @@ export function NotificationsApiView() {
   }
 
   if (isLoading) return <LoadingState title="Loading notifications" description="กำลังดึง notifications จาก API" />;
-  if (error) return <ErrorState message={error} onRetry={loadData} />;
+  if (error) {
+    return (
+      <ErrorState
+        title="Notifications loading failed"
+        description={error}
+        onRetry={loadData}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
