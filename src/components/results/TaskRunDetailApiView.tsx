@@ -65,8 +65,24 @@ export function TaskRunDetailApiView({ runId }: { runId: string }) {
   }
 
   if (isLoading) return <LoadingState title="Loading task run detail" description="กำลังดึงรายละเอียด task run จาก API" />;
-  if (error) return <ErrorState message={error} onRetry={loadRun} />;
-  if (!run) return <ErrorState title="ไม่พบ Task Run" message={`Task run ${runId} was not found`} onRetry={loadRun} />;
+  if (error) {
+    return (
+      <ErrorState
+        title="Task run detail loading failed"
+        description={error}
+        onRetry={loadRun}
+      />
+    );
+  }
+  if (!run) {
+    return (
+      <ErrorState
+        title="ไม่พบ Task Run"
+        description={`Task run ${runId} was not found`}
+        onRetry={loadRun}
+      />
+    );
+  }
 
   const score = clampScore(run.priorityScore);
 
