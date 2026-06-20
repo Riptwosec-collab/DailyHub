@@ -9,7 +9,12 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "qa": "node scripts/qa-check.mjs",
+    "check": "npm run typecheck && npm run lint && npm run build",
     "build:prod": "npm run typecheck && npm run lint && npm run build"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
