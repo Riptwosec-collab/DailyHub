@@ -92,7 +92,15 @@ export function TaskResultsApiView() {
   }
 
   if (isLoading) return <LoadingState title="Loading task results" description="กำลังดึง task runs จาก /api/task-runs" />;
-  if (error) return <ErrorState message={error} onRetry={loadData} />;
+  if (error) {
+    return (
+      <ErrorState
+        title="Task results loading failed"
+        description={error}
+        onRetry={loadData}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -140,41 +148,32 @@ export function TaskResultsApiView() {
         <div className="grid gap-4 xl:grid-cols-2">
           {filteredRuns.map((run) => {
             const task = tasks.find((item) => item.id === run.taskId);
-            const score = clampScore(run.priorityScore);
             const isBusy = busyRunIds.includes(run.id);
             return (
-              <Card key={run.id} className="relative overflow-hidden p-5">
-                <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
-                <div className="relative space-y-5">
-                  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                    <div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge tone={run.status === "success" ? "green" : run.status === "failed" ? "red" : "purple"}>{run.status}</Badge>
-                        <Badge tone="blue">Priority {run.priorityScore}/100</Badge>
-                        <Badge tone="gray">Telegram: {run.telegramStatus}</Badge>
-                      </div>
-                      <h2 className="mt-4 text-xl font-black text-white">{run.gptOutput.title}</h2>
-                      <p className="mt-2 text-sm text-slate-500">{task ? `Task: ${task.name}` : `Task ID: ${run.taskId}`}</p>
+              <Card key={run.id} className="p-5">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone={run.status === "success" ? "green" : run.status === "failed" ? "red" : "purple"}>{run.status}</Badge>
+                      <Badge tone={clampScore(run.priorityScore) >= 80 ? "red" : clampScore(run.priorityScore) >= 60 ? "blue" : "slate"}>Score {clampScore(run.priorityScore)}</Badge>
                     </div>
-                    <Link className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white" href={`/task-results/${run.id}`}>Open Result</Link>
+                    <h2 className="mt-3 text-xl font-black text-white">{run.gptOutput.title}</h2>
+                    <p className="mt-2 text-sm text-slate-400">{task?.name ?? run.taskId}</p>
                   </div>
-
-                  <p className="line-clamp-3 text-sm leading-7 text-slate-300">{run.gptOutput.summary}</p>
-
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={{ width: `${score}%` }} />
-                  </div>
-
-                  <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-                    <p>Started: {formatDateTime(run.startedAt)}</p>
-                    <p>Finished: {formatDateTime(run.finishedAt)}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button disabled={isBusy} variant="secondary" onClick={() => void handleRegenerate(run)} type="button">{isBusy ? "Regenerating..." : "Regenerate"}</Button>
-                    <Button variant="secondary" onClick={() => void handleCopy(run)} type="button">Copy</Button>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" variant="secondary"><Link href={`/task-results/${run.id}`}>Open</Link></Button>
+                    <Button size="sm" variant="secondary" onClick={() => void handleCopy(run)}>Copy</Button>
+                    <Button size="sm" onClick={() => void handleRegenerate(run)} disabled={isBusy}>{isBusy ? "Running" : "Regenerate"}</Button>
                   </div>
                 </div>
+
+                <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-300">{run.gptOutput.summary}</p>
+                <div className="mt-5 grid gap-3 text-xs text-slate-500 sm:grid-cols-3">
+                  <Info label="Started" value={formatDateTime(run.startedAt)} />
+                  <Info label="Finished" value={run.finishedAt ? formatDateTime(run.finishedAt) : "-"} />
+                  <Info label="Telegram" value={run.telegramStatus ?? "-"} />
+                </div>
+                {run.errorMessage ? <p className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{run.errorMessage}</p> : null}
               </Card>
             );
           })}
@@ -185,5 +184,15 @@ export function TaskResultsApiView() {
 }
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: "green" | "purple" | "red" | "blue" }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><Badge tone={tone}>{value}</Badge><p className="mt-2 text-xs text-slate-400">{label}</p></div>;
+  const toneClass = {
+    green: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+    purple: "border-violet-300/20 bg-violet-300/10 text-violet-200",
+    red: "border-red-300/20 bg-red-300/10 text-red-200",
+    blue: "border-cyan-300/20 bg-cyan-300/10 text-cyan-200",
+  }[tone];
+  return <div className={`rounded-2xl border p-3 ${toneClass}`}><p className="font-bold">{value}</p><p className="text-xs opacity-80">{label}</p></div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="font-semibold text-slate-400">{label}</p><p className="mt-1 text-slate-200">{value}</p></div>;
 }
