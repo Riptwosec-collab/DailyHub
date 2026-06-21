@@ -1,15 +1,54 @@
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { GptOutput } from "@/types/task-run";
 
-export function getOpenAiModeStatus() {
-  const enabled = process.env.ENABLE_OPENAI === "true";
-  const hasApiKey = Boolean(process.env.OPENAI_API_KEY);
+type AiProvider = "groq" | "openai" | "mock";
+
+type AiConfig = {
+  provider: AiProvider;
+  enabled: boolean;
+  hasApiKey: boolean;
+  apiKey?: string;
+  baseUrl?: string;
+  model: string;
+};
+
+function resolveAiConfig(): AiConfig {
+  const preferredProvider = process.env.AI_PROVIDER?.toLowerCase();
+  const groqKey = process.env.GROQ_API_KEY;
+  const openAiKey = process.env.OPENAI_API_KEY;
+
+  const useGroq = preferredProvider === "groq" || (!preferredProvider && Boolean(groqKey));
+
+  if (useGroq) {
+    return {
+      provider: groqKey ? "groq" : "mock",
+      enabled: process.env.ENABLE_GROQ === "true" || process.env.ENABLE_AI === "true",
+      hasApiKey: Boolean(groqKey),
+      apiKey: groqKey,
+      baseUrl: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1",
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    };
+  }
 
   return {
-    mode: enabled && hasApiKey ? "real" : "mock",
-    enabled,
-    hasApiKey,
+    provider: openAiKey ? "openai" : "mock",
+    enabled: process.env.ENABLE_OPENAI === "true" || process.env.ENABLE_AI === "true",
+    hasApiKey: Boolean(openAiKey),
+    apiKey: openAiKey,
+    baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     model: process.env.OPENAI_MODEL || "gpt-5.5",
+  };
+}
+
+export function getOpenAiModeStatus() {
+  const config = resolveAiConfig();
+
+  return {
+    mode: config.enabled && config.hasApiKey ? "real" : "mock",
+    provider: config.provider,
+    enabled: config.enabled,
+    hasApiKey: config.hasApiKey,
+    model: config.model,
   };
 }
 
@@ -37,6 +76,7 @@ Rules:
 - Do not invent facts not present in raw input.
 - Keep summary concise and useful for a dashboard.
 - If content creation is requested, include caption and image_prompt.
+- Return valid JSON only. Do not wrap the JSON in markdown.
 
 Raw Input:
 ${JSON.stringify(rawInput, null, 2)}`;
@@ -45,9 +85,9 @@ ${JSON.stringify(rawInput, null, 2)}`;
 export function buildFailedGptOutput(task: ScheduledTask, errorMessage: string): GptOutput {
   return {
     title: `${task.name} failed`,
-    summary: `ไม่สามารถสร้าง GPT output ได้: ${errorMessage}`,
+    summary: `ไม่สามารถสร้าง AI output ได้: ${errorMessage}`,
     priority_score: 0,
-    recommended_action: "ตรวจสอบ OpenAI API key, model, network หรือ raw input แล้วลอง Run Now ใหม่",
+    recommended_action: "ตรวจสอบ AI provider, API key, model, network หรือ raw input แล้วลอง Run Now ใหม่",
     caption: null,
     image_prompt: null,
   };
@@ -59,7 +99,7 @@ export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<str
 
   return {
     title: `${task.name} Summary`,
-    summary: `Mock GPT วิเคราะห์ ${sourceCount} data source สำหรับ ${task.type} แล้ว สรุปข้อมูลสำคัญและคำแนะนำพร้อมแสดงใน Dashboard`,
+    summary: `Mock AI วิเคราะห์ ${sourceCount} data source สำหรับ ${task.type} แล้ว สรุปข้อมูลสำคัญและคำแนะนำพร้อมแสดงใน Dashboard`,
     priority_score: priority,
     recommended_action: priority >= task.minPriorityScore ? "ควรส่งแจ้งเตือนและเปิดดูรายละเอียดใน Task Results" : "บันทึกไว้ใน Dashboard แต่ยังไม่จำเป็นต้องแจ้งเตือนทันที",
     caption: task.gptActions.includes("Generate Caption") ? `อัปเดตจาก ${task.name}: สรุปสั้นพร้อมใช้โพสต์` : null,
@@ -67,20 +107,36 @@ export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<str
   };
 }
 
-function parseOpenAiOutput(json: unknown): string {
+function extractJsonObject(text: string): string {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return cleaned.slice(firstBrace, lastBrace + 1);
+  }
+
+  return cleaned;
+}
+
+function parseChatCompletionOutput(json: unknown): string {
   const response = json as {
-    output_text?: string;
-    output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+      };
+    }>;
   };
 
-  if (typeof response.output_text === "string") return response.output_text;
+  const text = response.choices?.[0]?.message?.content;
+  if (typeof text === "string" && text.trim()) return text;
 
-  const text = response.output
-    ?.flatMap((item) => item.content ?? [])
-    .find((content) => content.type === "output_text" && typeof content.text === "string")?.text;
-
-  if (text) return text;
-  throw new Error("OpenAI response did not contain output text");
+  throw new Error("AI response did not contain chat completion text");
 }
 
 function normalizeGptOutput(value: unknown, task: ScheduledTask): GptOutput {
@@ -98,38 +154,44 @@ function normalizeGptOutput(value: unknown, task: ScheduledTask): GptOutput {
 }
 
 export async function generateGptOutput(task: ScheduledTask, rawInput: Record<string, unknown>): Promise<GptOutput> {
-  const enabled = process.env.ENABLE_OPENAI === "true";
-  const apiKey = process.env.OPENAI_API_KEY;
-  const fallback = process.env.OPENAI_FALLBACK_TO_MOCK !== "false";
+  const config = resolveAiConfig();
+  const fallback = process.env.AI_FALLBACK_TO_MOCK !== "false" && process.env.OPENAI_FALLBACK_TO_MOCK !== "false";
 
-  if (!enabled || !apiKey) return generateMockGptOutput(task, rawInput);
+  if (!config.enabled || !config.apiKey || !config.baseUrl) return generateMockGptOutput(task, rawInput);
 
   const prompt = buildGptPrompt(task, rawInput);
-  const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-  const model = process.env.OPENAI_MODEL || "gpt-5.5";
 
   try {
-    const response = await fetch(`${baseUrl}/responses`, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
-        model,
-        input: prompt,
-        text: { format: { type: "json_object" } },
+        model: config.model,
+        messages: [
+          {
+            role: "system",
+            content: "You return valid JSON only. Do not use markdown fences.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
       }),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`OpenAI API failed ${response.status}: ${text.slice(0, 300)}`);
+      throw new Error(`${config.provider} API failed ${response.status}: ${text.slice(0, 300)}`);
     }
 
     const json = await response.json();
-    const outputText = parseOpenAiOutput(json);
-    return normalizeGptOutput(JSON.parse(outputText), task);
+    const outputText = parseChatCompletionOutput(json);
+    return normalizeGptOutput(JSON.parse(extractJsonObject(outputText)), task);
   } catch (error) {
     if (fallback) return generateMockGptOutput(task, rawInput);
     throw error;
