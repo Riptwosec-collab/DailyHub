@@ -1,3 +1,5 @@
+import type { ContentLanguage, TranslatedResult } from "./translation";
+
 export type TaskRunStatus = "success" | "failed" | "running";
 
 export interface GptOutput {
@@ -21,4 +23,9 @@ export interface TaskRun {
   priorityScore: number;
   telegramStatus: string;
   errorMessage: string | null;
+  originalContent?: string;
+  translatedContent?: string;
+  language?: ContentLanguage;
+  translatedAt?: string;
+  translation?: TranslatedResult;
 }
