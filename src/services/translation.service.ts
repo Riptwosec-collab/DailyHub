@@ -4,6 +4,7 @@ import type { ContentLanguage, DashboardTranslatedResult, TranslatedResult, Tran
 
 const MAX_ORIGINAL_LENGTH = 12000;
 const MAX_TELEGRAM_LENGTH = 3600;
+const MAX_RAW_BRIEF_ITEMS = 5;
 
 type TranslationProvider = "groq" | "openai" | "mock";
 
@@ -53,6 +54,79 @@ function safeStringify(value: unknown) {
   }
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function compactItem(item: unknown) {
+  const record = asRecord(item);
+  if (!record) return truncateText(String(item ?? ""), 220);
+
+  const source = asRecord(record.source);
+  const sourceName = asString(source?.name) || asString(record.source) || asString(record.name);
+  const title = asString(record.title);
+  const description = asString(record.description);
+  const content = asString(record.content);
+  const url = asString(record.url);
+
+  if (title || description || content) {
+    return [
+      title ? `หัวข้อ: ${title}` : "",
+      sourceName ? `แหล่งข่าว: ${sourceName}` : "",
+      description ? `รายละเอียด: ${description}` : "",
+      !description && content ? `เนื้อหา: ${content}` : "",
+      url ? `URL: ${url}` : "",
+    ].filter(Boolean).join(" | ");
+  }
+
+  const location = asString(record.location);
+  const forecast = asRecord(record.forecast);
+  const current = asRecord(forecast?.current);
+  if (location || current) {
+    return [
+      location ? `พื้นที่: ${location}` : "",
+      current?.temperature_2m !== undefined ? `อุณหภูมิ: ${current.temperature_2m}°C` : "",
+      current?.rain !== undefined ? `ฝน: ${current.rain} mm` : "",
+      current?.precipitation !== undefined ? `ปริมาณฝน: ${current.precipitation} mm` : "",
+      current?.time ? `เวลา: ${current.time}` : "",
+    ].filter(Boolean).join(" | ");
+  }
+
+  return truncateText(safeStringify(record), 220);
+}
+
+function buildRawInputBrief(rawInput: Record<string, unknown>) {
+  const sources = Array.isArray(rawInput.sources) ? rawInput.sources : [];
+  if (sources.length === 0) return truncateText(safeStringify(rawInput), 2500);
+
+  const lines = sources.flatMap((sourceEntry, sourceIndex) => {
+    const sourceRecord = asRecord(sourceEntry);
+    if (!sourceRecord) return [];
+
+    const sourceName = asString(sourceRecord.source) || asString(sourceRecord.title) || `Source ${sourceIndex + 1}`;
+    const status = asString(sourceRecord.status);
+    const data = sourceRecord.data;
+    const items = Array.isArray(sourceRecord.items)
+      ? sourceRecord.items
+      : Array.isArray(data)
+        ? data
+        : data !== undefined
+          ? [data]
+          : [];
+
+    return [
+      `Source: ${sourceName}${status ? ` (${status})` : ""}`,
+      ...items.slice(0, MAX_RAW_BRIEF_ITEMS).map((item, itemIndex) => `${itemIndex + 1}. ${compactItem(item)}`),
+    ];
+  });
+
+  return truncateText(lines.join("\n"), 6000);
+}
+
 function cleanLines(text: string) {
   return text
     .split(/\r?\n|\u2022|-/)
@@ -73,13 +147,14 @@ function extractBullets(text: string, maxItems = 5) {
 }
 
 function buildOriginalContent(input: TranslationInput) {
+  const rawInputBrief = input.rawInput ? buildRawInputBrief(input.rawInput) : "";
   const parts = [
     input.title ? `Title: ${input.title}` : "",
     input.source ? `Source: ${input.source}` : "",
     input.gptOutput?.summary ? `AI Summary: ${input.gptOutput.summary}` : "",
     input.gptOutput?.recommended_action ? `Recommended Action: ${input.gptOutput.recommended_action}` : "",
     input.content ? `Content: ${input.content}` : "",
-    input.rawInput ? `Raw Input: ${safeStringify(input.rawInput)}` : "",
+    rawInputBrief ? `Source Brief:\n${rawInputBrief}` : "",
   ].filter(Boolean);
 
   return truncateText(parts.join("\n\n"));
@@ -177,7 +252,16 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
   }
 
   const config = resolveTranslationConfig();
-  if (!config.enabled || !config.apiKey || !config.baseUrl) return normalizeThaiFallback(input, originalLanguage, originalContent);
+  if (!config.enabled || !config.apiKey || !config.baseUrl) {
+    console.warn("[DailyHub Translation] AI translation is disabled or missing API config", {
+      provider: config.provider,
+      enabled: config.enabled,
+      hasApiKey: Boolean(config.apiKey),
+      hasBaseUrl: Boolean(config.baseUrl),
+      model: config.model,
+    });
+    return normalizeThaiFallback(input, originalLanguage, originalContent);
+  }
 
   try {
     const response = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -202,11 +286,20 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
       }),
     });
 
-    if (!response.ok) throw new Error(`${config.provider} translation API failed: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${config.provider} translation API failed ${response.status}: ${errorText.slice(0, 500)}`);
+    }
+
     const json = await response.json();
     const outputText = parseChatCompletionOutput(json);
     return normalizeTranslatedJson(JSON.parse(extractJsonObject(outputText)), input, originalLanguage, originalContent);
-  } catch {
+  } catch (error) {
+    console.error("[DailyHub Translation] AI translation failed; using Thai fallback", {
+      provider: config.provider,
+      model: config.model,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return normalizeThaiFallback(input, originalLanguage, originalContent);
   }
 }
