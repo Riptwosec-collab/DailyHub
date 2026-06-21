@@ -13,6 +13,10 @@ function withTelegramChannel(outputChannels: string[]) {
   return outputChannels.includes("Send Telegram") ? outputChannels : [...outputChannels, "Send Telegram"];
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown scheduler error";
+}
+
 export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   if (process.env.ENABLE_SCHEDULER === "false") {
     return {
@@ -26,38 +30,61 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   }
 
   const checkedAt = new Date().toISOString();
-  const dueTasks = options.force ? await listScheduledTasks() : await listDueScheduledTasks(checkedAt);
+  const force = Boolean(options.force);
+  const dueTasks = force ? await listScheduledTasks() : await listDueScheduledTasks(checkedAt);
   const results = [];
 
   for (const task of dueTasks) {
-    const taskForRun = options.force
-      ? await updateScheduledTask(task.id, {
-          outputChannels: withTelegramChannel(task.outputChannels),
-          minPriorityScore: process.env.TELEGRAM_IGNORE_PRIORITY === "true" ? 0 : task.minPriorityScore,
-        })
-      : task;
+    try {
+      const taskForRun = force
+        ? await updateScheduledTask(task.id, {
+            outputChannels: withTelegramChannel(task.outputChannels),
+            // Manual force run is for end-to-end testing. Send every task to Telegram
+            // even if AI returns a lower priority score than the normal threshold.
+            minPriorityScore: 0,
+            isActive: true,
+            status: "Active",
+          })
+        : task;
 
-    const result = await runTaskNow((taskForRun ?? task).id, { schedulerMode: true });
-    results.push({
-      taskId: task.id,
-      taskName: task.name,
-      taskType: task.type,
-      status: result?.taskRun.status ?? "not_found",
-      runId: result?.taskRun.id ?? null,
-      telegramStatus: result?.taskRun.telegramStatus ?? null,
-      priorityScore: result?.taskRun.priorityScore ?? null,
-      minPriorityScore: (taskForRun ?? task).minPriorityScore,
-      outputChannels: (taskForRun ?? task).outputChannels,
-      language: result?.taskRun.language ?? null,
-      translatedAt: result?.taskRun.translatedAt ?? null,
-    });
+      const activeTask = taskForRun ?? task;
+      const result = await runTaskNow(activeTask.id, { schedulerMode: true });
+      results.push({
+        taskId: activeTask.id,
+        taskName: activeTask.name,
+        taskType: activeTask.type,
+        status: result?.taskRun.status ?? "not_found",
+        runId: result?.taskRun.id ?? null,
+        telegramStatus: result?.taskRun.telegramStatus ?? null,
+        priorityScore: result?.taskRun.priorityScore ?? null,
+        minPriorityScore: activeTask.minPriorityScore,
+        outputChannels: activeTask.outputChannels,
+        language: result?.taskRun.language ?? null,
+        translatedAt: result?.taskRun.translatedAt ?? null,
+      });
+    } catch (error) {
+      results.push({
+        taskId: task.id,
+        taskName: task.name,
+        taskType: task.type,
+        status: "failed",
+        runId: null,
+        telegramStatus: "skipped_scheduler_error",
+        priorityScore: null,
+        minPriorityScore: force ? 0 : task.minPriorityScore,
+        outputChannels: force ? withTelegramChannel(task.outputChannels) : task.outputChannels,
+        language: null,
+        translatedAt: null,
+        error: getErrorMessage(error),
+      });
+    }
   }
 
   return {
     success: true,
     mode: process.env.USE_SUPABASE === "true" ? "supabase" : "mock",
     checkedAt,
-    force: Boolean(options.force),
+    force,
     dueTasks: dueTasks.length,
     results,
   };
