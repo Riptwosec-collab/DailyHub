@@ -61,7 +61,9 @@ async function safeSource(source: string, handler: () => Promise<DataSourceResul
 function sourceHandler(source: string, task: ScheduledTask) {
   if (source === "News") return () => fetchNewsUpdates(task);
   if (source === "Gmail") return () => fetchEmailUpdates(task);
-  if (source === "Product Prices") return () => fetchSaleUpdates(task);
+  if (["Product Prices", "Global Product Radar", "Product Trends", "สินค้าออกใหม่/น่าสนใจจากทั่วโลก"].includes(source)) {
+    return () => fetchSaleUpdates(task);
+  }
   if (source === "Football API") return () => fetchFootballUpdates(task);
   if (source === "Weather API") return () => fetchWeatherUpdates(task);
   if (source === "Concert API") return () => fetchConcertUpdates(task);
@@ -75,7 +77,7 @@ function getEffectiveSources(task: ScheduledTask) {
 
   // Some task types need their own structured payload even when the UI shows
   // generic sources such as News or Weather API. This ensures Telegram gets
-  // dedicated Weekend / Football sections instead of only raw news/weather.
+  // dedicated Weekend / Football / Product sections instead of raw mixed data.
   if (task.type === "Weekend Ideas" && !sources.includes("Weekend Ideas")) {
     sources.unshift("Weekend Ideas");
   }
@@ -86,6 +88,10 @@ function getEffectiveSources(task: ScheduledTask) {
 
   if (task.type === "World Cup Recap" && !sources.includes("Football API")) {
     sources.unshift("Football API");
+  }
+
+  if (task.type === "Sale Monitor" && !sources.includes("Global Product Radar")) {
+    sources.unshift("Global Product Radar");
   }
 
   return Array.from(new Set(sources));
