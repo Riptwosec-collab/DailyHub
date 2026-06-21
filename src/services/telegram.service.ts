@@ -3,8 +3,7 @@ import type { TaskRun } from "@/types/task-run";
 
 const TELEGRAM_BRAND_NAME = "Nimbus Daily";
 const TELEGRAM_SAFE_LIMIT = 3600;
-const MAX_SOURCE_ITEMS = 5;
-const MAX_FIELD_LENGTH = 280;
+const MAX_TELEGRAM_BULLETS = 4;
 
 type TelegramTopicMeta = {
   emoji: string;
@@ -42,7 +41,7 @@ export function getTelegramModeStatus() {
   };
 }
 
-function truncate(value: string, max = MAX_FIELD_LENGTH) {
+function truncate(value: string, max = 420) {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1)}…`;
@@ -58,25 +57,27 @@ function asString(value: unknown) {
   return "";
 }
 
-function normalizeKey(value: string) {
-  return value.toLowerCase().replace(/[_\-]+/g, " ").trim();
-}
-
 function safeArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeKey(value: string) {
+  return value.toLowerCase().replace(/[_\-]+/g, " ").trim();
 }
 
 function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
   const text = normalizeKey(values.filter(Boolean).join(" "));
 
-  if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;
+  // Match task-level categories before source-level terms. This prevents a Daily Brief
+  // that contains Weather API from being labeled as only Weather.
+  if (/daily brief|morning daily|brief|news|headline|ข่าว|สรุป/.test(text)) return TOPIC_META.dailyBrief;
+  if (/weekend long read|long read|article|reading|บทความ|อ่านยาว/.test(text)) return TOPIC_META.weekendLongRead;
+  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) return TOPIC_META.weekendIdeas;
   if (/product radar|global product|product trend|new product|interesting product|gadget|สินค้าใหม่|สินค้าน่าสนใจ|สินค้าออกใหม่|ทั่วโลก/.test(text)) return TOPIC_META.productRadar;
   if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.productRadar;
+  if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;
   if (/football|soccer|world cup|match|score|premier|บอล|ฟุตบอล/.test(text)) return TOPIC_META.football;
   if (/concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|บัตร/.test(text)) return TOPIC_META.concert;
-  if (/weekend long read|long read|article|read|บทความ|อ่านยาว/.test(text)) return TOPIC_META.weekendLongRead;
-  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) return TOPIC_META.weekendIdeas;
-  if (/daily brief|brief|news|headline|ข่าว|สรุป/.test(text)) return TOPIC_META.dailyBrief;
   if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(text)) return TOPIC_META.weather;
   if (/telegram test|test|ทดสอบ/.test(text)) return TOPIC_META.test;
 
@@ -84,253 +85,51 @@ function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
 }
 
 function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
-  const taskText = normalizeKey(`${task.type} ${task.name}`);
-
-  // The header must identify the task itself first. Data sources like Weather API
-  // should not rename Morning Daily Brief into Weather Update.
-  if (/daily brief|morning daily brief|brief/.test(taskText)) return TOPIC_META.dailyBrief;
-  if (/world cup recap|football recap|football|soccer|บอล|ฟุตบอล/.test(taskText)) return TOPIC_META.football;
-  if (/weekend long read|long read|reading list|อ่านยาว/.test(taskText)) return TOPIC_META.weekendLongRead;
-  if (/weekend ideas|weekend idea|ideas generator|ไอเดีย/.test(taskText)) return TOPIC_META.weekendIdeas;
-  if (/email monitor|important email|gmail|อีเมล/.test(taskText)) return TOPIC_META.email;
-  if (/sale monitor|sale|shopee|deal|discount|promo|product radar|global product|สินค้า|ลดราคา|โปร/.test(taskText)) return TOPIC_META.productRadar;
-  if (/concert alerts|concert|artist|ticket|คอนเสิร์ต|ศิลปิน|บัตร/.test(taskText)) return TOPIC_META.concert;
-  if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(taskText)) return TOPIC_META.weather;
-  if (/telegram test|test|ทดสอบ/.test(taskText)) return TOPIC_META.test;
-
   return getTopicMetaFromText(task.type, task.name);
 }
 
-function getSourceTopicMeta(sourceName: string): TelegramTopicMeta {
-  return getTopicMetaFromText(sourceName);
+function getSourceRecords(run: TaskRun) {
+  const rawInput = asRecord(run.rawInput);
+  return safeArray(rawInput?.sources).map(asRecord).filter((item): item is Record<string, unknown> => Boolean(item));
 }
 
-function getTaskDisplayName(task: ScheduledTask) {
-  if (task.type === "Sale Monitor") return "สินค้าออกใหม่/น่าสนใจจากทั่วโลก (Global Product Radar)";
-  return `${task.name} (${task.type})`;
+function getSourceItems(sourceRecord: Record<string, unknown>) {
+  const data = sourceRecord.data;
+  const dataRecord = asRecord(data);
+
+  if (Array.isArray(sourceRecord.items)) return sourceRecord.items;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(dataRecord?.ideas)) return dataRecord.ideas;
+  if (Array.isArray(dataRecord?.articles)) return dataRecord.articles;
+  if (Array.isArray(dataRecord?.items)) return dataRecord.items;
+  if (data !== undefined && data !== null) return [data];
+  return [];
 }
 
-function formatMoney(value: unknown) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "ไม่ระบุ";
-  return `${number.toLocaleString("th-TH")} บาท`;
-}
-
-function formatPriority(priority: unknown) {
-  const text = asString(priority).toLowerCase();
-  if (text === "high") return "สูง";
-  if (text === "medium") return "ปานกลาง";
-  if (text === "low") return "ต่ำ";
-  return asString(priority) || "ไม่ระบุ";
-}
-
-function formatScore(value: unknown) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "ไม่ระบุ";
-  return `${Math.min(Math.max(number, 0), 100)}/100`;
+function getDataStats(run: TaskRun) {
+  const sources = getSourceRecords(run);
+  const sourceNames = sources.map((source) => asString(source.source) || asString(source.title)).filter(Boolean);
+  const itemCount = sources.reduce((total, source) => total + getSourceItems(source).length, 0);
+  return {
+    sourceCount: sources.length,
+    itemCount,
+    sourceNames,
+  };
 }
 
 function getThaiBullets(run: TaskRun) {
   const translation = run.translation;
   if (translation?.translatedBullets?.length) {
-    return translation.translatedBullets.map((item) => `- ${item}`).join("\n");
-  }
-  if (run.gptOutput.recommended_action) {
-    return run.gptOutput.recommended_action.split("\n").filter(Boolean).map((item) => `- ${item}`).join("\n");
-  }
-  return `- ${run.gptOutput.summary}`;
-}
-
-function formatProductItem(record: Record<string, unknown>, index: number) {
-  const product = asString(record.product);
-  const category = asString(record.category);
-  const trendType = asString(record.trendType);
-  const country = asString(record.country);
-  const brandOrMaker = asString(record.brandOrMaker) || asString(record.brand) || asString(record.maker);
-  const globalSource = asString(record.globalSource) || asString(record.store) || asString(record.source);
-  const whyInteresting = asString(record.whyInteresting) || asString(record.reason);
-  const highlight = asString(record.highlight);
-  const useCase = asString(record.useCase);
-  const audience = asString(record.audience);
-  const priceHint = asString(record.priceHint);
-  const availability = asString(record.availability);
-  const caution = asString(record.caution);
-  const action = asString(record.action);
-  const contentIdea = asString(record.contentIdea);
-  const score = record.score;
-  const url = asString(record.url);
-  const currentPrice = record.currentPrice;
-  const oldPrice = record.oldPrice;
-  const discountPercent = record.discountPercent;
-
-  return [
-    `${index + 1}. 🌍 ${truncate(product || "สินค้า/แกดเจ็ตน่าสนใจ", 160)}`,
-    category ? `🏷️ หมวด: ${truncate(category, 100)}` : "",
-    trendType ? `✨ เทรนด์: ${truncate(trendType, 160)}` : "",
-    country ? `🌐 แหล่งเทรนด์: ${truncate(country, 100)}` : "",
-    brandOrMaker ? `🏢 แบรนด์/ผู้ผลิต: ${truncate(brandOrMaker, 100)}` : "",
-    globalSource ? `🔎 พบจาก: ${truncate(globalSource, 180)}` : "",
-    whyInteresting ? `💡 ทำไมน่าสนใจ: ${truncate(whyInteresting, 260)}` : "",
-    highlight ? `⭐ จุดเด่น: ${truncate(highlight, 220)}` : "",
-    useCase ? `🧩 ใช้ทำอะไร: ${truncate(useCase, 180)}` : "",
-    audience ? `👤 เหมาะกับ: ${truncate(audience, 180)}` : "",
-    oldPrice !== undefined || currentPrice !== undefined ? `💰 ราคา: ${formatMoney(oldPrice)} → ${formatMoney(currentPrice)}` : "",
-    discountPercent !== undefined ? `🏷️ ส่วนลด: ${discountPercent}%` : "",
-    priceHint ? `💰 ราคา/ระดับ: ${truncate(priceHint, 150)}` : "",
-    availability ? `📦 สถานะ/การหาซื้อ: ${truncate(availability, 160)}` : "",
-    caution ? `⚠️ ควรเช็กก่อน: ${truncate(caution, 220)}` : "",
-    action ? `✅ ควรทำต่อ: ${truncate(action, 220)}` : "",
-    contentIdea ? `🎬 ไอเดียคอนเทนต์: ${truncate(contentIdea, 220)}` : "",
-    score !== undefined ? `🔥 คะแนนน่าสนใจ: ${formatScore(score)}` : "",
-    url ? `🔗 ค้นต่อ: ${url}` : "",
-  ].filter(Boolean).join("\n   ");
-}
-
-function formatSourceItem(item: unknown, index: number) {
-  const record = asRecord(item);
-  if (!record) return `${index + 1}. ${truncate(String(item ?? "ไม่มีรายละเอียด"))}`;
-
-  const nestedSource = asRecord(record.source);
-  const sourceName = asString(nestedSource?.name) || asString(record.source) || asString(record.name);
-  const subject = asString(record.subject);
-  const from = asString(record.from);
-  const title = asString(record.title);
-  const description = asString(record.description);
-  const content = asString(record.content);
-  const url = asString(record.url);
-  const priorityHint = record.priorityHint;
-
-  const product = asString(record.product);
-  if (product || asString(record.category) || asString(record.whyInteresting) || asString(record.trendType)) {
-    return formatProductItem(record, index);
+    return translation.translatedBullets.slice(0, MAX_TELEGRAM_BULLETS).map((item) => `- ${truncate(item, 180)}`).join("\n");
   }
 
-  const match = asString(record.match);
-  const score = asString(record.score);
-  const competition = asString(record.competition);
-  const highlight = asString(record.highlight);
-  const keyMoment = asString(record.keyMoment);
-  const thaiNote = asString(record.thaiNote);
+  const actionLines = run.gptOutput.recommended_action
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-  if (match || score || highlight) {
-    return [
-      `${index + 1}. ⚽ ฟุตบอล: ${match || "แมตช์"}${score ? ` (${score})` : ""}`,
-      competition ? `รายการ: ${truncate(competition, 100)}` : "",
-      highlight ? `ไฮไลต์: ${truncate(highlight, 180)}` : "",
-      keyMoment ? `จังหวะสำคัญ: ${truncate(keyMoment, 220)}` : "",
-      thaiNote ? `หมายเหตุ: ${truncate(thaiNote, 200)}` : "",
-    ].filter(Boolean).join("\n   ");
-  }
-
-  const artist = asString(record.artist);
-  const city = asString(record.city);
-  const date = asString(record.date);
-  const venue = asString(record.venue);
-  const genre = asString(record.genre);
-  const ticketStatus = asString(record.ticketStatus);
-  const action = asString(record.action);
-
-  if (artist || venue) {
-    return [
-      `${index + 1}. 🎤 คอนเสิร์ต: ${artist || "ศิลปิน/งานดนตรี"}`,
-      city ? `เมือง: ${truncate(city, 80)}` : "",
-      venue ? `สถานที่: ${truncate(venue, 120)}` : "",
-      date ? `วันที่: ${date}` : "",
-      genre ? `แนวเพลง: ${truncate(genre, 80)}` : "",
-      ticketStatus ? `สถานะบัตร: ${truncate(ticketStatus, 120)}` : "",
-      action ? `ควรทำ: ${truncate(action, 180)}` : "",
-      url ? `ลิงก์: ${url}` : "",
-    ].filter(Boolean).join("\n   ");
-  }
-
-  const idea = asString(record.idea);
-  const ideaLocation = asString(record.location);
-  const budget = asString(record.budget);
-  const mood = asString(record.mood);
-  const bestTime = asString(record.bestTime);
-  const why = asString(record.why);
-
-  if (idea || budget || bestTime || why) {
-    return [
-      `${index + 1}. 🧭 ไอเดีย: ${truncate(idea || "Weekend idea", 160)}`,
-      ideaLocation ? `สถานที่: ${truncate(ideaLocation, 120)}` : "",
-      budget ? `งบประมาณ: ${truncate(budget, 80)}` : "",
-      mood ? `อารมณ์/สไตล์: ${truncate(mood, 80)}` : "",
-      bestTime ? `เวลาที่เหมาะ: ${truncate(bestTime, 80)}` : "",
-      why ? `เหตุผล: ${truncate(why, 220)}` : "",
-    ].filter(Boolean).join("\n   ");
-  }
-
-  if (subject || from) {
-    return [
-      `${index + 1}. 📧 ${subject ? `อีเมล: ${truncate(subject, 160)}` : "อีเมล"}`,
-      from ? `จาก: ${truncate(from, 120)}` : "",
-      priorityHint ? `ความสำคัญ: ${formatPriority(priorityHint)}` : "",
-    ].filter(Boolean).join(" | ");
-  }
-
-  const forecast = asRecord(record.forecast);
-  const current = asRecord(forecast?.current);
-  const weatherLocation = asString(record.location);
-  if (weatherLocation || current) {
-    return [
-      `${index + 1}. 🌦️ สภาพอากาศ${weatherLocation ? `: ${weatherLocation}` : ""}`,
-      current?.temperature_2m !== undefined ? `อุณหภูมิ: ${current.temperature_2m}°C` : "",
-      current?.rain !== undefined ? `ฝน: ${current.rain} mm` : "",
-      current?.precipitation !== undefined ? `ปริมาณฝน: ${current.precipitation} mm` : "",
-      current?.time ? `เวลา: ${current.time}` : "",
-    ].filter(Boolean).join(" | ");
-  }
-
-  if (title || description || content) {
-    const meta = getSourceTopicMeta(sourceName || title || description || content);
-    return [
-      `${index + 1}. ${meta.emoji} ${title ? truncate(title, 180) : "ข่าว/ข้อมูล"}`,
-      sourceName ? `แหล่ง: ${truncate(sourceName, 90)}` : "",
-      description ? `รายละเอียด: ${truncate(description, 220)}` : content ? `เนื้อหา: ${truncate(content, 220)}` : "",
-      url ? `ลิงก์: ${url}` : "",
-    ].filter(Boolean).join("\n   ");
-  }
-
-  return `${index + 1}. ${truncate(JSON.stringify(record), 260)}`;
-}
-
-function buildSourceDetails(run: TaskRun) {
-  const rawInput = asRecord(run.rawInput);
-  const sources = safeArray(rawInput?.sources);
-  if (!sources.length) return "";
-
-  const sections = sources.map((sourceEntry) => {
-    const sourceRecord = asRecord(sourceEntry);
-    if (!sourceRecord) return "";
-
-    const sourceName = asString(sourceRecord.source) || asString(sourceRecord.title) || "แหล่งข้อมูล";
-    const sourceMeta = getSourceTopicMeta(sourceName);
-    const status = asString(sourceRecord.status);
-    const data = sourceRecord.data;
-    const dataRecord = asRecord(data);
-    const items = Array.isArray(sourceRecord.items)
-      ? sourceRecord.items
-      : Array.isArray(data)
-        ? data
-        : Array.isArray(dataRecord?.ideas)
-          ? dataRecord.ideas
-          : data !== undefined
-            ? [data]
-            : [];
-
-    const formattedItems = items.slice(0, MAX_SOURCE_ITEMS).map(formatSourceItem);
-    const moreCount = Math.max(0, items.length - MAX_SOURCE_ITEMS);
-
-    return [
-      `${sourceMeta.emoji} ${sourceMeta.shortLabel} | ${sourceName}${status ? ` (${status})` : ""}`,
-      formattedItems.length ? formattedItems.join("\n") : "- ไม่มีรายการข้อมูลจากแหล่งนี้",
-      moreCount > 0 ? `…มีอีก ${moreCount} รายการ ดูทั้งหมดใน Dashboard` : "",
-    ].filter(Boolean).join("\n");
-  }).filter(Boolean);
-
-  if (!sections.length) return "";
-  return sections.join("\n\n");
+  if (actionLines.length) return actionLines.slice(0, MAX_TELEGRAM_BULLETS).map((item) => `- ${truncate(item, 180)}`).join("\n");
+  return `- ${truncate(run.gptOutput.summary, 220)}`;
 }
 
 function getTranslationMode(run: TaskRun) {
@@ -341,13 +140,50 @@ function getTranslationMode(run: TaskRun) {
   return "ไม่ระบุ";
 }
 
+function getAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "";
+}
+
+function getFullDataUrl(run: TaskRun) {
+  const baseUrl = getAppBaseUrl();
+  if (!baseUrl) return "";
+  return `${baseUrl}/data-library?run=${encodeURIComponent(run.id)}`;
+}
+
 function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
-  const source = translation?.originalSource ?? (safeArray(task.dataSources).map(String).join(", ") || task.type);
-  const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
   const topicMeta = getTaskTopicMeta(task);
+  const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
+  const title = translation?.translatedTitle ?? run.gptOutput.title;
+  const summary = translation?.translatedSummary ?? run.translatedContent ?? run.gptOutput.summary;
+  const stats = getDataStats(run);
+  const fullDataUrl = getFullDataUrl(run);
 
-  return `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${getTaskDisplayName(task)}\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
+  return [
+    `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}`,
+    `หัวข้อ: ${truncate(title, 180)}`,
+    `ประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}`,
+    "",
+    "สรุปสั้น:",
+    truncate(summary, 520),
+    "",
+    "ประเด็นสำคัญ:",
+    getThaiBullets(run),
+    "",
+    "ข้อมูลเต็ม:",
+    `- แหล่งข้อมูล: ${stats.sourceNames.length ? stats.sourceNames.join(", ") : task.dataSources.join(", ") || task.type}`,
+    `- จำนวนแหล่งข้อมูล: ${stats.sourceCount}`,
+    `- จำนวนรายการที่เก็บไว้บนเว็บ: ${stats.itemCount}`,
+    fullDataUrl ? `- อ่านข้อมูลเต็มแยกหมวด: ${fullDataUrl}` : "- อ่านข้อมูลเต็มได้ที่หน้า Data Library บนเว็บ",
+    "",
+    `โหมดแปล: ${getTranslationMode(run)}`,
+    `Priority: ${run.priorityScore}/100`,
+    `Status: ${run.status}`,
+    `เวลาอัปเดต: ${translatedAt}`,
+  ].filter(Boolean).join("\n");
 }
 
 function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
@@ -367,14 +203,8 @@ function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
 }
 
 export function buildTelegramMessages(task: ScheduledTask, run: TaskRun) {
-  const main = buildMainTelegramMessage(task, run);
-  const sourceDetails = buildSourceDetails(run);
-
-  const combined = sourceDetails
-    ? `${main}\n\nข้อมูลที่พบจากแหล่งต่าง ๆ:\n${sourceDetails}`
-    : main;
-
-  return splitLongText(combined).map((chunk, index, chunks) => {
+  const compactMessage = buildMainTelegramMessage(task, run);
+  return splitLongText(compactMessage).map((chunk, index, chunks) => {
     if (chunks.length === 1) return chunk;
     return `${chunk}\n\n(${index + 1}/${chunks.length})`;
   });
@@ -414,7 +244,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
       responses.push(responseText);
     }
 
-    return { status: "sent", message: `Telegram message sent (${messages.length} part${messages.length > 1 ? "s" : ""})`, response: responses.join("\n") };
+    return { status: "sent", message: `Telegram summary sent (${messages.length} part${messages.length > 1 ? "s" : ""})`, response: responses.join("\n") };
   } catch (error) {
     if (fallback) return { status: "mock_sent_fallback", message: error instanceof Error ? error.message : "Telegram fallback" };
     return { status: "failed", message: error instanceof Error ? error.message : "Telegram failed" };
@@ -456,7 +286,7 @@ export async function sendTelegramTestMessage(message = `${TELEGRAM_BRAND_NAME} 
       title: "ทดสอบ Telegram",
       summary: message,
       priority_score: 100,
-      recommended_action: "ตรวจสอบว่าได้รับข้อความภาษาไทยแล้ว",
+      recommended_action: "ตรวจสอบว่าได้รับข้อความสรุปแล้ว และข้อมูลเต็มจะอยู่บนเว็บ",
       caption: null,
       image_prompt: null,
     },
