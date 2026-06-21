@@ -33,10 +33,9 @@ export async function GET(request: Request) {
   const ok = telegramResult.status === "sent";
   if (!ok) {
     return errorResponse(
-      `Telegram test did not send a real message: ${telegramResult.status} - ${telegramResult.message}`,
+      `Telegram test did not send a real message: ${telegramResult.status} - ${telegramResult.message}. Mode=${telegramMode.mode}, enabled=${telegramMode.enabled}, hasToken=${telegramMode.hasToken}, hasChatId=${telegramMode.hasChatId}`,
       500,
       "INTERNAL_ERROR",
-      { telegramMode, telegramResult },
     );
   }
 
