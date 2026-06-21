@@ -1,4 +1,4 @@
-import { listDueScheduledTasks, listScheduledTasks } from "@/lib/repositories/scheduled-tasks.repository";
+import { listDueScheduledTasks, listScheduledTasks, updateScheduledTask } from "@/lib/repositories/scheduled-tasks.repository";
 import { runTaskNow } from "./task-runner.service";
 
 export type SchedulerTickOptions = {
@@ -8,6 +8,10 @@ export type SchedulerTickOptions = {
    */
   force?: boolean;
 };
+
+function withTelegramChannel(outputChannels: string[]) {
+  return outputChannels.includes("Send Telegram") ? outputChannels : [...outputChannels, "Send Telegram"];
+}
 
 export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   if (process.env.ENABLE_SCHEDULER === "false") {
@@ -26,7 +30,14 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   const results = [];
 
   for (const task of dueTasks) {
-    const result = await runTaskNow(task.id, { schedulerMode: true });
+    const taskForRun = options.force
+      ? await updateScheduledTask(task.id, {
+          outputChannels: withTelegramChannel(task.outputChannels),
+          minPriorityScore: process.env.TELEGRAM_IGNORE_PRIORITY === "true" ? 0 : task.minPriorityScore,
+        })
+      : task;
+
+    const result = await runTaskNow((taskForRun ?? task).id, { schedulerMode: true });
     results.push({
       taskId: task.id,
       taskName: task.name,
@@ -35,8 +46,8 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
       runId: result?.taskRun.id ?? null,
       telegramStatus: result?.taskRun.telegramStatus ?? null,
       priorityScore: result?.taskRun.priorityScore ?? null,
-      minPriorityScore: task.minPriorityScore,
-      outputChannels: task.outputChannels,
+      minPriorityScore: (taskForRun ?? task).minPriorityScore,
+      outputChannels: (taskForRun ?? task).outputChannels,
       language: result?.taskRun.language ?? null,
       translatedAt: result?.taskRun.translatedAt ?? null,
     });
