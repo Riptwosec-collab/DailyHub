@@ -8,11 +8,29 @@ import { collectTaskDataSources } from "./data-source.service";
 import { createNotificationFromTaskRun } from "./notification.service";
 import { buildFailedGptOutput, buildGptPrompt, generateGptOutput, getErrorMessage } from "./openai.service";
 import { sendTelegramMessage } from "./telegram.service";
+import { buildTranslationInputFromTask, normalizeBilingualContent, toTranslatedGptOutput } from "./translation.service";
 
 export interface RunTaskNowResult {
   task: ScheduledTask;
   taskRun: TaskRun;
   notification: WebNotification | null;
+}
+
+async function buildTranslatedRunPayload(task: ScheduledTask, rawInput: Record<string, unknown>, gptOutput: TaskRun["gptOutput"]) {
+  const translation = await normalizeBilingualContent(buildTranslationInputFromTask(task, rawInput, gptOutput));
+  const translatedGptOutput = toTranslatedGptOutput(gptOutput, translation);
+
+  return {
+    translation,
+    translatedGptOutput,
+    translatedRawInput: {
+      ...rawInput,
+      translation,
+      originalContent: translation.originalContent,
+      translatedContent: translation.translatedSummary,
+      translatedBullets: translation.translatedBullets,
+    },
+  };
 }
 
 export async function runTaskNow(taskId: string, options: { userId?: string; schedulerMode?: boolean } = {}): Promise<RunTaskNowResult | null> {
@@ -37,6 +55,7 @@ export async function runTaskNow(taskId: string, options: { userId?: string; sch
     gptOutput = buildFailedGptOutput(task, errorMessage);
   }
 
+  const { translation, translatedGptOutput, translatedRawInput } = await buildTranslatedRunPayload(task, rawInput, gptOutput);
   const finishedAt = new Date().toISOString();
   const initialRun: TaskRun = {
     id: createId("run"),
@@ -44,12 +63,17 @@ export async function runTaskNow(taskId: string, options: { userId?: string; sch
     status,
     startedAt,
     finishedAt,
-    rawInput,
+    rawInput: translatedRawInput,
     gptPrompt,
-    gptOutput,
-    priorityScore: gptOutput.priority_score,
+    gptOutput: translatedGptOutput,
+    priorityScore: translatedGptOutput.priority_score,
     telegramStatus: status === "success" ? "pending" : "skipped_failed",
     errorMessage,
+    originalContent: translation.originalContent,
+    translatedContent: translation.translatedSummary,
+    language: translation.originalLanguage,
+    translatedAt: translation.translatedAt,
+    translation,
   };
 
   const telegramResult = status === "success" ? await sendTelegramMessage({ task, run: initialRun }) : { status: "skipped_failed" };
@@ -85,28 +109,42 @@ export async function regenerateTaskRun(runId: string, userId?: string) {
 
   try {
     const gptOutput = await generateGptOutput(task, rawInput);
+    const { translation, translatedGptOutput, translatedRawInput } = await buildTranslatedRunPayload(task, rawInput, gptOutput);
+
     return await updateTaskRun(runId, {
       status: "success",
       finishedAt: now,
-      rawInput,
+      rawInput: translatedRawInput,
       gptPrompt,
-      gptOutput,
-      priorityScore: gptOutput.priority_score,
+      gptOutput: translatedGptOutput,
+      priorityScore: translatedGptOutput.priority_score,
       telegramStatus: "regenerated",
       errorMessage: null,
+      originalContent: translation.originalContent,
+      translatedContent: translation.translatedSummary,
+      language: translation.originalLanguage,
+      translatedAt: translation.translatedAt,
+      translation,
     });
   } catch (error) {
     const errorMessage = getErrorMessage(error);
     const gptOutput = buildFailedGptOutput(task, errorMessage);
+    const { translation, translatedGptOutput, translatedRawInput } = await buildTranslatedRunPayload(task, rawInput, gptOutput);
+
     return await updateTaskRun(runId, {
       status: "failed",
       finishedAt: now,
-      rawInput,
+      rawInput: translatedRawInput,
       gptPrompt,
-      gptOutput,
+      gptOutput: translatedGptOutput,
       priorityScore: 0,
       telegramStatus: "skipped_failed",
       errorMessage,
+      originalContent: translation.originalContent,
+      translatedContent: translation.translatedSummary,
+      language: translation.originalLanguage,
+      translatedAt: translation.translatedAt,
+      translation,
     });
   }
 }
