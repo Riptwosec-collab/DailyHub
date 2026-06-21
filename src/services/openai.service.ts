@@ -40,6 +40,23 @@ function resolveAiConfig(): AiConfig {
   };
 }
 
+function getPromptTaskIdentity(task: ScheduledTask) {
+  if (task.type === "Sale Monitor") {
+    return {
+      name: "สินค้าออกใหม่/น่าสนใจจากทั่วโลก",
+      type: "Global Product Radar",
+      instruction:
+        "This task is NOT a Shopee discount monitor. Focus on newly launched, trending, unusual, or globally interesting products. Do not frame the result as coupons, discounts, or Shopee deals.",
+    };
+  }
+
+  return {
+    name: task.name,
+    type: task.type,
+    instruction: "Use the task type and raw input as the main context.",
+  };
+}
+
 export function getOpenAiModeStatus() {
   const config = resolveAiConfig();
 
@@ -53,9 +70,12 @@ export function getOpenAiModeStatus() {
 }
 
 export function buildGptPrompt(task: ScheduledTask, rawInput: Record<string, unknown>) {
+  const identity = getPromptTaskIdentity(task);
+
   return `You are Nimbus Daily.
-Task Name: ${task.name}
-Task Type: ${task.type}
+Task Name: ${identity.name}
+Task Type: ${identity.type}
+Task Instruction: ${identity.instruction}
 Data Sources: ${task.dataSources.join(", ")}
 GPT Actions: ${task.gptActions.join(", ")}
 Minimum Priority Score for alerts: ${task.minPriorityScore}
@@ -76,6 +96,7 @@ Rules:
 - Do not invent facts not present in raw input.
 - Keep summary concise and useful for a dashboard.
 - If content creation is requested, include caption and image_prompt.
+- For Global Product Radar, write in Thai, organize the result around why each product is interesting, who it is for, what to check before buying, and one content angle.
 - Return valid JSON only. Do not wrap the JSON in markdown.
 
 Raw Input:
@@ -95,7 +116,18 @@ export function buildFailedGptOutput(task: ScheduledTask, errorMessage: string):
 
 export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<string, unknown>): GptOutput {
   const sourceCount = Array.isArray(rawInput?.sources) ? rawInput.sources.length : task.dataSources.length;
-  const priority = task.type === "Email Monitor" ? 88 : task.type === "Sale Monitor" ? 84 : task.type === "World Cup Recap" ? 72 : 78;
+  const priority = task.type === "Email Monitor" ? 88 : task.type === "Sale Monitor" ? 90 : task.type === "World Cup Recap" ? 72 : 78;
+
+  if (task.type === "Sale Monitor") {
+    return {
+      title: "สินค้าออกใหม่/น่าสนใจจากทั่วโลก",
+      summary: `คัดสินค้าและแกดเจ็ตที่กำลังน่าสนใจจาก ${sourceCount} แหล่งข้อมูลทั่วโลก พร้อมเหตุผล กลุ่มผู้ใช้ จุดเด่น ข้อควรเช็ก และไอเดียทำคอนเทนต์`,
+      priority_score: priority,
+      recommended_action: "เลือก 1-2 ชิ้นที่เข้ากับกลุ่มเป้าหมาย แล้วทำโพสต์รีวิว/คัดของน่าสนใจ โดยไม่เน้น Shopee หรือโปรลดราคา",
+      caption: "สินค้าใหม่/ของน่าสนใจจากทั่วโลกที่ควรจับตา 🌍✨",
+      image_prompt: "9:16 global product radar card, curated gadgets from around the world, clean Thai sections, modern dark glass UI, neon blue purple glow",
+    };
+  }
 
   return {
     title: `${task.name} Summary`,
@@ -116,11 +148,7 @@ function extractJsonObject(text: string): string {
 
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
-
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return cleaned.slice(firstBrace, lastBrace + 1);
-  }
-
+  if (firstBrace >= 0 && lastBrace > firstBrace) return cleaned.slice(firstBrace, lastBrace + 1);
   return cleaned;
 }
 
