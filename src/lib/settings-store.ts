@@ -1,10 +1,10 @@
-import type { DailyHubSettings, SchedulerMode, TelegramMode, OpenAiMode, UpdateDailyHubSettingsInput } from "@/types/settings";
+import type { NimbusDailySettings, SchedulerMode, TelegramMode, OpenAiMode, UpdateNimbusDailySettingsInput } from "@/types/settings";
 
 const openAiModes: OpenAiMode[] = ["mock", "real"];
 const telegramModes: TelegramMode[] = ["off", "on"];
 const schedulerModes: SchedulerMode[] = ["manual", "daily-cron", "external"];
 
-export const defaultSettings: DailyHubSettings = {
+export const defaultSettings: NimbusDailySettings = {
   openAiMode: process.env.ENABLE_OPENAI === "true" ? "real" : "mock",
   telegramMode: process.env.ENABLE_TELEGRAM === "true" ? "on" : "off",
   schedulerMode: process.env.ENABLE_SCHEDULER === "true" ? "daily-cron" : "manual",
@@ -19,10 +19,10 @@ export const defaultSettings: DailyHubSettings = {
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubSettings: DailyHubSettings | undefined;
+  var dailyHubSettings: NimbusDailySettings | undefined;
 }
 
-export function getDailyHubSettings() {
+export function getNimbusDailySettings() {
   if (!globalThis.dailyHubSettings) {
     globalThis.dailyHubSettings = { ...defaultSettings, updatedAt: new Date().toISOString() };
   }
@@ -44,10 +44,10 @@ function normalizeNumber(value: unknown, fallback: number) {
   return Math.min(Math.max(Math.round(parsed), 0), 100);
 }
 
-export function normalizeDailyHubSettings(
-  input: UpdateDailyHubSettingsInput,
-  current: DailyHubSettings = getDailyHubSettings(),
-): DailyHubSettings {
+export function normalizeNimbusDailySettings(
+  input: UpdateNimbusDailySettingsInput,
+  current: NimbusDailySettings = getNimbusDailySettings(),
+): NimbusDailySettings {
   return {
     openAiMode: openAiModes.includes(input.openAiMode as OpenAiMode) ? (input.openAiMode as OpenAiMode) : current.openAiMode,
     telegramMode: telegramModes.includes(input.telegramMode as TelegramMode) ? (input.telegramMode as TelegramMode) : current.telegramMode,
@@ -62,8 +62,8 @@ export function normalizeDailyHubSettings(
   };
 }
 
-export function updateDailyHubSettings(input: UpdateDailyHubSettingsInput) {
-  const next = normalizeDailyHubSettings(input, getDailyHubSettings());
+export function updateNimbusDailySettings(input: UpdateNimbusDailySettingsInput) {
+  const next = normalizeNimbusDailySettings(input, getNimbusDailySettings());
   globalThis.dailyHubSettings = next;
   return next;
 }

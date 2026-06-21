@@ -12,7 +12,7 @@ export async function GET() {
   const usage = await getUsageMetrics();
 
   return ok({
-    app: "DailyHub AI",
+    app: "Nimbus Daily",
     status: "ok",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV ?? "development",

@@ -46,7 +46,7 @@ export function AdminDashboardView() {
             <Badge tone="purple">Phase 19 Admin</Badge>
             <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">Admin / Usage Dashboard</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              ดูสถานะระบบ, task usage, OpenAI/Telegram mode, failed runs, audit logs และ health overview ของ DailyHub AI
+              ดูสถานะระบบ, task usage, OpenAI/Telegram mode, failed runs, audit logs และ health overview ของ Nimbus Daily
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Link href="/admin/usage"><Button variant="secondary">Usage</Button></Link>

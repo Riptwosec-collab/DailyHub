@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DailyHub AI",
+  title: "Nimbus Daily",
   description: "Scheduled GPT automation dashboard with OpenAI and Telegram integrations.",
 };
 

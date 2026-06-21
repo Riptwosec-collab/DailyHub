@@ -2,7 +2,7 @@ export type OpenAiMode = "mock" | "real";
 export type TelegramMode = "off" | "on";
 export type SchedulerMode = "manual" | "daily-cron" | "external";
 
-export interface DailyHubSettings {
+export interface NimbusDailySettings {
   openAiMode: OpenAiMode;
   telegramMode: TelegramMode;
   schedulerMode: SchedulerMode;
@@ -15,7 +15,7 @@ export interface DailyHubSettings {
   updatedAt: string;
 }
 
-export interface UpdateDailyHubSettingsInput {
+export interface UpdateNimbusDailySettingsInput {
   openAiMode?: OpenAiMode;
   telegramMode?: TelegramMode;
   schedulerMode?: SchedulerMode;

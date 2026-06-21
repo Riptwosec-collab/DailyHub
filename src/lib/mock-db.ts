@@ -3,7 +3,7 @@ import type { WebNotification } from "@/types/notification";
 import type { ScheduledTask, ScheduledTaskStatus } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
 
-export interface DailyHubMockDb {
+export interface NimbusDailyMockDb {
   scheduledTasks: ScheduledTask[];
   taskRuns: TaskRun[];
   webNotifications: WebNotification[];
@@ -18,33 +18,33 @@ type ApiErrorCode =
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubMockDb: DailyHubMockDb | undefined;
+  var nimbusDailyMockDb: NimbusDailyMockDb | undefined;
 }
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export function getMockDb(): DailyHubMockDb {
-  if (!globalThis.dailyHubMockDb) {
-    globalThis.dailyHubMockDb = {
+export function getMockDb(): NimbusDailyMockDb {
+  if (!globalThis.nimbusDailyMockDb) {
+    globalThis.nimbusDailyMockDb = {
       scheduledTasks: clone(scheduledTasks),
       taskRuns: clone(taskRuns),
       webNotifications: clone(webNotifications),
     };
   }
 
-  return globalThis.dailyHubMockDb;
+  return globalThis.nimbusDailyMockDb;
 }
 
 export function resetMockDb() {
-  globalThis.dailyHubMockDb = {
+  globalThis.nimbusDailyMockDb = {
     scheduledTasks: clone(scheduledTasks),
     taskRuns: clone(taskRuns),
     webNotifications: clone(webNotifications),
   };
 
-  return globalThis.dailyHubMockDb;
+  return globalThis.nimbusDailyMockDb;
 }
 
 export function createId(prefix: string) {

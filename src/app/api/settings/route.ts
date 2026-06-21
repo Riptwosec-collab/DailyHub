@@ -1,7 +1,7 @@
 import { requireCurrentUser } from "@/lib/auth";
 import { errorResponse, readJsonBody, successResponse } from "@/lib/mock-db";
 import { getUserSettings, updateUserSettings } from "@/lib/repositories/settings.repository";
-import type { UpdateDailyHubSettingsInput } from "@/types/settings";
+import type { UpdateNimbusDailySettingsInput } from "@/types/settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const body = await readJsonBody<UpdateDailyHubSettingsInput>(request);
+  const body = await readJsonBody<UpdateNimbusDailySettingsInput>(request);
   if (!body) return errorResponse("Invalid JSON body", 400, "INVALID_JSON");
 
   try {

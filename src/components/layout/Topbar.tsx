@@ -27,7 +27,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             ☰
           </button>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-cyan-300">DailyHub AI</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-cyan-300">Nimbus Daily</p>
             <h1 className="truncate text-lg font-black tracking-tight text-white sm:text-2xl">API-connected Dashboard</h1>
           </div>
         </div>

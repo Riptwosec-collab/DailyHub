@@ -14,7 +14,7 @@ export function getOpenAiModeStatus() {
 }
 
 export function buildGptPrompt(task: ScheduledTask, rawInput: Record<string, unknown>) {
-  return `You are DailyHub AI.
+  return `You are Nimbus Daily.
 Task Name: ${task.name}
 Task Type: ${task.type}
 Data Sources: ${task.dataSources.join(", ")}

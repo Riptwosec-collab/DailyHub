@@ -1,5 +1,5 @@
 export const env = {
-  appName: process.env.NEXT_PUBLIC_APP_NAME ?? "DailyHub AI",
+  appName: process.env.NEXT_PUBLIC_APP_NAME ?? "Nimbus Daily",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   appTimezone: process.env.APP_TIMEZONE ?? "Asia/Bangkok",
   useMockData: process.env.USE_MOCK_DATA !== "false",

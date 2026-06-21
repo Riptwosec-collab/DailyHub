@@ -160,7 +160,7 @@ export const taskRuns: TaskRun[] = [
       news: ["AI tools update", "Market movement summary"],
       weather: "Bangkok is cloudy with afternoon rain risk.",
     },
-    gptPrompt: "Summarize and prioritize today's updates for DailyHub AI.",
+    gptPrompt: "Summarize and prioritize today's updates for Nimbus Daily.",
     gptOutput: {
       title: "Morning Daily Brief",
       summary: "วันนี้มีข่าว AI และสภาพอากาศที่ควรรู้ เหมาะสำหรับจัดลำดับงานช่วงเช้า",

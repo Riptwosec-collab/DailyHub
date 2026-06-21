@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/Input";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { showToast } from "@/components/ui/ToastProvider";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
-import type { DailyHubSettings, SchedulerMode, TelegramMode, OpenAiMode } from "@/types/settings";
+import type { NimbusDailySettings, SchedulerMode, TelegramMode, OpenAiMode } from "@/types/settings";
 
 const timezones = ["Asia/Bangkok", "UTC", "Asia/Singapore", "Asia/Tokyo", "America/New_York", "Europe/London"];
 
 export function SettingsView() {
-  const [settings, setSettings] = useState<DailyHubSettings | null>(null);
+  const [settings, setSettings] = useState<NimbusDailySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function SettingsView() {
     setError(null);
 
     try {
-      const data = await apiRequest<DailyHubSettings>("/api/settings");
+      const data = await apiRequest<NimbusDailySettings>("/api/settings");
       setSettings(data);
     } catch (loadError) {
       setError(toErrorMessage(loadError));
@@ -37,7 +37,7 @@ export function SettingsView() {
     void loadSettings();
   }, []);
 
-  function update<K extends keyof DailyHubSettings>(key: K, value: DailyHubSettings[K]) {
+  function update<K extends keyof NimbusDailySettings>(key: K, value: NimbusDailySettings[K]) {
     setSettings((current) => (current ? { ...current, [key]: value } : current));
   }
 
@@ -46,7 +46,7 @@ export function SettingsView() {
 
     setIsSaving(true);
     try {
-      const nextSettings = await apiRequest<DailyHubSettings>("/api/settings", {
+      const nextSettings = await apiRequest<NimbusDailySettings>("/api/settings", {
         method: "PATCH",
         body: JSON.stringify(settings),
       });
@@ -186,10 +186,10 @@ export function SettingsView() {
               <label key={key} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                 <span className="text-sm font-bold text-slate-200">{label}</span>
                 <input
-                  checked={Boolean(settings[key as keyof DailyHubSettings])}
+                  checked={Boolean(settings[key as keyof NimbusDailySettings])}
                   className="h-5 w-5 accent-cyan-400"
                   type="checkbox"
-                  onChange={(event) => update(key as keyof DailyHubSettings, event.target.checked as never)}
+                  onChange={(event) => update(key as keyof NimbusDailySettings, event.target.checked as never)}
                 />
               </label>
             ))}

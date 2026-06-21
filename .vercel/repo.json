@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_K4AjctyBdwv2kFcYMOCTLAHXhlE4",
+      "name": "daily-hub",
+      "directory": ".",
+      "orgId": "team_Z38lCKQMRtbmROP53CV6myy9"
+    }
+  ]
+}

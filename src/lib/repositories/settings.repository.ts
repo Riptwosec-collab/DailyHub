@@ -1,6 +1,6 @@
-import { getDailyHubSettings, normalizeDailyHubSettings, updateDailyHubSettings } from "@/lib/settings-store";
+import { getNimbusDailySettings, normalizeNimbusDailySettings, updateNimbusDailySettings } from "@/lib/settings-store";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { DailyHubSettings, OpenAiMode, SchedulerMode, TelegramMode, UpdateDailyHubSettingsInput } from "@/types/settings";
+import type { NimbusDailySettings, OpenAiMode, SchedulerMode, TelegramMode, UpdateNimbusDailySettingsInput } from "@/types/settings";
 
 type UserSettingsRow = {
   user_id: string;
@@ -20,7 +20,7 @@ function useSupabasePersistence() {
   return process.env.USE_SUPABASE === "true";
 }
 
-function mapSettingsRow(row: UserSettingsRow): DailyHubSettings {
+function mapSettingsRow(row: UserSettingsRow): NimbusDailySettings {
   return {
     openAiMode: row.open_ai_mode,
     telegramMode: row.telegram_mode,
@@ -35,7 +35,7 @@ function mapSettingsRow(row: UserSettingsRow): DailyHubSettings {
   };
 }
 
-function mapSettingsToRow(userId: string, settings: DailyHubSettings) {
+function mapSettingsToRow(userId: string, settings: NimbusDailySettings) {
   return {
     user_id: userId,
     open_ai_mode: settings.openAiMode,
@@ -51,20 +51,20 @@ function mapSettingsToRow(userId: string, settings: DailyHubSettings) {
   };
 }
 
-export async function getUserSettings(userId: string): Promise<DailyHubSettings> {
+export async function getUserSettings(userId: string): Promise<NimbusDailySettings> {
   if (!useSupabasePersistence()) {
-    return getDailyHubSettings();
+    return getNimbusDailySettings();
   }
 
   const supabase = createAdminClient();
-  if (!supabase) return getDailyHubSettings();
+  if (!supabase) return getNimbusDailySettings();
 
   const { data, error } = await supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
 
   if (data) return mapSettingsRow(data as UserSettingsRow);
 
-  const defaults = getDailyHubSettings();
+  const defaults = getNimbusDailySettings();
   const { error: upsertError } = await supabase.from("user_settings").upsert(mapSettingsToRow(userId, defaults), {
     onConflict: "user_id",
   });
@@ -73,16 +73,16 @@ export async function getUserSettings(userId: string): Promise<DailyHubSettings>
   return defaults;
 }
 
-export async function updateUserSettings(userId: string, input: UpdateDailyHubSettingsInput): Promise<DailyHubSettings> {
+export async function updateUserSettings(userId: string, input: UpdateNimbusDailySettingsInput): Promise<NimbusDailySettings> {
   if (!useSupabasePersistence()) {
-    return updateDailyHubSettings(input);
+    return updateNimbusDailySettings(input);
   }
 
   const supabase = createAdminClient();
-  if (!supabase) return updateDailyHubSettings(input);
+  if (!supabase) return updateNimbusDailySettings(input);
 
   const current = await getUserSettings(userId);
-  const next = normalizeDailyHubSettings(input, current);
+  const next = normalizeNimbusDailySettings(input, current);
 
   const { data, error } = await supabase
     .from("user_settings")

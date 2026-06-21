@@ -138,7 +138,7 @@ export function DashboardApiView() {
           <div className="relative">
             <Badge tone="purple">API-connected UI</Badge>
             <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">
-              DailyHub AI Dashboard
+              Nimbus Daily Dashboard
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
               หน้านี้ fetch ข้อมูลจาก API routes จริง พร้อมใช้กับ Supabase, OpenAI และ Telegram integration

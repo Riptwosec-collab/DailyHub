@@ -37,7 +37,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border border-slate-950 bg-emerald-400" />
         </div>
         <div>
-          <p className="text-lg font-black tracking-tight text-white">DailyHub AI</p>
+          <p className="text-lg font-black tracking-tight text-white">Nimbus Daily</p>
           <p className="text-xs text-cyan-100/60">Production MVP</p>
         </div>
       </Link>

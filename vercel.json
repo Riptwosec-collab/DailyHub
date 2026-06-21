@@ -4,6 +4,4 @@
     {
       "path": "/api/scheduler/tick",
       "schedule": "0 0 * * *"
-    }
-  ]
-}
+    }

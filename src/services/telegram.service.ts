@@ -14,7 +14,7 @@ export function getTelegramModeStatus() {
 }
 
 export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
-  return `🤖 DailyHub AI Alert\n\nTask: ${task.name}\nType: ${task.type}\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\n\nSummary:\n${run.gptOutput.summary}\n\nRecommended Action:\n${run.gptOutput.recommended_action}`;
+  return `🤖 Nimbus Daily Alert\n\nTask: ${task.name}\nType: ${task.type}\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\n\nSummary:\n${run.gptOutput.summary}\n\nRecommended Action:\n${run.gptOutput.recommended_action}`;
 }
 
 export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; run: TaskRun }) {
@@ -45,7 +45,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
   }
 }
 
-export async function sendTelegramTestMessage(message = "DailyHub AI Telegram test") {
+export async function sendTelegramTestMessage(message = "Nimbus Daily Telegram test") {
   const fakeTask = {
     id: "test",
     userId: "user_001",

@@ -24,7 +24,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-600 font-black shadow-lg shadow-cyan-500/20">AI</div>
-            <div><p className="font-black">DailyHub AI</p><p className="text-xs text-slate-400">Scheduled GPT OS</p></div>
+            <div><p className="font-black">Nimbus Daily</p><p className="text-xs text-slate-400">Scheduled GPT OS</p></div>
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden rounded-2xl px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/[0.06] sm:block">Login</Link>
@@ -37,7 +37,7 @@ export default function HomePage() {
         <div>
           <div className="flex flex-wrap gap-2"><Badge tone="purple">Final MVP</Badge><Badge tone="blue">Next.js + Supabase</Badge><Badge tone="green">OpenAI + Telegram</Badge></div>
           <h1 className="mt-6 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">สร้าง Scheduled GPT Automation Dashboard ที่รันงาน วิเคราะห์ และแจ้งเตือนเองได้</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">DailyHub AI รวม Dashboard, Scheduled Tasks, GPT Results, Notifications, Admin Usage, Scheduler และ Deploy flow ไว้ในโปรเจกต์เดียว พร้อมต่อ production ต่อได้ทันที</p>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">Nimbus Daily รวม Dashboard, Scheduled Tasks, GPT Results, Notifications, Admin Usage, Scheduler และ Deploy flow ไว้ในโปรเจกต์เดียว พร้อมต่อ production ต่อได้ทันที</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href="/dashboard"><Button className="w-full sm:w-auto">Open Dashboard</Button></Link><Link href="/scheduled-tasks/create"><Button className="w-full sm:w-auto" variant="secondary">Create Task</Button></Link></div>
         </div>
 

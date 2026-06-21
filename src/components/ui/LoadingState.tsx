@@ -6,7 +6,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  title = "Loading DailyHub AI data...",
+  title = "Loading Nimbus Daily data...",
   description = "กำลังดึงข้อมูลจาก API routes",
 }: LoadingStateProps) {
   return (

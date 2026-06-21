@@ -12,7 +12,7 @@ export async function fetchNewsUpdates(_task: ScheduledTask): Promise<DataSource
       status: "mock",
       data: [
         { title: "AI automation tools continue gaining adoption", summary: "Mock news item for Daily Brief testing." },
-        { title: "Cloud dashboards focus on workflow automation", summary: "Mock market update for DailyHub AI." },
+        { title: "Cloud dashboards focus on workflow automation", summary: "Mock market update for Nimbus Daily." },
       ],
     };
   }
