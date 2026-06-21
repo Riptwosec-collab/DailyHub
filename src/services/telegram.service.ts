@@ -28,7 +28,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function asString(value: unknown) {
-  return typeof value === "string" ? value : "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
+function formatMoney(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "ไม่ระบุ";
+  return `${number.toLocaleString("th-TH")} บาท`;
 }
 
 function formatPriority(priority: unknown) {
@@ -60,6 +68,81 @@ function formatSourceItem(item: unknown, index: number) {
   const url = asString(record.url);
   const priorityHint = record.priorityHint;
 
+  const product = asString(record.product);
+  const store = asString(record.store);
+  const currentPrice = record.currentPrice;
+  const oldPrice = record.oldPrice;
+  const discountPercent = record.discountPercent;
+  const reason = asString(record.reason);
+  const action = asString(record.action);
+
+  if (product) {
+    return [
+      `${index + 1}. สินค้า: ${truncate(product, 160)}`,
+      store ? `ร้าน/แหล่ง: ${truncate(store, 100)}` : "",
+      oldPrice !== undefined || currentPrice !== undefined ? `ราคา: ${formatMoney(oldPrice)} → ${formatMoney(currentPrice)}` : "",
+      discountPercent !== undefined ? `ส่วนลด: ${discountPercent}%` : "",
+      reason ? `เหตุผล: ${truncate(reason, 180)}` : "",
+      action ? `ควรทำ: ${truncate(action, 180)}` : "",
+      url ? `ลิงก์: ${url}` : "",
+    ].filter(Boolean).join("\n   ");
+  }
+
+  const match = asString(record.match);
+  const score = asString(record.score);
+  const competition = asString(record.competition);
+  const highlight = asString(record.highlight);
+  const keyMoment = asString(record.keyMoment);
+  const thaiNote = asString(record.thaiNote);
+
+  if (match || score || highlight) {
+    return [
+      `${index + 1}. ฟุตบอล: ${match || "แมตช์"}${score ? ` (${score})` : ""}`,
+      competition ? `รายการ: ${truncate(competition, 100)}` : "",
+      highlight ? `ไฮไลต์: ${truncate(highlight, 180)}` : "",
+      keyMoment ? `จังหวะสำคัญ: ${truncate(keyMoment, 220)}` : "",
+      thaiNote ? `หมายเหตุ: ${truncate(thaiNote, 200)}` : "",
+    ].filter(Boolean).join("\n   ");
+  }
+
+  const artist = asString(record.artist);
+  const city = asString(record.city);
+  const date = asString(record.date);
+  const venue = asString(record.venue);
+  const genre = asString(record.genre);
+  const ticketStatus = asString(record.ticketStatus);
+
+  if (artist || venue) {
+    return [
+      `${index + 1}. คอนเสิร์ต: ${artist || "ศิลปิน/งานดนตรี"}`,
+      city ? `เมือง: ${truncate(city, 80)}` : "",
+      venue ? `สถานที่: ${truncate(venue, 120)}` : "",
+      date ? `วันที่: ${date}` : "",
+      genre ? `แนวเพลง: ${truncate(genre, 80)}` : "",
+      ticketStatus ? `สถานะบัตร: ${truncate(ticketStatus, 120)}` : "",
+      action ? `ควรทำ: ${truncate(action, 180)}` : "",
+      url ? `ลิงก์: ${url}` : "",
+    ].filter(Boolean).join("\n   ");
+  }
+
+  const idea = asString(record.idea);
+  const location = asString(record.location);
+  const budget = asString(record.budget);
+  const mood = asString(record.mood);
+  const bestTime = asString(record.bestTime);
+  const why = asString(record.why);
+
+  if (idea || budget || bestTime || why) {
+    return [
+      `${index + 1}. ไอเดีย: ${truncate(idea || "Weekend idea", 160)}`,
+      location ? `สถานที่: ${truncate(location, 120)}` : "",
+      budget ? `งบประมาณ: ${truncate(budget, 80)}` : "",
+      mood ? `อารมณ์/สไตล์: ${truncate(mood, 80)}` : "",
+      bestTime ? `เวลาที่เหมาะ: ${truncate(bestTime, 80)}` : "",
+      why ? `เหตุผล: ${truncate(why, 220)}` : "",
+    ].filter(Boolean).join("\n   ");
+  }
+
   if (subject || from) {
     return [
       `${index + 1}. ${subject ? `อีเมล: ${truncate(subject, 160)}` : "อีเมล"}`,
@@ -77,7 +160,6 @@ function formatSourceItem(item: unknown, index: number) {
     ].filter(Boolean).join("\n   ");
   }
 
-  const location = asString(record.location);
   const forecast = asRecord(record.forecast);
   const current = asRecord(forecast?.current);
   if (location || current) {
@@ -104,13 +186,16 @@ function buildSourceDetails(run: TaskRun) {
     const sourceName = asString(sourceRecord.source) || asString(sourceRecord.title) || "แหล่งข้อมูล";
     const status = asString(sourceRecord.status);
     const data = sourceRecord.data;
+    const dataRecord = asRecord(data);
     const items = Array.isArray(sourceRecord.items)
       ? sourceRecord.items
       : Array.isArray(data)
         ? data
-        : data !== undefined
-          ? [data]
-          : [];
+        : Array.isArray(dataRecord?.ideas)
+          ? dataRecord.ideas
+          : data !== undefined
+            ? [data]
+            : [];
 
     const formattedItems = items.slice(0, MAX_SOURCE_ITEMS).map(formatSourceItem);
     const moreCount = Math.max(0, items.length - MAX_SOURCE_ITEMS);
