@@ -3,7 +3,7 @@ import { runTaskNow } from "./task-runner.service";
 
 export type SchedulerTickOptions = {
   /**
-   * When true, run every active task immediately instead of only tasks whose
+   * When true, run every task immediately instead of only tasks whose
    * nextRunAt is due. This is useful for manual GitHub Actions testing.
    */
   force?: boolean;
@@ -22,7 +22,7 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   }
 
   const checkedAt = new Date().toISOString();
-  const dueTasks = options.force ? await listScheduledTasks({ isActive: true }) : await listDueScheduledTasks(checkedAt);
+  const dueTasks = options.force ? await listScheduledTasks() : await listDueScheduledTasks(checkedAt);
   const results = [];
 
   for (const task of dueTasks) {
@@ -30,11 +30,13 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
     results.push({
       taskId: task.id,
       taskName: task.name,
+      taskType: task.type,
       status: result?.taskRun.status ?? "not_found",
       runId: result?.taskRun.id ?? null,
       telegramStatus: result?.taskRun.telegramStatus ?? null,
       priorityScore: result?.taskRun.priorityScore ?? null,
       minPriorityScore: task.minPriorityScore,
+      outputChannels: task.outputChannels,
       language: result?.taskRun.language ?? null,
       translatedAt: result?.taskRun.translatedAt ?? null,
     });
