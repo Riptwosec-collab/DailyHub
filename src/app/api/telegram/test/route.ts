@@ -10,12 +10,18 @@ function getConfiguredSecret() {
 
 function isAuthorized(request: Request) {
   const configuredSecret = getConfiguredSecret();
-  if (!configuredSecret) return false;
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!configuredSecret && !adminSecret) return false;
 
   const authHeader = request.headers.get("authorization");
   const schedulerHeader = request.headers.get("x-scheduler-secret");
+  const adminHeaderName = ["x", "admin", "secret"].join("-");
+  const adminHeader = request.headers.get(adminHeaderName);
 
-  return authHeader === `Bearer ${configuredSecret}` || schedulerHeader === configuredSecret;
+  return Boolean(
+    (configuredSecret && (authHeader === `Bearer ${configuredSecret}` || schedulerHeader === configuredSecret)) ||
+    (adminSecret && adminHeader === adminSecret),
+  );
 }
 
 function getMessage(request: Request) {
