@@ -20,7 +20,7 @@ const DEFAULT_TOPIC_META: TelegramTopicMeta = {
 
 const TOPIC_META = {
   email: { emoji: "📧", label: "Email Monitor", shortLabel: "Email" },
-  sale: { emoji: "💸", label: "Sale Monitor", shortLabel: "Sale" },
+  productRadar: { emoji: "🌍", label: "สินค้าใหม่/น่าสนใจทั่วโลก", shortLabel: "Product Radar" },
   football: { emoji: "⚽", label: "Football Recap", shortLabel: "Football" },
   concert: { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" },
   weather: { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" },
@@ -70,7 +70,8 @@ function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
   const text = normalizeKey(values.filter(Boolean).join(" "));
 
   if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;
-  if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.sale;
+  if (/product radar|global product|product trend|new product|interesting product|gadget|สินค้าใหม่|สินค้าน่าสนใจ|สินค้าออกใหม่|ทั่วโลก/.test(text)) return TOPIC_META.productRadar;
+  if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.productRadar;
   if (/football|soccer|world cup|match|score|premier|บอล|ฟุตบอล/.test(text)) return TOPIC_META.football;
   if (/concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|บัตร/.test(text)) return TOPIC_META.concert;
   if (/weekend long read|long read|article|read|บทความ|อ่านยาว/.test(text)) return TOPIC_META.weekendLongRead;
@@ -92,7 +93,7 @@ function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
   if (/weekend long read|long read|reading list|อ่านยาว/.test(taskText)) return TOPIC_META.weekendLongRead;
   if (/weekend ideas|weekend idea|ideas generator|ไอเดีย/.test(taskText)) return TOPIC_META.weekendIdeas;
   if (/email monitor|important email|gmail|อีเมล/.test(taskText)) return TOPIC_META.email;
-  if (/sale monitor|sale|shopee|deal|discount|promo|ลดราคา|โปร/.test(taskText)) return TOPIC_META.sale;
+  if (/sale monitor|sale|shopee|deal|discount|promo|product radar|global product|สินค้า|ลดราคา|โปร/.test(taskText)) return TOPIC_META.productRadar;
   if (/concert alerts|concert|artist|ticket|คอนเสิร์ต|ศิลปิน|บัตร/.test(taskText)) return TOPIC_META.concert;
   if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(taskText)) return TOPIC_META.weather;
   if (/telegram test|test|ทดสอบ/.test(taskText)) return TOPIC_META.test;
@@ -102,6 +103,11 @@ function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
 
 function getSourceTopicMeta(sourceName: string): TelegramTopicMeta {
   return getTopicMetaFromText(sourceName);
+}
+
+function getTaskDisplayName(task: ScheduledTask) {
+  if (task.type === "Sale Monitor") return "สินค้าออกใหม่/น่าสนใจจากทั่วโลก (Global Product Radar)";
+  return `${task.name} (${task.type})`;
 }
 
 function formatMoney(value: unknown) {
@@ -118,6 +124,12 @@ function formatPriority(priority: unknown) {
   return asString(priority) || "ไม่ระบุ";
 }
 
+function formatScore(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "ไม่ระบุ";
+  return `${Math.min(Math.max(number, 0), 100)}/100`;
+}
+
 function getThaiBullets(run: TaskRun) {
   const translation = run.translation;
   if (translation?.translatedBullets?.length) {
@@ -127,6 +139,51 @@ function getThaiBullets(run: TaskRun) {
     return run.gptOutput.recommended_action.split("\n").filter(Boolean).map((item) => `- ${item}`).join("\n");
   }
   return `- ${run.gptOutput.summary}`;
+}
+
+function formatProductItem(record: Record<string, unknown>, index: number) {
+  const product = asString(record.product);
+  const category = asString(record.category);
+  const trendType = asString(record.trendType);
+  const country = asString(record.country);
+  const brandOrMaker = asString(record.brandOrMaker) || asString(record.brand) || asString(record.maker);
+  const globalSource = asString(record.globalSource) || asString(record.store) || asString(record.source);
+  const whyInteresting = asString(record.whyInteresting) || asString(record.reason);
+  const highlight = asString(record.highlight);
+  const useCase = asString(record.useCase);
+  const audience = asString(record.audience);
+  const priceHint = asString(record.priceHint);
+  const availability = asString(record.availability);
+  const caution = asString(record.caution);
+  const action = asString(record.action);
+  const contentIdea = asString(record.contentIdea);
+  const score = record.score;
+  const url = asString(record.url);
+  const currentPrice = record.currentPrice;
+  const oldPrice = record.oldPrice;
+  const discountPercent = record.discountPercent;
+
+  return [
+    `${index + 1}. 🌍 ${truncate(product || "สินค้า/แกดเจ็ตน่าสนใจ", 160)}`,
+    category ? `🏷️ หมวด: ${truncate(category, 100)}` : "",
+    trendType ? `✨ เทรนด์: ${truncate(trendType, 160)}` : "",
+    country ? `🌐 แหล่งเทรนด์: ${truncate(country, 100)}` : "",
+    brandOrMaker ? `🏢 แบรนด์/ผู้ผลิต: ${truncate(brandOrMaker, 100)}` : "",
+    globalSource ? `🔎 พบจาก: ${truncate(globalSource, 180)}` : "",
+    whyInteresting ? `💡 ทำไมน่าสนใจ: ${truncate(whyInteresting, 260)}` : "",
+    highlight ? `⭐ จุดเด่น: ${truncate(highlight, 220)}` : "",
+    useCase ? `🧩 ใช้ทำอะไร: ${truncate(useCase, 180)}` : "",
+    audience ? `👤 เหมาะกับ: ${truncate(audience, 180)}` : "",
+    oldPrice !== undefined || currentPrice !== undefined ? `💰 ราคา: ${formatMoney(oldPrice)} → ${formatMoney(currentPrice)}` : "",
+    discountPercent !== undefined ? `🏷️ ส่วนลด: ${discountPercent}%` : "",
+    priceHint ? `💰 ราคา/ระดับ: ${truncate(priceHint, 150)}` : "",
+    availability ? `📦 สถานะ/การหาซื้อ: ${truncate(availability, 160)}` : "",
+    caution ? `⚠️ ควรเช็กก่อน: ${truncate(caution, 220)}` : "",
+    action ? `✅ ควรทำต่อ: ${truncate(action, 220)}` : "",
+    contentIdea ? `🎬 ไอเดียคอนเทนต์: ${truncate(contentIdea, 220)}` : "",
+    score !== undefined ? `🔥 คะแนนน่าสนใจ: ${formatScore(score)}` : "",
+    url ? `🔗 ค้นต่อ: ${url}` : "",
+  ].filter(Boolean).join("\n   ");
 }
 
 function formatSourceItem(item: unknown, index: number) {
@@ -144,23 +201,8 @@ function formatSourceItem(item: unknown, index: number) {
   const priorityHint = record.priorityHint;
 
   const product = asString(record.product);
-  const store = asString(record.store);
-  const currentPrice = record.currentPrice;
-  const oldPrice = record.oldPrice;
-  const discountPercent = record.discountPercent;
-  const reason = asString(record.reason);
-  const action = asString(record.action);
-
-  if (product) {
-    return [
-      `${index + 1}. 💸 สินค้า: ${truncate(product, 160)}`,
-      store ? `ร้าน/แหล่ง: ${truncate(store, 100)}` : "",
-      oldPrice !== undefined || currentPrice !== undefined ? `ราคา: ${formatMoney(oldPrice)} → ${formatMoney(currentPrice)}` : "",
-      discountPercent !== undefined ? `ส่วนลด: ${discountPercent}%` : "",
-      reason ? `เหตุผล: ${truncate(reason, 180)}` : "",
-      action ? `ควรทำ: ${truncate(action, 180)}` : "",
-      url ? `ลิงก์: ${url}` : "",
-    ].filter(Boolean).join("\n   ");
+  if (product || asString(record.category) || asString(record.whyInteresting) || asString(record.trendType)) {
+    return formatProductItem(record, index);
   }
 
   const match = asString(record.match);
@@ -186,6 +228,7 @@ function formatSourceItem(item: unknown, index: number) {
   const venue = asString(record.venue);
   const genre = asString(record.genre);
   const ticketStatus = asString(record.ticketStatus);
+  const action = asString(record.action);
 
   if (artist || venue) {
     return [
@@ -304,7 +347,7 @@ function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
   const topicMeta = getTaskTopicMeta(task);
 
-  return `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
+  return `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${getTaskDisplayName(task)}\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
 }
 
 function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
