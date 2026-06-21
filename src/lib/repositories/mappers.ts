@@ -1,6 +1,7 @@
 import type { WebNotification } from "@/types/notification";
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { GptOutput, TaskRun } from "@/types/task-run";
+import type { TranslatedResult } from "@/types/translation";
 
 export type ScheduledTaskRow = {
   id: string;
@@ -50,6 +51,12 @@ export type WebNotificationRow = {
   created_at: string;
 };
 
+function getTranslationFromRawInput(rawInput: Record<string, unknown> | null | undefined): TranslatedResult | undefined {
+  const translation = rawInput?.translation;
+  if (!translation || typeof translation !== "object") return undefined;
+  return translation as TranslatedResult;
+}
+
 export function mapTaskRow(row: ScheduledTaskRow): ScheduledTask {
   return {
     id: row.id,
@@ -97,18 +104,26 @@ export function mapTaskToRow(task: Partial<ScheduledTask>) {
 }
 
 export function mapRunRow(row: TaskRunRow): TaskRun {
+  const rawInput = row.raw_input ?? {};
+  const translation = getTranslationFromRawInput(rawInput);
+
   return {
     id: row.id,
     taskId: row.task_id,
     status: row.status,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
-    rawInput: row.raw_input ?? {},
+    rawInput,
     gptPrompt: row.gpt_prompt,
     gptOutput: row.gpt_output,
     priorityScore: row.priority_score,
     telegramStatus: row.telegram_status,
     errorMessage: row.error_message,
+    originalContent: translation?.originalContent,
+    translatedContent: translation?.translatedSummary,
+    language: translation?.originalLanguage,
+    translatedAt: translation?.translatedAt,
+    translation,
   };
 }
 
