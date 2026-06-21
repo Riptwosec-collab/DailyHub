@@ -1,6 +1,10 @@
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
 
+const TELEGRAM_SAFE_LIMIT = 3600;
+const MAX_SOURCE_ITEMS = 5;
+const MAX_FIELD_LENGTH = 280;
+
 export function getTelegramModeStatus() {
   const enabled = process.env.ENABLE_TELEGRAM === "true";
   const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
@@ -13,6 +17,28 @@ export function getTelegramModeStatus() {
   };
 }
 
+function truncate(value: string, max = MAX_FIELD_LENGTH) {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function formatPriority(priority: unknown) {
+  const text = asString(priority).toLowerCase();
+  if (text === "high") return "สูง";
+  if (text === "medium") return "ปานกลาง";
+  if (text === "low") return "ต่ำ";
+  return asString(priority) || "ไม่ระบุ";
+}
+
 function getThaiBullets(run: TaskRun) {
   const translation = run.translation;
   if (translation?.translatedBullets?.length) return translation.translatedBullets.map((item) => `- ${item}`).join("\n");
@@ -20,11 +46,134 @@ function getThaiBullets(run: TaskRun) {
   return `- ${run.gptOutput.summary}`;
 }
 
-export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
+function formatSourceItem(item: unknown, index: number) {
+  const record = asRecord(item);
+  if (!record) return `${index + 1}. ${truncate(String(item ?? "ไม่มีรายละเอียด"))}`;
+
+  const nestedSource = asRecord(record.source);
+  const sourceName = asString(nestedSource?.name) || asString(record.source) || asString(record.name);
+  const subject = asString(record.subject);
+  const from = asString(record.from);
+  const title = asString(record.title);
+  const description = asString(record.description);
+  const content = asString(record.content);
+  const url = asString(record.url);
+  const priorityHint = record.priorityHint;
+
+  if (subject || from) {
+    return [
+      `${index + 1}. ${subject ? `อีเมล: ${truncate(subject, 160)}` : "อีเมล"}`,
+      from ? `จาก: ${truncate(from, 120)}` : "",
+      priorityHint ? `ความสำคัญ: ${formatPriority(priorityHint)}` : "",
+    ].filter(Boolean).join(" | ");
+  }
+
+  if (title || description || content) {
+    return [
+      `${index + 1}. ${title ? truncate(title, 180) : "ข่าว/ข้อมูล"}`,
+      sourceName ? `แหล่ง: ${truncate(sourceName, 90)}` : "",
+      description ? `รายละเอียด: ${truncate(description, 220)}` : content ? `เนื้อหา: ${truncate(content, 220)}` : "",
+      url ? `ลิงก์: ${url}` : "",
+    ].filter(Boolean).join("\n   ");
+  }
+
+  const location = asString(record.location);
+  const forecast = asRecord(record.forecast);
+  const current = asRecord(forecast?.current);
+  if (location || current) {
+    return [
+      `${index + 1}. สภาพอากาศ${location ? `: ${location}` : ""}`,
+      current?.temperature_2m !== undefined ? `อุณหภูมิ: ${current.temperature_2m}°C` : "",
+      current?.rain !== undefined ? `ฝน: ${current.rain} mm` : "",
+      current?.precipitation !== undefined ? `ปริมาณฝน: ${current.precipitation} mm` : "",
+      current?.time ? `เวลา: ${current.time}` : "",
+    ].filter(Boolean).join(" | ");
+  }
+
+  return `${index + 1}. ${truncate(JSON.stringify(record), 260)}`;
+}
+
+function buildSourceDetails(run: TaskRun) {
+  const sources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
+  if (!sources.length) return "";
+
+  const sections = sources.map((sourceEntry) => {
+    const sourceRecord = asRecord(sourceEntry);
+    if (!sourceRecord) return "";
+
+    const sourceName = asString(sourceRecord.source) || asString(sourceRecord.title) || "แหล่งข้อมูล";
+    const status = asString(sourceRecord.status);
+    const data = sourceRecord.data;
+    const items = Array.isArray(sourceRecord.items)
+      ? sourceRecord.items
+      : Array.isArray(data)
+        ? data
+        : data !== undefined
+          ? [data]
+          : [];
+
+    const formattedItems = items.slice(0, MAX_SOURCE_ITEMS).map(formatSourceItem);
+    const moreCount = Math.max(0, items.length - MAX_SOURCE_ITEMS);
+
+    return [
+      `📌 ${sourceName}${status ? ` (${status})` : ""}`,
+      formattedItems.length ? formattedItems.join("\n") : "- ไม่มีรายการข้อมูลจากแหล่งนี้",
+      moreCount > 0 ? `…มีอีก ${moreCount} รายการ ดูทั้งหมดใน Dashboard` : "",
+    ].filter(Boolean).join("\n");
+  }).filter(Boolean);
+
+  if (!sections.length) return "";
+  return sections.join("\n\n");
+}
+
+function getTranslationMode(run: TaskRun) {
+  const mode = run.translation?.mode;
+  if (mode === "ai") return "AI/Groq";
+  if (mode === "fallback") return "Fallback";
+  if (mode === "normalized") return "ปรับรูปแบบไทย";
+  return "ไม่ระบุ";
+}
+
+function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
   const source = translation?.originalSource ?? (task.dataSources.join(", ") || task.type);
+  const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
 
-  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString()}`;
+  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
+}
+
+function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
+  if (text.length <= limit) return [text];
+
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > limit) {
+    const slice = remaining.slice(0, limit);
+    const breakIndex = Math.max(slice.lastIndexOf("\n\n"), slice.lastIndexOf("\n"));
+    const safeIndex = breakIndex > limit * 0.5 ? breakIndex : limit;
+    chunks.push(remaining.slice(0, safeIndex).trim());
+    remaining = remaining.slice(safeIndex).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
+export function buildTelegramMessages(task: ScheduledTask, run: TaskRun) {
+  const main = buildMainTelegramMessage(task, run);
+  const sourceDetails = buildSourceDetails(run);
+
+  const combined = sourceDetails
+    ? `${main}\n\nข้อมูลที่พบจากแหล่งต่าง ๆ:\n${sourceDetails}`
+    : main;
+
+  return splitLongText(combined).map((chunk, index, chunks) => {
+    if (chunks.length === 1) return chunk;
+    return `${chunk}\n\n(${index + 1}/${chunks.length})`;
+  });
+}
+
+export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
+  return buildTelegramMessages(task, run).join("\n\n---\n\n");
 }
 
 export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; run: TaskRun }) {
@@ -42,16 +191,22 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
   try {
     const baseUrl = process.env.TELEGRAM_BASE_URL || "https://api.telegram.org";
     const methodName = "send" + "Message";
-    const response = await fetch(`${baseUrl}/bot${token}/${methodName}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: buildTelegramMessage(task, run) }),
-    });
+    const messages = buildTelegramMessages(task, run);
+    const responses: string[] = [];
 
-    const responseText = await response.text();
-    if (!response.ok) throw new Error(`Telegram API failed: ${response.status} ${responseText}`);
+    for (const text of messages) {
+      const response = await fetch(`${baseUrl}/bot${token}/${methodName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      });
 
-    return { status: "sent", message: "Telegram message sent", response: responseText };
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(`Telegram API failed: ${response.status} ${responseText}`);
+      responses.push(responseText);
+    }
+
+    return { status: "sent", message: `Telegram message sent (${messages.length} part${messages.length > 1 ? "s" : ""})`, response: responses.join("\n") };
   } catch (error) {
     if (fallback) return { status: "mock_sent_fallback", message: error instanceof Error ? error.message : "Telegram fallback" };
     return { status: "failed", message: error instanceof Error ? error.message : "Telegram failed" };
