@@ -5,6 +5,41 @@ import type { ContentLanguage, DashboardTranslatedResult, TranslatedResult, Tran
 const MAX_ORIGINAL_LENGTH = 12000;
 const MAX_TELEGRAM_LENGTH = 3600;
 
+type TranslationProvider = "groq" | "openai" | "mock";
+
+type TranslationConfig = {
+  provider: TranslationProvider;
+  enabled: boolean;
+  apiKey?: string;
+  baseUrl?: string;
+  model: string;
+};
+
+function resolveTranslationConfig(): TranslationConfig {
+  const preferredProvider = process.env.AI_PROVIDER?.toLowerCase();
+  const groqKey = process.env.GROQ_API_KEY;
+  const openAiKey = process.env.OPENAI_API_KEY;
+  const useGroq = preferredProvider === "groq" || (!preferredProvider && Boolean(groqKey));
+
+  if (useGroq) {
+    return {
+      provider: groqKey ? "groq" : "mock",
+      enabled: process.env.AI_TRANSLATION_ENABLED === "true" || process.env.ENABLE_GROQ === "true" || process.env.ENABLE_AI === "true",
+      apiKey: groqKey,
+      baseUrl: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1",
+      model: process.env.GROQ_TRANSLATION_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    };
+  }
+
+  return {
+    provider: openAiKey ? "openai" : "mock",
+    enabled: process.env.AI_TRANSLATION_ENABLED === "true" || process.env.ENABLE_OPENAI === "true" || process.env.ENABLE_AI === "true",
+    apiKey: openAiKey,
+    baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+    model: process.env.OPENAI_TRANSLATION_MODEL || process.env.OPENAI_MODEL || "gpt-5.5",
+  };
+}
+
 function truncateText(text: string, maxLength = MAX_ORIGINAL_LENGTH) {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}\n... [truncated ${text.length - maxLength} chars]`;
@@ -41,7 +76,7 @@ function buildOriginalContent(input: TranslationInput) {
   const parts = [
     input.title ? `Title: ${input.title}` : "",
     input.source ? `Source: ${input.source}` : "",
-    input.gptOutput?.summary ? `GPT Summary: ${input.gptOutput.summary}` : "",
+    input.gptOutput?.summary ? `AI Summary: ${input.gptOutput.summary}` : "",
     input.gptOutput?.recommended_action ? `Recommended Action: ${input.gptOutput.recommended_action}` : "",
     input.content ? `Content: ${input.content}` : "",
     input.rawInput ? `Raw Input: ${safeStringify(input.rawInput)}` : "",
@@ -76,20 +111,32 @@ function normalizeThaiFallback(input: TranslationInput, originalLanguage: Conten
   };
 }
 
-function parseOpenAiOutput(json: unknown): string {
+function extractJsonObject(text: string): string {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace >= 0 && lastBrace > firstBrace) return cleaned.slice(firstBrace, lastBrace + 1);
+  return cleaned;
+}
+
+function parseChatCompletionOutput(json: unknown): string {
   const response = json as {
-    output_text?: string;
-    output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+      };
+    }>;
   };
 
-  if (typeof response.output_text === "string") return response.output_text;
-
-  const text = response.output
-    ?.flatMap((item) => item.content ?? [])
-    .find((content) => content.type === "output_text" && typeof content.text === "string")?.text;
-
-  if (text) return text;
-  throw new Error("OpenAI translation response did not contain output text");
+  const text = response.choices?.[0]?.message?.content;
+  if (typeof text === "string" && text.trim()) return text;
+  throw new Error("Translation response did not contain chat completion text");
 }
 
 function normalizeTranslatedJson(value: unknown, input: TranslationInput, originalLanguage: ContentLanguage, originalContent: string): TranslatedResult {
@@ -129,31 +176,36 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
     return normalizeThaiFallback(input, originalLanguage, originalContent);
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  const enabled = process.env.ENABLE_OPENAI === "true" || process.env.AI_TRANSLATION_ENABLED === "true";
-  if (!enabled || !apiKey) return normalizeThaiFallback(input, originalLanguage, originalContent);
-
-  const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-  const model = process.env.OPENAI_MODEL || "gpt-5.5";
+  const config = resolveTranslationConfig();
+  if (!config.enabled || !config.apiKey || !config.baseUrl) return normalizeThaiFallback(input, originalLanguage, originalContent);
 
   try {
-    const response = await fetch(`${baseUrl}/responses`, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
-        model,
-        input: `Translate and summarize this DailyHub task result into Thai. Return JSON only with translatedTitle, translatedSummary, translatedBullets. Do not add facts that are not in the source.\n\n${originalContent}`,
-        text: { format: { type: "json_object" } },
+        model: config.model,
+        messages: [
+          {
+            role: "system",
+            content: "คุณคือระบบแปลและสรุปของ DailyHub AI ตอบกลับเป็น JSON เท่านั้น ห้ามใช้ markdown และห้ามแต่งข้อเท็จจริงเพิ่ม",
+          },
+          {
+            role: "user",
+            content: `แปลและสรุปผลลัพธ์ Scheduled Task ต่อไปนี้เป็นภาษาไทยให้อ่านง่าย\n\nกติกา:\n- ถ้าต้นฉบับเป็นอังกฤษ ให้แปลไทย\n- ถ้าปนไทย/อังกฤษ ให้สรุปไทยก่อน\n- เก็บใจความสำคัญจากต้นฉบับเท่านั้น\n- Return JSON only with keys: translatedTitle, translatedSummary, translatedBullets\n\nOriginal content:\n${originalContent}`,
+          },
+        ],
+        temperature: 0.2,
       }),
     });
 
-    if (!response.ok) throw new Error(`Translation API failed: ${response.status}`);
+    if (!response.ok) throw new Error(`${config.provider} translation API failed: ${response.status}`);
     const json = await response.json();
-    const outputText = parseOpenAiOutput(json);
-    return normalizeTranslatedJson(JSON.parse(outputText), input, originalLanguage, originalContent);
+    const outputText = parseChatCompletionOutput(json);
+    return normalizeTranslatedJson(JSON.parse(extractJsonObject(outputText)), input, originalLanguage, originalContent);
   } catch {
     return normalizeThaiFallback(input, originalLanguage, originalContent);
   }
