@@ -106,7 +106,10 @@ function detailRows(item: unknown): Array<[string, string]> {
     ["ควรเช็ก / Check", row.checkBeforeBuy || row.action],
     ["ลิงก์ / Link", row.url || row.link],
   ];
-  return pairs.map(([label, value]) => [label, asText(value)]).filter(([, value]) => Boolean(value));
+
+  return pairs
+    .map(([label, value]): [string, string] => [label, asText(value)])
+    .filter(([, value]) => Boolean(value));
 }
 
 function searchText(run: TaskRun, task?: ScheduledTask) {
