@@ -33,3 +33,5 @@ and English:
 nav_data_library: "Data Library",
 ```
 
+
+Status: Applied in 10 commits. Final file is src/components/data-library/DataLibraryView.tsx
