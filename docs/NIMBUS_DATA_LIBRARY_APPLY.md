@@ -1,5 +1,5 @@
 ﻿# Nimbus Daily Data Library
 
-Step 6/10: Telegram/web separation.
+Step 7/10: full item rendering.
 
-Telegram sends summary only. Web keeps full data.
+Cards show source names, item count, translated summary, details, run link.
