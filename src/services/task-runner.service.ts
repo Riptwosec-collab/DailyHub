@@ -16,6 +16,32 @@ export interface RunTaskNowResult {
   notification: WebNotification | null;
 }
 
+type RunTaskNowOptions = {
+  userId?: string;
+  schedulerMode?: boolean;
+  /**
+   * Manual dashboard/testing mode: send Telegram even when the task is normally
+   * dashboard-only or its priority is below the alert threshold.
+   */
+  forceTelegram?: boolean;
+};
+
+function withTelegramChannel(outputChannels: string[]) {
+  return outputChannels.includes("Send Telegram") ? outputChannels : [...outputChannels, "Send Telegram"];
+}
+
+function buildTelegramTask(task: ScheduledTask, forceTelegram?: boolean): ScheduledTask {
+  if (!forceTelegram) return task;
+
+  return {
+    ...task,
+    isActive: true,
+    status: "Active",
+    outputChannels: withTelegramChannel(task.outputChannels),
+    minPriorityScore: 0,
+  };
+}
+
 async function buildTranslatedRunPayload(task: ScheduledTask, rawInput: Record<string, unknown>, gptOutput: TaskRun["gptOutput"]) {
   const translation = await normalizeBilingualContent(buildTranslationInputFromTask(task, rawInput, gptOutput));
   const translatedGptOutput = toTranslatedGptOutput(gptOutput, translation);
@@ -33,29 +59,30 @@ async function buildTranslatedRunPayload(task: ScheduledTask, rawInput: Record<s
   };
 }
 
-export async function runTaskNow(taskId: string, options: { userId?: string; schedulerMode?: boolean } = {}): Promise<RunTaskNowResult | null> {
+export async function runTaskNow(taskId: string, options: RunTaskNowOptions = {}): Promise<RunTaskNowResult | null> {
   const task = await getScheduledTaskById(taskId, options.schedulerMode ? undefined : options.userId);
   if (!task) return null;
 
   const startedAt = new Date().toISOString();
   await updateScheduledTask(task.id, { status: "Running", isActive: true, updatedAt: startedAt }, options.schedulerMode ? undefined : options.userId);
 
-  const rawInput = await collectTaskDataSources(task);
-  const gptPrompt = buildGptPrompt(task, rawInput);
+  const effectiveTask = buildTelegramTask(task, options.forceTelegram);
+  const rawInput = await collectTaskDataSources(effectiveTask);
+  const gptPrompt = buildGptPrompt(effectiveTask, rawInput);
 
   let gptOutput;
   let status: TaskRun["status"] = "success";
   let errorMessage: string | null = null;
 
   try {
-    gptOutput = await generateGptOutput(task, rawInput);
+    gptOutput = await generateGptOutput(effectiveTask, rawInput);
   } catch (error) {
     status = "failed";
     errorMessage = getErrorMessage(error);
-    gptOutput = buildFailedGptOutput(task, errorMessage);
+    gptOutput = buildFailedGptOutput(effectiveTask, errorMessage);
   }
 
-  const { translation, translatedGptOutput, translatedRawInput } = await buildTranslatedRunPayload(task, rawInput, gptOutput);
+  const { translation, translatedGptOutput, translatedRawInput } = await buildTranslatedRunPayload(effectiveTask, rawInput, gptOutput);
   const finishedAt = new Date().toISOString();
   const initialRun: TaskRun = {
     id: createId("run"),
@@ -76,10 +103,10 @@ export async function runTaskNow(taskId: string, options: { userId?: string; sch
     translation,
   };
 
-  const telegramResult = status === "success" ? await sendTelegramMessage({ task, run: initialRun }) : { status: "skipped_failed" };
+  const telegramResult = status === "success" ? await sendTelegramMessage({ task: effectiveTask, run: initialRun }) : { status: "skipped_failed" };
 
   const taskRun = await createTaskRun({ ...initialRun, telegramStatus: telegramResult.status });
-  const notification = await createNotificationFromTaskRun(task, taskRun);
+  const notification = await createNotificationFromTaskRun(effectiveTask, taskRun);
 
   const updatedTask = await updateScheduledTask(
     task.id,
@@ -93,7 +120,7 @@ export async function runTaskNow(taskId: string, options: { userId?: string; sch
     options.schedulerMode ? undefined : options.userId,
   );
 
-  return { task: updatedTask ?? task, taskRun, notification };
+  return { task: updatedTask ?? effectiveTask, taskRun, notification };
 }
 
 export async function regenerateTaskRun(runId: string, userId?: string) {
@@ -136,7 +163,7 @@ export async function regenerateTaskRun(runId: string, userId?: string) {
       finishedAt: now,
       rawInput: translatedRawInput,
       gptPrompt,
-      gptOutput: translatedGptOutput,
+      gptOutput,
       priorityScore: 0,
       telegramStatus: "skipped_failed",
       errorMessage,
