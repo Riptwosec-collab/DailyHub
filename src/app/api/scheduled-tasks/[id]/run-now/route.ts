@@ -10,31 +10,29 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function isForceTelegramRequest(request: Request) {
-  const url = new URL(request.url);
-  return url.searchParams.get("forceTelegram") === "true" || url.searchParams.get("force") === "telegram";
-}
-
 export async function POST(request: Request, context: RouteContext) {
   const requestId = getRequestId(request);
   const { id } = await context.params;
-  const forceTelegram = isForceTelegramRequest(request);
+  // Dashboard Run Task is treated as a manual end-to-end test.
+  // It should always send Telegram, even if the saved task is dashboard-only
+  // or the priority score is below the production alert threshold.
+  const forceTelegram = true;
 
   try {
     const ip = getClientIp(request);
-    assertRateLimit({ key: `run-now:${ip}:${id}`, limit: 5, windowMs: 60_000 });
+    assertRateLimit({ key: `run-now:${ip}:${id}`, limit: 10, windowMs: 60_000 });
     assertDailyUsageLimit({
       type: "run_now",
       label: "Run Now",
       limitEnvName: "DAILY_RUN_NOW_LIMIT",
-      fallbackLimit: 30,
+      fallbackLimit: 200,
     });
 
     await audit({
       action: "scheduled_task.run_now.requested",
       entityType: "scheduled_task",
       entityId: id,
-      message: `Run Now requested for task ${id}${forceTelegram ? " with forced Telegram" : ""}`,
+      message: `Run Now requested for task ${id} with forced Telegram`,
       requestId,
     });
 
@@ -79,7 +77,7 @@ export async function POST(request: Request, context: RouteContext) {
         taskRun: result.taskRun,
         notification: result.notification,
         forceTelegram,
-        message: forceTelegram ? "Run Now completed and Telegram was forced." : "Run Now completed.",
+        message: "Run Now completed and Telegram was forced.",
       },
       { requestId },
     );
