@@ -141,7 +141,7 @@ function safeRedirectPath(value: unknown) {
   return value;
 }
 
-async function parseBatchRequest(request: Request) {
+async function parsePostBatchRequest(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("application/json")) {
@@ -158,6 +158,14 @@ async function parseBatchRequest(request: Request) {
   }
 
   return { batch: "one" as const, redirectTo: null };
+}
+
+function parseGetBatchRequest(request: Request) {
+  const url = new URL(request.url);
+  return {
+    batch: toBatchId(url.searchParams.get("batch")),
+    redirectTo: safeRedirectPath(url.searchParams.get("redirect")),
+  };
 }
 
 async function ensureTask(userId: string, existingTasks: ScheduledTask[], seed: TaskSeed) {
@@ -249,17 +257,25 @@ function redirectAfterRun(request: Request, redirectTo: string, result: Awaited<
   return Response.redirect(url, 303);
 }
 
-export async function POST(request: Request) {
-  const requestId = getRequestId(request);
-
+async function handleBatchRequest(request: Request, batch: BatchId, redirectTo: string | null, requestId: string) {
   try {
     const user = await requireCurrentUser();
-    const { batch, redirectTo } = await parseBatchRequest(request);
     const result = await runBatchForUser(user.id, batch);
-
     if (redirectTo) return redirectAfterRun(request, redirectTo, result);
     return ok(result, { requestId });
   } catch (error) {
     return fail(error, requestId);
   }
+}
+
+export async function GET(request: Request) {
+  const requestId = getRequestId(request);
+  const { batch, redirectTo } = parseGetBatchRequest(request);
+  return handleBatchRequest(request, batch, redirectTo, requestId);
+}
+
+export async function POST(request: Request) {
+  const requestId = getRequestId(request);
+  const { batch, redirectTo } = await parsePostBatchRequest(request);
+  return handleBatchRequest(request, batch, redirectTo, requestId);
 }
