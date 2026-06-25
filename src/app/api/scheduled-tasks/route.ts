@@ -15,6 +15,24 @@ import type { ScheduledTask } from "@/types/scheduled-task";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function normalizeTaskForDisplay(task: ScheduledTask): ScheduledTask {
+  const isLegacyWeekendIdeas =
+    task.type === "Weekend Ideas" ||
+    task.name === "Weekend Ideas Generator" ||
+    task.name === "Weekend Ideas" ||
+    task.dataSources.includes("Weekend Ideas");
+
+  if (!isLegacyWeekendIdeas) return task;
+
+  return {
+    ...task,
+    name: "US Stock News",
+    type: "US Stock News",
+    dataSources: ["US Stock News"],
+    gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const user = await requireCurrentUser();
@@ -26,7 +44,8 @@ export async function GET(request: Request) {
       isActive: getSearchParam(request, "is_active") === null ? undefined : normalizeBoolean(getSearchParam(request, "is_active")),
     });
 
-    return Response.json({ success: true, data: tasks, meta: { total: tasks.length, user: user.isMock ? "mock" : "supabase" } });
+    const normalizedTasks = tasks.map(normalizeTaskForDisplay);
+    return Response.json({ success: true, data: normalizedTasks, meta: { total: normalizedTasks.length, user: user.isMock ? "mock" : "supabase" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "Failed to list tasks", 401, "BAD_REQUEST");
   }
@@ -56,8 +75,8 @@ export async function POST(request: Request) {
       isActive: normalizeBoolean(body.isActive ?? body.is_active, true),
     });
 
-    return successResponse(task, { status: 201 });
+    return successResponse(normalizeTaskForDisplay(task), { status: 201 });
   } catch (error) {
-    return errorResponse(error instanceof Error ? error.message : "Failed to create task", 500, "INTERNAL_ERROR");
+    return errorResponse(error instanceof Error ? "Failed to create task" : "Failed to create task", 500, "INTERNAL_ERROR");
   }
 }
