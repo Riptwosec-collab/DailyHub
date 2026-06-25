@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import type { ScheduledTask } from "@/types/scheduled-task";
 import { Card } from "@/components/ui/Card";
@@ -45,8 +46,8 @@ const FIXED_BATCHES = [
   },
 ];
 
-const nativeButtonClass = "relative z-50 inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.08] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 active:scale-[0.98]";
-const nativePrimaryButtonClass = "relative z-50 inline-flex min-h-12 min-w-[11rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98]";
+const linkButtonClass = "relative z-[9999] inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.10] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/50 hover:bg-cyan-300/20 active:scale-[0.98]";
+const primaryLinkClass = "relative z-[9999] inline-flex min-h-12 min-w-[11rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98]";
 
 function getBatchSeeds(keys: string[]) {
   return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[];
@@ -60,16 +61,8 @@ function taskLines(seeds: TaskSeed[], isTh: boolean) {
   return seeds.map((seed, index) => `${index + 1}. ${seed.emoji} ${isTh ? seed.labelTh : seed.labelEn}`);
 }
 
-function BatchForm({ batch, label, primary = false }: { batch: "one" | "two" | "all"; label: string; primary?: boolean }) {
-  return (
-    <form action="/api/scheduled-tasks/run-batch" className="relative z-50 shrink-0" method="post">
-      <input name="batch" type="hidden" value={batch} />
-      <input name="redirect" type="hidden" value="/dashboard" />
-      <button className={primary ? nativePrimaryButtonClass : nativeButtonClass} type="submit">
-        {label}
-      </button>
-    </form>
-  );
+function runUrl(batch: "one" | "two" | "all") {
+  return `/api/scheduled-tasks/run-batch?batch=${batch}&redirect=/dashboard`;
 }
 
 export function RunBatchControls() {
@@ -104,7 +97,7 @@ export function RunBatchControls() {
   const readyCount = resolvedBatches.reduce((total, batch) => total + batch.foundCount, 0);
 
   return (
-    <Card className="relative overflow-hidden border-emerald-300/20 bg-emerald-300/[0.05] p-5 sm:p-6">
+    <section className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-emerald-300/[0.05] p-5 shadow-2xl shadow-cyan-950/20 sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
       <div className="relative z-10 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -113,7 +106,9 @@ export function RunBatchControls() {
             <h2 className="mt-3 text-2xl font-black text-white">{t("batch_title")}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("batch_desc")}</p>
           </div>
-          <BatchForm batch="all" label={`🚀 ${t("batch_run_all")}`} primary />
+          <Link className={primaryLinkClass} href={runUrl("all")} prefetch={false}>
+            🚀 {t("batch_run_all")}
+          </Link>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
@@ -133,7 +128,9 @@ export function RunBatchControls() {
                         : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
                     </p>
                   </div>
-                  <BatchForm batch={batch.id} label={buttonLabel} />
+                  <Link className={linkButtonClass} href={runUrl(batch.id)} prefetch={false}>
+                    {buttonLabel}
+                  </Link>
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
@@ -150,6 +147,6 @@ export function RunBatchControls() {
           {message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}
         </div>
       </div>
-    </Card>
+    </section>
   );
 }
