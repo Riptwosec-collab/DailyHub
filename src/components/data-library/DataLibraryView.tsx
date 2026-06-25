@@ -49,7 +49,7 @@ function asRecord(value: unknown): SourceRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as SourceRecord) : null;
 }
 
-function asText(value: unknown) {
+function asText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   if (typeof value === "boolean") return value ? "true" : "false";
