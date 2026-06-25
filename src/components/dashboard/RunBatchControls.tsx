@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import type { ScheduledTask } from "@/types/scheduled-task";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -65,6 +64,9 @@ const FIXED_BATCHES = [
   },
 ];
 
+const buttonClass = "inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+const primaryButtonClass = "inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+
 function getBatchSeeds(keys: string[]) {
   return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[];
 }
@@ -111,10 +113,18 @@ export function RunBatchControls() {
   const readyCount = resolvedBatches.reduce((total, batch) => total + batch.foundCount, 0);
 
   async function runBatch(batchId: BatchId) {
+    if (loading) return;
+
+    const batchName =
+      batchId === "all"
+        ? isTh ? "ทั้ง 2 ปุ่ม" : "both buttons"
+        : isTh
+          ? batchId === "one" ? "ปุ่มแรก" : "ปุ่มสอง"
+          : batchId === "one" ? "first button" : "second button";
+
     setLoading(batchId);
     setLastResults([]);
-    const batchName = batchId === "all" ? (isTh ? "ทั้ง 2 ปุ่ม" : "both buttons") : isTh ? (batchId === "one" ? "ปุ่มแรก" : "ปุ่มสอง") : (batchId === "one" ? "first button" : "second button");
-    setMessage(isTh ? `กำลังรัน ${batchName}...` : `Running ${batchName}...`);
+    setMessage(isTh ? `รับคำสั่งแล้ว กำลังรัน ${batchName}...` : `Clicked. Running ${batchName}...`);
 
     try {
       const result = await apiRequest<BatchResult>("/api/scheduled-tasks/run-batch", {
@@ -138,17 +148,27 @@ export function RunBatchControls() {
 
   return (
     <Card className="relative overflow-hidden border-emerald-300/20 bg-emerald-300/[0.05] p-5 sm:p-6">
-      <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
-      <div className="relative space-y-4">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
+      <div className="relative z-10 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Badge tone="green">⚡ {t("batch_badge")}</Badge>
             <h2 className="mt-3 text-2xl font-black text-white">{t("batch_title")}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("batch_desc")}</p>
           </div>
-          <Button disabled={Boolean(loading)} onClick={() => void runBatch("all")} type="button">
+          <button
+            aria-busy={loading === "all"}
+            className={primaryButtonClass}
+            disabled={Boolean(loading)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void runBatch("all");
+            }}
+            type="button"
+          >
             {loading === "all" ? t("batch_running") : `🚀 ${t("batch_run_all")}`}
-          </Button>
+          </button>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
@@ -167,9 +187,19 @@ export function RunBatchControls() {
                         : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
                     </p>
                   </div>
-                  <Button disabled={Boolean(loading)} onClick={() => void runBatch(batch.id)} type="button" variant="secondary">
+                  <button
+                    aria-busy={loading === batch.id}
+                    className={buttonClass}
+                    disabled={Boolean(loading)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      void runBatch(batch.id);
+                    }}
+                    type="button"
+                  >
                     {loading === batch.id ? t("batch_running") : `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`}
-                  </Button>
+                  </button>
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
