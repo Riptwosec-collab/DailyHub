@@ -14,6 +14,8 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type TopicKey = "all" | LibraryTopicKey | "failed";
+type Section = { heading: string; body: string };
+type RichRecord = Record<string, unknown>;
 
 type LibraryViewItem = {
   id: string;
@@ -29,7 +31,7 @@ type LibraryViewItem = {
   readTime: string;
   tags: string[];
   details: string[];
-  sections: Array<{ heading: string; body: string }>;
+  sections: Section[];
   updatedAt: string;
   status?: string;
   telegramStatus?: string | null;
@@ -61,8 +63,8 @@ const TOPIC_PATTERNS: Array<{ topic: LibraryTopicKey; pattern: RegExp }> = [
 
 const LEGACY_INPUT_KEYS = ["news", "weather", "products", "gmail", "football", "concerts", "articles", "market"];
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+function asRecord(value: unknown): RichRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as RichRecord) : null;
 }
 
 function asText(value: unknown): string {
@@ -86,6 +88,76 @@ function articleHref(item: LibraryViewItem) {
   return `/data-library?article=${encodeURIComponent(item.id)}`;
 }
 
+function enrichProduct(text: string, index: number): RichRecord {
+  const lower = text.toLowerCase();
+  if (lower.includes("wearable") || lower.includes("ai")) {
+    return {
+      product: "AI Wearable Note Taker",
+      title: "AI Wearable Note Taker",
+      category: "AI Gadget / Productivity",
+      source: "Global Innovation Product Radar",
+      summary: "อุปกรณ์พกพาที่ช่วยจดโน้ต สรุปประชุม และดึง action items จากเสียงหรือบทสนทนา",
+      whyInteresting: "ช่วยลดเวลาจดประชุม เหมาะกับคนที่ต้องสรุปข้อมูลเยอะทุกวัน เช่น นักเรียน คนทำงาน และ creator",
+      useCase: "ประชุมออนไลน์, สัมภาษณ์, จด lecture, เก็บไอเดียระหว่างเดินทาง",
+      audience: "นักเรียน, คนทำงาน, project manager, sales, creator",
+      whatToCheck: ["รองรับภาษาไทย", "คุณภาพสรุป", "แบตเตอรี่", "ค่า subscription", "export ข้อมูลได้ไหม"],
+      caution: "ควรตรวจเรื่องความเป็นส่วนตัวและการขออนุญาตก่อนบันทึกเสียง",
+      contentIdea: "ทำโพสต์ 9:16: AI gadget ที่เปลี่ยนเสียงประชุมให้เป็น checklist",
+      fullArticle: "AI Wearable Note Taker เป็นกลุ่มสินค้าเทคที่น่าสนใจ เพราะแก้ปัญหาข้อมูลจากเสียงจำนวนมาก ผู้ใช้ไม่ต้องจดทุกคำเอง แต่ให้ระบบช่วยถอดความ สรุป และจัด action items เหมาะกับยุคที่คนประชุม เรียน หรือทำคอนเทนต์ผ่านเสียงมากขึ้น จุดที่ควรเช็กคือภาษาไทย ความแม่นยำ แบตเตอรี่ ราคา และการ export ข้อมูลไปใช้ต่อ",
+      priorityScore: 94,
+    };
+  }
+
+  if (lower.includes("e-ink") || lower.includes("dashboard")) {
+    return {
+      product: "E-Ink Desk Dashboard",
+      title: "E-Ink Desk Dashboard",
+      category: "Smart Desk / Minimal Tech",
+      source: "Global Innovation Product Radar",
+      summary: "จอ e-ink สำหรับแสดงตารางงาน สภาพอากาศ habit และ dashboard ส่วนตัวแบบไม่รบกวนสายตา",
+      whyInteresting: "เหมาะกับโต๊ะทำงานหรือห้องนอน เพราะอ่านง่าย ประหยัดไฟ และช่วยลดการเปิดมือถือบ่อย",
+      useCase: "daily planner, calendar, weather, task list, habit tracker, Nimbus Daily mini dashboard",
+      audience: "สาย productivity, นักเรียน, คนทำงาน, smart home user",
+      whatToCheck: ["รองรับภาษาไทย", "เชื่อม Google Calendar ได้ไหม", "แบตเตอรี่", "API", "refresh rate"],
+      caution: "บางรุ่นเป็น niche หรือ pre-order ต้องเช็กรีวิวจริงและความน่าเชื่อถือของผู้ขาย",
+      contentIdea: "ทำโพสต์: Dashboard ที่ไม่ต้องเปิดมือถือ—จอ e-ink บนโต๊ะทำงาน",
+      fullArticle: "E-Ink Desk Dashboard เป็นสินค้าแนว smart desk ที่น่าสนใจ เพราะเปลี่ยนข้อมูลที่ต้องเปิดมือถือบ่อย ๆ ให้แสดงบนจออ่านง่าย เช่น งานวันนี้ ตารางเรียน ตารางประชุม หรือสภาพอากาศ ข้อดีคือไม่รบกวนสายตาและใช้ไฟน้อย เหมาะกับคนที่อยากลด distraction และทำให้โต๊ะทำงานมีข้อมูลสำคัญแบบ glanceable",
+      priorityScore: 86,
+    };
+  }
+
+  return {
+    product: text || `Innovation Product ${index + 1}`,
+    title: text || `Innovation Product ${index + 1}`,
+    category: "Global Technology / Innovation",
+    source: "Global Innovation Product Radar",
+    summary: "สินค้าเทคโนโลยีหรือนวัตกรรมที่น่าสนใจจากทั่วโลก ควรเก็บไว้ดูรายละเอียดและตรวจข้อมูลเพิ่ม",
+    whyInteresting: "มีแนวโน้มใช้ทำงาน เรียน หรือสร้างคอนเทนต์ได้ และเหมาะกับการติดตามเทรนด์เทคโนโลยี",
+    useCase: "productivity, learning, creator workflow, smart workspace",
+    audience: "ผู้ใช้ทั่วไป, นักเรียน, คนทำงาน, creator",
+    whatToCheck: ["รีวิวจริง", "ราคา", "การรองรับภาษาไทย", "การรับประกัน", "ข้อจำกัดของสินค้า"],
+    caution: "ยังควรตรวจแหล่งข้อมูลและรีวิวก่อนตัดสินใจ",
+    contentIdea: "ทำโพสต์คัดของเทคใหม่จากทั่วโลก",
+    fullArticle: `${text} เป็นสินค้าในกลุ่มเทคโนโลยี/นวัตกรรมที่ควรเก็บไว้ใน watchlist เพื่ออ่านต่อและตรวจรายละเอียด เช่น use case, จุดเด่น, ข้อควรระวัง และกลุ่มผู้ใช้ที่เหมาะสม`,
+    priorityScore: 80,
+  };
+}
+
+function enrichLegacyItem(key: string, item: unknown, index: number): RichRecord {
+  const record = asRecord(item);
+  if (record) return { category: asText(record.category) || key, source: asText(record.source) || key, ...record };
+  const text = asText(item) || String(item ?? "");
+
+  if (key === "products") return enrichProduct(text, index);
+  if (key === "market") return { title: text, symbol: text.split(" ")[0] || "US", category: "US Stock News", source: "US Stock News", summary: "ข่าวตลาดสหรัฐที่ควรติดตามแบบให้ข้อมูล ไม่ใช่คำแนะนำลงทุน", whyItMatters: "ช่วยดู sentiment ของกลุ่มเทคและตลาดสหรัฐ", whatToCheck: ["headline", "sector", "market impact", "risk"], fullArticle: `${text} เป็นประเด็นในกลุ่ม US Stock News ที่ควรอ่านรายละเอียดต่อในเชิงข่าวและบริบทตลาด`, priorityScore: 84 };
+  if (key === "football") return { title: text, teamNames: text, category: "Football", source: "Football News Hub", summary: "ข่าวฟุตบอลหรือผลการแข่งขันที่ควรจัดหมวดตามลีก/ทีม", whyItMatters: "ช่วยติดตามบอลไทย บอลโลก และลีกใหญ่แบบแยกเรื่อง", whatToWatchNext: "โปรแกรมถัดไป ผลล่าสุด นักเตะสำคัญ และสถานะการแข่งขัน", fullArticle: `${text} ควรถูกขยายเป็นข่าวฟุตบอลพร้อมชื่อทีม ลีก รายการ สถานะ และสิ่งที่ต้องติดตามต่อ`, priorityScore: 72 };
+  if (key === "gmail") return { title: text, subject: text, category: "Daily Email", source: "Gmail Daily Digest", summary: "อีเมลในรอบวันที่ควรถูกสรุปเป็นหมวด พร้อม priority และสิ่งที่ต้องทำต่อ", suggestedAction: "จัดหมวดและตัดสินใจว่าอ่านทันที เก็บไว้ หรือ archive", fullArticle: `${text} เป็นอีเมลที่ระบบควรสรุป sender, subject, priority, status และ next action`, priorityScore: 80 };
+  if (key === "concerts") return { title: text, eventName: text, category: "Thailand Concert Alerts", source: "Concert API Thailand Only", summary: "คอนเสิร์ตในไทยที่ควรเช็กวัน เวลา สถานที่ และสถานะบัตร", venue: "Thailand / Bangkok watchlist", ticketStatus: "Watchlist", fullArticle: `${text} ควรมีรายละเอียดศิลปิน สถานที่ วันแสดง ช่วงราคา การเดินทาง และ checklist ก่อนซื้อบัตร`, priorityScore: 78 };
+  if (key === "news") return { title: text, category: "Global News", source: "News", summary: "ข่าวโลกที่ควรอ่านต่อพร้อมบริบทและผลกระทบ", whyItMatters: "ช่วยติดตามประเด็นที่น่าสนใจทั่วโลก", fullArticle: `${text} เป็นหัวข้อข่าวที่ควรขยายเป็นสรุปเต็ม พร้อมที่มา ประเด็นสำคัญ และสิ่งที่ต้องติดตามต่อ`, priorityScore: 82 };
+
+  return { title: text, category: key, source: key, summary: text, fullArticle: text, priorityScore: 70 };
+}
+
 function sourceItems(rawInput: Record<string, unknown>) {
   const fromSources = (Array.isArray(rawInput.sources) ? rawInput.sources : []).flatMap((source) => {
     const row = asRecord(source);
@@ -95,52 +167,73 @@ function sourceItems(rawInput: Record<string, unknown>) {
     const data = asRecord(row.data);
     if (Array.isArray(data?.items)) return data.items;
     return row.data ? [row.data] : [];
+  }).map((item, index) => {
+    const row = asRecord(item);
+    if (!row) return enrichLegacyItem("items", item, index);
+    return row;
   });
 
   const legacyItems = LEGACY_INPUT_KEYS.flatMap((key) => {
     const value = rawInput[key];
     if (value === undefined || value === null) return [];
-    if (Array.isArray(value)) return value.map((item) => ({ title: asText(item), category: key, source: key }));
-    return [{ title: asText(value) || key, category: key, source: key }];
+    if (Array.isArray(value)) return value.map((item, index) => enrichLegacyItem(key, item, index));
+    return [enrichLegacyItem(key, value, 0)];
   });
 
   return [...fromSources, ...legacyItems];
 }
 
+function itemTitle(row: RichRecord) {
+  return [row.product, row.teamNames, row.eventName, row.symbol, row.company, row.title, row.subject, row.description, row.summary]
+    .map(asText)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(" — ");
+}
+
+function itemDetailLines(items: unknown[]) {
+  return items.flatMap((item, index) => {
+    const row = asRecord(item);
+    if (!row) return [`${index + 1}. ${asText(item)}`];
+    const title = itemTitle(row) || `รายการที่ ${index + 1}`;
+    return [
+      `${index + 1}. ${title}`,
+      asText(row.summary) ? `สรุป: ${asText(row.summary)}` : "",
+      asText(row.whyInteresting || row.whyItMatters) ? `ทำไมน่าสนใจ: ${asText(row.whyInteresting || row.whyItMatters)}` : "",
+      asText(row.useCase) ? `ใช้ทำอะไร: ${asText(row.useCase)}` : "",
+      asText(row.audience) ? `เหมาะกับ: ${asText(row.audience)}` : "",
+      asText(row.whatToCheck || row.dataToCheck) ? `ควรเช็ก: ${asText(row.whatToCheck || row.dataToCheck)}` : "",
+      asText(row.contentIdea) ? `มุมทำคอนเทนต์: ${asText(row.contentIdea)}` : "",
+      asText(row.caution || row.risk) ? `ข้อควรระวัง: ${asText(row.caution || row.risk)}` : "",
+    ].filter(Boolean);
+  });
+}
+
+function fullArticleText(items: unknown[]) {
+  return items.map((item, index) => {
+    const row = asRecord(item);
+    if (!row) return `${index + 1}. ${asText(item)}`;
+    const title = itemTitle(row) || `รายการที่ ${index + 1}`;
+    return [
+      `${index + 1}. ${title}`,
+      asText(row.fullArticle) || asText(row.summary),
+      asText(row.whyInteresting || row.whyItMatters) ? `\nทำไมน่าสนใจ: ${asText(row.whyInteresting || row.whyItMatters)}` : "",
+      asText(row.useCase) ? `\nใช้ทำอะไร: ${asText(row.useCase)}` : "",
+      asText(row.whatToCheck || row.dataToCheck) ? `\nควรเช็ก: ${asText(row.whatToCheck || row.dataToCheck)}` : "",
+    ].filter(Boolean).join("\n");
+  }).join("\n\n---\n\n");
+}
+
 function runToLibraryItem(run: TaskRun, task?: ScheduledTask): LibraryViewItem {
   const rawInput = (asRecord(run.rawInput) ?? {}) as Record<string, unknown>;
   const items = sourceItems(rawInput);
-  const first = asRecord(items[0]);
   const text = `${task?.name ?? ""} ${task?.type ?? ""} ${run.gptOutput.title} ${run.gptOutput.summary} ${run.translatedContent ?? ""} ${JSON.stringify(rawInput)}`;
   const topic = topicFromText(text);
   const topicMeta = TOPICS.find((item) => item.key === topic);
   const title = topic === "market" ? "US Stock News" : run.translation?.translatedTitle || run.gptOutput.title || task?.name || "Nimbus Daily Result";
   const summary = run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary || run.originalContent || "ยังไม่มีสรุป";
-  const itemText = items.slice(0, 10).map((item, index) => {
-    const row = asRecord(item);
-    if (!row) return `${index + 1}. ${asText(item)}`;
-    const main = [row.teamNames, row.eventName, row.product, row.symbol, row.company, row.title, row.subject, row.description, row.summary]
-      .map(asText)
-      .filter(Boolean)
-      .slice(0, 3)
-      .join(" — ");
-    return `${index + 1}. ${main || JSON.stringify(item).slice(0, 160)}`;
-  });
-
-  const detailFields = first
-    ? [
-        ["Source", first.source],
-        ["Category", first.category],
-        ["Teams", first.teamNames],
-        ["Event", first.eventName],
-        ["Artist", first.artist],
-        ["Venue", first.venue],
-        ["Product", first.product],
-        ["Market", first.symbol || first.company],
-        ["Why", first.whyItMatters || first.whyInteresting],
-        ["Action", first.action || first.suggestedAction],
-      ].map(([label, value]) => `${label}: ${asText(value)}`).filter((value) => !value.endsWith(": "))
-    : [];
+  const details = itemDetailLines(items).slice(0, 18);
+  const fullText = fullArticleText(items);
 
   return {
     id: run.id,
@@ -153,12 +246,12 @@ function runToLibraryItem(run: TaskRun, task?: ScheduledTask): LibraryViewItem {
     source: task?.dataSources?.join(", ") || "Task Run",
     category: task?.type || topicMeta?.en || "Nimbus Daily",
     priority: run.priorityScore,
-    readTime: items.length > 4 ? "4-6 นาที" : "2-3 นาที",
+    readTime: details.length > 8 ? "5-8 นาที" : "3-5 นาที",
     tags: [topicMeta?.en, task?.type, run.status, run.telegramStatus].filter(Boolean) as string[],
-    details: [...detailFields, ...itemText].slice(0, 14),
+    details,
     sections: [
       { heading: "สรุป", body: summary },
-      { heading: "ข้อมูลที่พบ", body: itemText.length ? itemText.join("\n") : run.originalContent || run.gptOutput.recommended_action || "ไม่มีข้อมูลดิบใน run นี้" },
+      { heading: "ข้อมูลเต็มที่ระบบขยายให้อ่าน", body: fullText || run.originalContent || "ไม่มีข้อมูลดิบใน run นี้" },
       { heading: "ควรทำต่อ", body: run.gptOutput.recommended_action || "เปิดดูรายละเอียดใน Task Results หรือรัน task ใหม่เพื่อเก็บข้อมูลล่าสุด" },
     ],
     updatedAt: run.startedAt,
@@ -291,7 +384,7 @@ export function DataLibraryView({ initialRunId = "", initialArticleId = "" }: { 
           <Badge tone="purple">🧊 {isTh ? "คลังข้อมูลเต็ม" : "Full Data Library"}</Badge>
           <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">{isTh ? "อ่านข้อมูลเต็มแบบแยกเรื่อง" : "Read full data by topic"}</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-            {isTh ? "กดปุ่ม อ่านเต็ม เพื่อเปิดหน้าอ่านจริงผ่านลิงก์ แต่ละหมวดถูกแยกให้อ่านง่าย ไม่ต้องพึ่งหน้าต่าง modal แล้ว" : "Use Read Full links to open a real readable page. Topics are separated for easier reading."}
+            {isTh ? "ระบบจะขยายข้อมูลเก่าที่เป็นคำสั้น ๆ ให้เป็นรายละเอียดอ่านเต็มอัตโนมัติ เช่น สรุป ทำไมน่าสนใจ ใช้ทำอะไร ควรเช็กอะไร และควรทำต่อ" : "Legacy short inputs are now expanded into readable full details automatically."}
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-4">
             <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
@@ -337,7 +430,7 @@ export function DataLibraryView({ initialRunId = "", initialArticleId = "" }: { 
                   </div>
                   <div className="shrink-0 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right"><p className="text-2xl font-black text-cyan-100">{item.priority}</p><p className="text-[11px] uppercase tracking-wider text-slate-400">priority</p></div>
                 </div>
-                <div className="mt-5 space-y-2 rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-300">{item.details.slice(0, 4).map((detail) => <p key={detail}>• {detail}</p>)}</div>
+                <div className="mt-5 space-y-2 rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-300">{item.details.slice(0, 6).map((detail) => <p key={detail}>• {detail}</p>)}</div>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-sm font-black text-cyan-100 hover:bg-cyan-300/20" href={articleHref(item)}>📖 {isTh ? "อ่านเต็ม" : "Read Full"}</Link>
                   {item.runId ? <Link className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white hover:bg-white/[0.10]" href={`/task-results/${item.runId}`}>{isTh ? "ผลลัพธ์เดิม" : "Original result"}</Link> : null}
