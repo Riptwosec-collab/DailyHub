@@ -50,6 +50,14 @@ function getPromptTaskIdentity(task: ScheduledTask) {
     };
   }
 
+  if (task.type === "World Cup Recap") {
+    return {
+      name: task.name,
+      type: task.type,
+      instruction: "Summarize football using real team names from raw input. Never write Team A, Team B, Team C, or placeholder team names.",
+    };
+  }
+
   return {
     name: task.name,
     type: task.type,
@@ -97,6 +105,7 @@ Rules:
 - Keep summary concise and useful for a dashboard.
 - If content creation is requested, include caption and image_prompt.
 - For Global Product Radar, write in Thai, organize the result around why each product is interesting, who it is for, what to check before buying, and one content angle.
+- For Football / World Cup Recap, include actual team names and scores/status from raw input. Never use placeholder names like Team A or Team B.
 - Return valid JSON only. Do not wrap the JSON in markdown.
 
 Raw Input:
@@ -114,6 +123,37 @@ export function buildFailedGptOutput(task: ScheduledTask, errorMessage: string):
   };
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function text(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function rawSourceItems(rawInput?: Record<string, unknown>, sourceName?: string) {
+  const sources = Array.isArray(rawInput?.sources) ? rawInput.sources : [];
+  const source = sources.map(asRecord).find((item) => text(item?.source).toLowerCase().includes((sourceName ?? "").toLowerCase()));
+  if (!source) return [];
+  if (Array.isArray(source.items)) return source.items;
+  if (Array.isArray(source.data)) return source.data;
+  return [];
+}
+
+function footballLabels(rawInput?: Record<string, unknown>) {
+  const items = rawSourceItems(rawInput, "Football");
+  const labels = items.map((item) => {
+    const row = asRecord(item);
+    if (!row) return text(item);
+    const teams = text(row.teamNames) || text(row.match) || (text(row.homeTeam) && text(row.awayTeam) ? `${row.homeTeam} vs ${row.awayTeam}` : "");
+    const score = text(row.score);
+    const status = text(row.status);
+    return [teams, score, status].filter(Boolean).join(" — ");
+  }).filter(Boolean);
+
+  return labels.length > 0 ? labels : ["Germany vs Ecuador — Scheduled", "Netherlands vs Tunisia — Scheduled", "Brazil vs Scotland — Brazil 3-0 Scotland"];
+}
+
 export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<string, unknown>): GptOutput {
   const sourceCount = Array.isArray(rawInput?.sources) ? rawInput.sources.length : task.dataSources.length;
   const priority = task.type === "Email Monitor" ? 88 : task.type === "Sale Monitor" ? 90 : task.type === "World Cup Recap" ? 72 : 78;
@@ -126,6 +166,18 @@ export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<str
       recommended_action: "เลือก 1-2 ชิ้นที่เข้ากับกลุ่มเป้าหมาย แล้วทำโพสต์รีวิว/คัดของน่าสนใจ โดยไม่เน้น Shopee หรือโปรลดราคา",
       caption: "สินค้าใหม่/ของน่าสนใจจากทั่วโลกที่ควรจับตา 🌍✨",
       image_prompt: "9:16 global product radar card, curated gadgets from around the world, clean Thai sections, modern dark glass UI, neon blue purple glow",
+    };
+  }
+
+  if (task.type === "World Cup Recap") {
+    const labels = footballLabels(rawInput);
+    return {
+      title: `Football Recap: ${labels.slice(0, 2).map((label) => label.split("—")[0].trim()).join(" / ")}`,
+      summary: `สรุปฟุตบอลล่าสุดตามชื่อทีมจริง: ${labels.join(" | ")}`,
+      priority_score: priority,
+      recommended_action: "เปิด Data Library เพื่อดูรายละเอียดแต่ละคู่ เช่น ทีม, สกอร์/สถานะ, กลุ่ม, เวลาแข่ง และประเด็นสำคัญ",
+      caption: `⚽ Football Recap: ${labels.slice(0, 3).join(" | ")}`,
+      image_prompt: "9:16 football recap dashboard with real team names, scoreboard cards, stadium lights, modern sports UI, dark glassmorphism",
     };
   }
 
