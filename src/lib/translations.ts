@@ -5,6 +5,7 @@ export const translations = {
     // Nav
     nav_home: "หน้าหลัก",
     nav_dashboard: "แดชบอร์ด",
+    nav_data_library: "อ่านข้อมูลเต็ม",
     nav_scheduled_tasks: "งานอัตโนมัติ",
     nav_create_task: "สร้างงาน",
     nav_templates: "เทมเพลต",
@@ -17,7 +18,7 @@ export const translations = {
     topbar_live: "API ทำงานอยู่",
     // Sidebar
     sidebar_phase: "เฟส 27",
-    sidebar_desc: "Dashboard, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน",
+    sidebar_desc: "แดชบอร์ด, คลังข้อมูลเต็ม, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน",
     sidebar_build_label: "Production MVP",
     // Common
     common_refresh: "รีเฟรช",
@@ -36,6 +37,13 @@ export const translations = {
     common_read: "อ่านแล้ว",
     common_unread: "ยังไม่อ่าน",
     common_important: "สำคัญ",
+    common_status: "สถานะ",
+    common_telegram: "Telegram",
+    common_ai_mode: "โหมด AI",
+    common_data_mode: "โหมดข้อมูล",
+    common_items: "รายการ",
+    common_runs: "รอบรัน",
+    common_visible: "ที่แสดงอยู่",
     // Dashboard
     dashboard_badge_api_connected: "UI เชื่อมต่อ API",
     dashboard_title: "แดชบอร์ด Nimbus Daily",
@@ -82,11 +90,29 @@ export const translations = {
     dashboard_loading_title: "กำลังโหลดแดชบอร์ด",
     dashboard_loading_desc: "กำลังดึงข้อมูล Dashboard จาก API routes",
     dashboard_loading_failed: "โหลด Dashboard ไม่สำเร็จ",
+    // Data Library
+    data_library_badge: "คลังข้อมูล",
+    data_library_title: "คลังข้อมูลเต็มของ Nimbus Daily",
+    data_library_desc: "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive",
+    data_library_search: "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert...",
+    data_library_view_all_runs: "ดูทุก run",
+    data_library_empty_title: "ไม่พบข้อมูล",
+    data_library_empty_desc: "ลองเปลี่ยนตัวกรองหรือกด Run Task เพื่อสร้างข้อมูลใหม่",
+    // Batch Runner
+    batch_badge: "Batch Runner",
+    batch_title: "ส่ง Telegram แบบ 2 ปุ่ม",
+    batch_desc: "ปุ่มแรกส่ง 4 หัวข้อหลัก ส่วนปุ่มสองส่ง 3 หัวข้อที่เหลือ ถ้า task ขาด ระบบจะพยายามสร้าง task ให้ครบก่อนรัน",
+    batch_run_all: "Run ทั้ง 2 ปุ่ม",
+    batch_running: "กำลังรัน...",
+    batch_first: "ปุ่มแรก",
+    batch_second: "ปุ่มสอง",
+    batch_ready: "พร้อมรันแบบแบ่ง 2 ปุ่ม",
   },
   en: {
     // Nav
     nav_home: "Home",
     nav_dashboard: "Dashboard",
+    nav_data_library: "Data Library",
     nav_scheduled_tasks: "Scheduled Tasks",
     nav_create_task: "Create Task",
     nav_templates: "Templates",
@@ -99,7 +125,7 @@ export const translations = {
     topbar_live: "API Live",
     // Sidebar
     sidebar_phase: "Phase 27",
-    sidebar_desc: "Dashboard, API, Scheduler, Templates, Settings, Admin & Deploy ready.",
+    sidebar_desc: "Dashboard, full Data Library, API, Scheduler, Templates, Settings, Admin & Deploy ready.",
     sidebar_build_label: "Production MVP",
     // Common
     common_refresh: "Refresh",
@@ -118,6 +144,13 @@ export const translations = {
     common_read: "Read",
     common_unread: "Unread",
     common_important: "Important",
+    common_status: "Status",
+    common_telegram: "Telegram",
+    common_ai_mode: "AI Mode",
+    common_data_mode: "Data Mode",
+    common_items: "Items",
+    common_runs: "Runs",
+    common_visible: "Visible",
     // Dashboard
     dashboard_badge_api_connected: "API-connected UI",
     dashboard_title: "Nimbus Daily Dashboard",
@@ -164,6 +197,23 @@ export const translations = {
     dashboard_loading_title: "Loading dashboard",
     dashboard_loading_desc: "Fetching Dashboard data from API routes",
     dashboard_loading_failed: "Dashboard loading failed",
+    // Data Library
+    data_library_badge: "Data Library",
+    data_library_title: "Nimbus Daily full data library",
+    data_library_desc: "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards.",
+    data_library_search: "Search full data, sources, products, football, concerts...",
+    data_library_view_all_runs: "View all runs",
+    data_library_empty_title: "No data found",
+    data_library_empty_desc: "Try changing filters or run a task to create new data.",
+    // Batch Runner
+    batch_badge: "Batch Runner",
+    batch_title: "Send Telegram with 2 buttons",
+    batch_desc: "The first button sends 4 core topics. The second button sends the 3 remaining topics. If tasks are missing, the system tries to create them before running.",
+    batch_run_all: "Run both buttons",
+    batch_running: "Running...",
+    batch_first: "First button",
+    batch_second: "Second button",
+    batch_ready: "Ready for 2-button run",
   },
 } as const;
 
