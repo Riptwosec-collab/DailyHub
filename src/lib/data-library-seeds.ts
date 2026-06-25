@@ -1,0 +1,239 @@
+export type LibraryTopicKey = "daily" | "product" | "market" | "email" | "concert" | "football" | "longread";
+
+export type LibrarySeedSection = {
+  heading: string;
+  body: string;
+};
+
+export type LibrarySeedItem = {
+  id: string;
+  topic: LibraryTopicKey;
+  icon: string;
+  titleTh: string;
+  titleEn: string;
+  summaryTh: string;
+  summaryEn: string;
+  source: string;
+  category: string;
+  priority: number;
+  readTime: string;
+  tags: string[];
+  details: string[];
+  sections: LibrarySeedSection[];
+  updatedAt: string;
+};
+
+const UPDATED_AT = "2026-06-25T08:00:00.000Z";
+
+export const DATA_LIBRARY_SEED_ITEMS: LibrarySeedItem[] = [
+  {
+    id: "global-news-ai-infra",
+    topic: "daily",
+    icon: "📰",
+    titleTh: "ข่าวโลก: AI Infrastructure กลายเป็นหัวข้อหลักของบริษัทเทค",
+    titleEn: "Global News: AI infrastructure becomes a major tech theme",
+    summaryTh: "บริษัทเทคทั่วโลกให้ความสำคัญกับ data center, GPU capacity, power, cooling และ network fabric มากขึ้น เพราะ AI ต้องใช้ทรัพยากรสูงและวัดผลได้จากความพร้อมของโครงสร้างพื้นฐาน",
+    summaryEn: "Tech companies are focusing more on data centers, GPU capacity, power, cooling, and network fabric as AI workloads require stronger infrastructure.",
+    source: "Nimbus Global News Desk",
+    category: "World / Technology",
+    priority: 91,
+    readTime: "4 นาที",
+    tags: ["AI", "Data Center", "Cloud", "Network"],
+    details: ["ประเด็นหลักคือการลงทุน data center และ GPU cluster", "เกี่ยวข้องกับ cloud provider, chip maker, network vendor และพลังงาน", "เหมาะกับผู้อ่านสาย Network/System เพราะเชื่อมกับงานจริงโดยตรง"],
+    sections: [
+      { heading: "เกิดอะไรขึ้น", body: "AI workload ทำให้บริษัทเทคต้องเพิ่มกำลังประมวลผลและระบบรองรับ เช่น GPU, high-speed networking, storage, cooling และ power management มากขึ้น" },
+      { heading: "ทำไมสำคัญ", body: "ข่าวประเภทนี้ช่วยให้เห็นว่าการเติบโตของ AI ไม่ได้อยู่แค่โมเดล แต่เกี่ยวกับระบบเบื้องหลังทั้งหมด ตั้งแต่ data center ไปจนถึง network capacity" },
+      { heading: "ควรติดตามต่อ", body: "ติดตามข่าวลงทุน data center, ความต้องการ GPU, ค่าใช้จ่าย cloud, latency, power capacity และการขยาย region ของ cloud provider" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "global-news-cyber",
+    topic: "daily",
+    icon: "📰",
+    titleTh: "ข่าวโลก: องค์กรเพิ่มการสรุป Security Alert ด้วย AI",
+    titleEn: "Global News: organizations use AI to summarize security alerts",
+    summaryTh: "ระบบความปลอดภัยสร้างแจ้งเตือนจำนวนมาก องค์กรจึงเริ่มใช้ AI ช่วยจัดหมวด แยกความสำคัญ และสรุป action ที่ต้องทำต่อให้ทีม IT อ่านง่ายขึ้น",
+    summaryEn: "Organizations are using AI to categorize security alerts, prioritize incidents, and summarize next actions for IT teams.",
+    source: "Nimbus Security Desk",
+    category: "Security / Operations",
+    priority: 86,
+    readTime: "3 นาที",
+    tags: ["Security", "SOC", "AI", "Monitoring"],
+    details: ["ช่วยลด alert fatigue", "เหมาะกับทีม IT/NOC/SOC", "ควรเก็บ log เต็มไว้ใน Data Library แล้วส่ง Telegram แค่สรุป"],
+    sections: [
+      { heading: "ภาพรวม", body: "Security alert มักมีข้อมูลเยอะและซ้ำ การสรุปด้วย AI ช่วยให้เห็นว่า alert ไหนควรจัดการก่อน และควรตรวจอะไรต่อ" },
+      { heading: "ผลต่อ Nimbus Daily", body: "Email Monitor และ Daily Brief ควรแยกข่าวความปลอดภัยเป็นหมวดของตัวเอง พร้อมคะแนน priority และ action ที่ชัดเจน" },
+      { heading: "ควรทำต่อ", body: "เพิ่ม field เช่น severity, affected system, recommended action และ owner เพื่อให้ Data Library ใช้งานจริงมากขึ้น" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "product-ai-note",
+    topic: "product",
+    icon: "🌍",
+    titleTh: "สินค้าเทค: AI Wearable Note Taker",
+    titleEn: "Tech Product: AI wearable note taker",
+    summaryTh: "อุปกรณ์พกพาสำหรับจดโน้ต สรุปประชุม และดึง action items เหมาะกับนักเรียน คนทำงาน และ creator ที่ต้องสรุปข้อมูลจากเสียงหรือบทสนทนาเป็นประจำ",
+    summaryEn: "A wearable AI note tool for meeting notes, summaries, and action items, useful for students, workers, and creators.",
+    source: "Global Innovation Product Radar",
+    category: "AI Gadget / Productivity",
+    priority: 94,
+    readTime: "3 นาที",
+    tags: ["AI Gadget", "Productivity", "Wearable"],
+    details: ["จุดเด่น: สรุปเสียงเป็นข้อความและ action item", "ควรเช็ก: รองรับภาษาไทย, แบตเตอรี่, subscription", "มุมคอนเทนต์: AI gadget ที่เปลี่ยนประชุมให้เป็น checklist"],
+    sections: [
+      { heading: "ทำไมสินค้าแนวนี้น่าสนใจ", body: "ผู้ใช้จำนวนมากมีข้อมูลจากประชุม เรียน หรือสัมภาษณ์เยอะขึ้น สินค้าที่ช่วยจัดการเสียงและสรุปเป็นงานต่อได้จึงมีมูลค่ามากขึ้น" },
+      { heading: "เหมาะกับใคร", body: "นักเรียน นักศึกษา คนทำงาน project manager sales creator และคนที่ต้องจดโน้ตจากบทสนทนาเป็นประจำ" },
+      { heading: "ก่อนสนใจควรเช็ก", body: "ภาษาไทย คุณภาพ transcription ความแม่นยำของสรุป ระยะเวลาแบตเตอรี่ ค่าใช้จ่ายรายเดือน และวิธี export ข้อมูล" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "product-eink-dashboard",
+    topic: "product",
+    icon: "🌍",
+    titleTh: "สินค้าเทค: E-Ink Desk Dashboard",
+    titleEn: "Tech Product: E-Ink desk dashboard",
+    summaryTh: "จอ e-ink สำหรับแสดงงาน ตารางเวลา สภาพอากาศ และ habit เหมาะกับโต๊ะทำงานหรือห้องนอน เพราะอ่านง่าย ประหยัดไฟ และไม่รบกวนสายตาเหมือนจอมือถือ",
+    summaryEn: "An e-ink display for tasks, calendar, weather, and habits. Great for a desk setup with low distraction.",
+    source: "Global Innovation Product Radar",
+    category: "Smart Desk / Minimal Tech",
+    priority: 86,
+    readTime: "3 นาที",
+    tags: ["E-Ink", "Smart Desk", "Dashboard"],
+    details: ["ใช้เป็น daily planner ได้", "ควรเช็ก API และการเชื่อม Google Calendar", "เหมาะกับทำคอนเทนต์ setup โต๊ะทำงาน"],
+    sections: [
+      { heading: "จุดเด่น", body: "e-ink ช่วยแสดงข้อมูลสำคัญโดยไม่ต้องเปิดมือถือบ่อย ลดสิ่งรบกวน และประหยัดไฟมากกว่าจอปกติ" },
+      { heading: "Use case", body: "แสดงตารางวันนี้ งานที่ต้องทำ สภาพอากาศ reminder การดื่มน้ำ หรือ dashboard ของ Nimbus Daily" },
+      { heading: "ควรเช็ก", body: "รองรับภาษาไทยไหม, refresh rate, battery, calendar integration, API, app ที่ใช้ตั้งค่า และความยากในการติดตั้ง" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "market-nvda-ai",
+    topic: "market",
+    icon: "📈",
+    titleTh: "ข่าวตลาดสหรัฐ: NVIDIA กับภาพรวม AI Infrastructure",
+    titleEn: "US Market: NVIDIA and AI infrastructure",
+    summaryTh: "ตลาดจับตาความต้องการ GPU, data center capex และ guidance ของบริษัทที่เกี่ยวกับ AI infrastructure เพราะเป็นตัวชี้วัด sentiment ของกลุ่มเทคขนาดใหญ่",
+    summaryEn: "The market watches GPU demand, data center capex, and guidance around AI infrastructure as key sentiment drivers for large-cap tech.",
+    source: "US Market News Desk",
+    category: "US Market / Semiconductors",
+    priority: 92,
+    readTime: "3 นาที",
+    tags: ["US Market", "AI", "Semiconductors"],
+    details: ["ข้อมูลนี้เป็นสรุปข่าวเพื่ออ่าน ไม่ใช่คำแนะนำซื้อขาย", "ควรดูรายได้ data center, margin, backlog, guidance", "เชื่อมโยงกับหุ้น cloud, chip และ data center"],
+    sections: [
+      { heading: "ประเด็นที่ตลาดสนใจ", body: "ความต้องการ GPU สำหรับ AI training/inference, การขยาย data center และความพร้อม supply chain เป็นเรื่องที่นักลงทุนติดตาม" },
+      { heading: "สิ่งที่ควรตรวจต่อ", body: "รายได้กลุ่ม Data Center, gross margin, guidance, ความเห็นผู้บริหาร และข่าวคำสั่งซื้อจาก cloud provider" },
+      { heading: "ความเสี่ยง", body: "valuation สูง การแข่งขัน custom chip และความผันผวนของ sentiment อาจทำให้ราคาหุ้นแกว่งแรง ข้อมูลนี้ไม่ใช่คำแนะนำลงทุน" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "market-msft-cloud",
+    topic: "market",
+    icon: "📈",
+    titleTh: "ข่าวตลาดสหรัฐ: Microsoft, Cloud และ AI Software",
+    titleEn: "US Market: Microsoft, cloud, and AI software",
+    summaryTh: "ข่าว Azure, Copilot และ enterprise AI ช่วยสะท้อนว่ากระแส AI แปลงเป็นรายได้ software และ cloud ได้มากแค่ไหน",
+    summaryEn: "Azure, Copilot, and enterprise AI updates show how AI demand turns into cloud and software revenue.",
+    source: "US Market News Desk",
+    category: "US Market / Cloud Software",
+    priority: 86,
+    readTime: "3 นาที",
+    tags: ["US Market", "Cloud", "Software"],
+    details: ["ไม่ใช่คำแนะนำซื้อขาย", "ควรดู Azure growth และ Copilot adoption", "เกี่ยวข้องกับ software margin และ cloud capex"],
+    sections: [
+      { heading: "ทำไมต้องดู", body: "Microsoft เป็นตัวอย่างสำคัญของ AI monetization ในฝั่งองค์กร เพราะมีทั้ง cloud, productivity suite และ AI assistant" },
+      { heading: "ตัวเลขที่ควรดู", body: "Azure revenue growth, commercial bookings, AI contribution, operating margin และ capex สำหรับ data center" },
+      { heading: "ประเด็นต่อยอด", body: "ถ้า AI software adoption โตจริง จะส่งผลต่อ SaaS, cloud, cyber และ data platform หลายกลุ่ม" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "email-daily-digest",
+    topic: "email",
+    icon: "📧",
+    titleTh: "สรุปทุกเมลรายวัน: แยกหมวดและสิ่งที่ต้องทำต่อ",
+    titleEn: "Daily Email Digest: categories and next actions",
+    summaryTh: "สรุปอีเมลทั้งวันควรแยกเป็น Security, Billing, Work, Project, Newsletter และ Updates พร้อมบอก priority, unread/read และ action ที่ควรทำต่อ",
+    summaryEn: "A daily email digest should group Security, Billing, Work, Project, Newsletter, and Updates with priority, read status, and next actions.",
+    source: "Gmail Daily Digest",
+    category: "Email / Daily Digest",
+    priority: 82,
+    readTime: "2 นาที",
+    tags: ["Email", "Digest", "Productivity"],
+    details: ["ไม่ควรดูเฉพาะ important mail", "ต้องรวมทุกเมลในวันนั้นแล้วสรุปเป็นหมวด", "Telegram ส่งสรุปสั้น ส่วน Data Library เก็บรายละเอียด"],
+    sections: [
+      { heading: "รูปแบบที่ควรแสดง", body: "จำนวนเมลทั้งหมด, เมลยังไม่อ่าน, หมวดหมู่, priority, sender, subject, summary และ suggested action" },
+      { heading: "ตัวอย่างหมวด", body: "Security: ต้องตรวจทันที, Billing: เช็กวันครบกำหนด, Project: งานที่ต้อง follow-up, Newsletter: อ่านเมื่อว่าง" },
+      { heading: "วิธีใช้งาน", body: "อ่าน Telegram เพื่อดูภาพรวม แล้วเปิด Data Library เพื่อไล่รายละเอียดเมลแต่ละกลุ่ม" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "concert-thailand-bangkok",
+    topic: "concert",
+    icon: "🎤",
+    titleTh: "คอนเสิร์ตในไทย: โฟกัส Bangkok / Thailand Only",
+    titleEn: "Thailand Concerts: Bangkok / Thailand only",
+    summaryTh: "หมวดคอนเสิร์ตควรแสดงเฉพาะงานในไทย พร้อมศิลปิน สถานที่ วันที่ เวลา ช่วงราคา สถานะบัตร วิธีเดินทาง และ checklist ก่อนกดซื้อ",
+    summaryEn: "Concert alerts should focus on Thailand only, with artist, venue, date, ticket status, travel notes, and a buying checklist.",
+    source: "Concert API Thailand Only",
+    category: "Thailand Concert Alerts",
+    priority: 84,
+    readTime: "3 นาที",
+    tags: ["Concert", "Thailand", "Bangkok"],
+    details: ["แสดงเฉพาะไทย ไม่เอาต่างประเทศ", "ควรมี venue และการเดินทาง", "เหมาะกับ Telegram สรุปสั้น + Data Library รายละเอียดเต็ม"],
+    sections: [
+      { heading: "ข้อมูลที่ควรมี", body: "ศิลปิน, ชื่องาน, วันที่, เวลา, สถานที่, โซนพื้นที่, แนวเพลง, สถานะบัตร, วันขายบัตร และช่วงราคา" },
+      { heading: "การเดินทาง", body: "ใส่ note เช่น ใกล้ BTS/MRT, ที่จอดรถ, เวลารถติด, จุดขึ้นรถกลับหลังงาน และควรเผื่อเวลาเท่าไร" },
+      { heading: "Checklist ก่อนซื้อ", body: "ตรวจผังที่นั่ง, budget, วิธีจ่ายเงิน, เงื่อนไขเปลี่ยนชื่อ/คืนบัตร และข้อห้ามนำของเข้า" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "football-hub-global",
+    topic: "football",
+    icon: "⚽",
+    titleTh: "ข่าวฟุตบอล: บอลไทย บอลโลก และลีกใหญ่ยุโรป",
+    titleEn: "Football: Thai football, World Cup, and major leagues",
+    summaryTh: "Football Recap ควรรวมบอลไทย บอลโลก พรีเมียร์ลีก ลาลีก้า บุนเดสลีก้า เซเรียอา ลีกเอิง ยูฟ่า ยูโร เอเชียนเกมส์ และโอลิมปิก พร้อมชื่อทีมจริงและประเด็นที่ต้องติดตาม",
+    summaryEn: "Football recap should cover Thai football, World Cup, Premier League, LaLiga, Bundesliga, Serie A, Ligue 1, UEFA, EURO, Asian Games, and Olympic football.",
+    source: "Football News Hub",
+    category: "Football / Sports",
+    priority: 90,
+    readTime: "4 นาที",
+    tags: ["Football", "Thai League", "World Cup", "Premier League"],
+    details: ["ใช้ชื่อทีมจริง", "แยกตามลีก/รายการ", "มี what to watch next สำหรับแต่ละหมวด"],
+    sections: [
+      { heading: "บอลไทย", body: "ติดตามไทยลีก ทีมชาติไทย นักเตะตัวหลัก อาการบาดเจ็บ โปรแกรมสำคัญ และประเด็นที่ส่งผลต่อทีมชาติ" },
+      { heading: "ลีกยุโรป", body: "พรีเมียร์ลีก ลาลีก้า บุนเดสลีก้า เซเรียอา ลีกเอิง และยูฟ่า ควรสรุปทีมใหญ่ ฟอร์มล่าสุด ข่าวบาดเจ็บ และเกมที่น่าดู" },
+      { heading: "ทีมชาติและทัวร์นาเมนต์", body: "บอลโลก ยูโร เอเชียนเกมส์ และโอลิมปิก ควรแสดงตาราง ผลการแข่งขัน เส้นทางเข้ารอบ และทีมที่ต้องจับตา" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "longread-ai-workflow",
+    topic: "longread",
+    icon: "📚",
+    titleTh: "Long Read: ออกแบบระบบสรุปข้อมูลแบบ Telegram สั้น + Web อ่านเต็ม",
+    titleEn: "Long Read: Telegram summary plus full web library",
+    summaryTh: "ระบบที่ดีควรส่ง Telegram แบบสั้นและให้เว็บเป็นพื้นที่อ่านเต็ม แยกหมวด ค้นหาได้ และเปิดอ่านเป็นเรื่อง ๆ ได้ ไม่ให้ข้อมูลหายหลังแจ้งเตือน",
+    summaryEn: "A good system sends compact Telegram summaries while keeping full searchable categorized content on the web.",
+    source: "Nimbus Long Read Desk",
+    category: "Product Design / Automation",
+    priority: 88,
+    readTime: "5 นาที",
+    tags: ["Product Design", "Automation", "Data Library"],
+    details: ["Telegram ไม่ควรยาวเกินไป", "Data Library ต้องเป็นที่อ่านเต็ม", "ควรมี filter, search, read view และ link ต่อจาก Telegram"],
+    sections: [
+      { heading: "หลักการ", body: "Telegram ทำหน้าที่แจ้งเตือนและสรุปเร็ว ส่วน Data Library ทำหน้าที่เป็นคลังความรู้ มีรายละเอียด แหล่งที่มา และ action ต่อ" },
+      { heading: "โครงสร้างหน้าอ่าน", body: "ควรมีการ์ดเรื่อง, ปุ่มอ่านเต็ม, sections ย่อย, key points, tags, source และ timestamp" },
+      { heading: "สิ่งที่ควรเพิ่มต่อ", body: "เพิ่ม share link ต่อ run, bookmark, pin เรื่องสำคัญ, export เป็น markdown และสรุปประจำสัปดาห์" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+];
