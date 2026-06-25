@@ -131,6 +131,35 @@ function isSent(status?: string | null) {
   return status === "sent" || Boolean(status?.startsWith("mock_sent"));
 }
 
+function toBatchId(value: unknown): BatchId {
+  return value === "two" ? "two" : value === "all" ? "all" : "one";
+}
+
+function safeRedirectPath(value: unknown) {
+  if (typeof value !== "string" || !value.startsWith("/")) return null;
+  if (value.startsWith("//")) return null;
+  return value;
+}
+
+async function parseBatchRequest(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const body = await request.json().catch(() => ({})) as { batch?: string; redirect?: string };
+    return { batch: toBatchId(body.batch), redirectTo: safeRedirectPath(body.redirect) };
+  }
+
+  const formData = await request.formData().catch(() => null);
+  if (formData) {
+    return {
+      batch: toBatchId(formData.get("batch")),
+      redirectTo: safeRedirectPath(formData.get("redirect")),
+    };
+  }
+
+  return { batch: "one" as const, redirectTo: null };
+}
+
 async function ensureTask(userId: string, existingTasks: ScheduledTask[], seed: TaskSeed) {
   const existing = existingTasks.find((task) => matchesTask(task, seed));
   if (existing) return existing;
@@ -151,71 +180,85 @@ async function ensureTask(userId: string, existingTasks: ScheduledTask[], seed: 
   });
 }
 
+async function runBatchForUser(userId: string, batch: BatchId) {
+  const seeds = getSeeds(batch);
+  const existingTasks = await listScheduledTasks({ userId });
+
+  const results = [];
+  let sentCount = 0;
+  let failedCount = 0;
+  let createdCount = 0;
+
+  for (const seed of seeds) {
+    try {
+      const before = existingTasks.length;
+      const task = await ensureTask(userId, existingTasks, seed);
+      if (!existingTasks.find((item) => item.id === task.id)) existingTasks.push(task);
+      if (existingTasks.length > before) createdCount += 1;
+
+      const result = await runTaskNow(task.id, { userId, forceTelegram: true });
+      const telegramStatus = result?.taskRun.telegramStatus ?? "not_run";
+      const status = result?.taskRun.status ?? "not_found";
+      if (isSent(telegramStatus)) sentCount += 1;
+      if (!result || status === "failed" || telegramStatus.includes("failed")) failedCount += 1;
+
+      results.push({
+        taskId: task.id,
+        taskName: task.name,
+        taskType: task.type,
+        status,
+        telegramStatus,
+        priorityScore: result?.taskRun.priorityScore ?? null,
+        runId: result?.taskRun.id ?? null,
+      });
+    } catch (error) {
+      failedCount += 1;
+      results.push({
+        taskId: null,
+        taskName: seed.name,
+        taskType: seed.type,
+        status: "failed",
+        telegramStatus: "failed_batch_error",
+        priorityScore: null,
+        runId: null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    batch,
+    summary: {
+      requestedCount: seeds.length,
+      sentCount,
+      failedCount,
+      createdCount,
+    },
+    results,
+  };
+}
+
+function redirectAfterRun(request: Request, redirectTo: string, result: Awaited<ReturnType<typeof runBatchForUser>>) {
+  const url = new URL(redirectTo, request.url);
+  url.searchParams.set("batch", result.batch);
+  url.searchParams.set("sent", String(result.summary.sentCount));
+  url.searchParams.set("total", String(result.summary.requestedCount));
+  url.searchParams.set("failed", String(result.summary.failedCount));
+  url.searchParams.set("created", String(result.summary.createdCount));
+  url.searchParams.set("ts", String(Date.now()));
+  return Response.redirect(url, 303);
+}
+
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
     const user = await requireCurrentUser();
-    const body = await request.json().catch(() => ({})) as { batch?: string };
-    const batch = body.batch === "two" ? "two" : body.batch === "all" ? "all" : "one";
-    const seeds = getSeeds(batch);
-    const existingTasks = await listScheduledTasks({ userId: user.id });
+    const { batch, redirectTo } = await parseBatchRequest(request);
+    const result = await runBatchForUser(user.id, batch);
 
-    const results = [];
-    let sentCount = 0;
-    let failedCount = 0;
-    let createdCount = 0;
-
-    for (const seed of seeds) {
-      try {
-        const before = existingTasks.length;
-        const task = await ensureTask(user.id, existingTasks, seed);
-        if (!existingTasks.find((item) => item.id === task.id)) existingTasks.push(task);
-        if (existingTasks.length > before) createdCount += 1;
-
-        const result = await runTaskNow(task.id, { userId: user.id, forceTelegram: true });
-        const telegramStatus = result?.taskRun.telegramStatus ?? "not_run";
-        const status = result?.taskRun.status ?? "not_found";
-        if (isSent(telegramStatus)) sentCount += 1;
-        if (!result || status === "failed" || telegramStatus.includes("failed")) failedCount += 1;
-
-        results.push({
-          taskId: task.id,
-          taskName: task.name,
-          taskType: task.type,
-          status,
-          telegramStatus,
-          priorityScore: result?.taskRun.priorityScore ?? null,
-          runId: result?.taskRun.id ?? null,
-        });
-      } catch (error) {
-        failedCount += 1;
-        results.push({
-          taskId: null,
-          taskName: seed.name,
-          taskType: seed.type,
-          status: "failed",
-          telegramStatus: "failed_batch_error",
-          priorityScore: null,
-          runId: null,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-
-    return ok(
-      {
-        batch,
-        summary: {
-          requestedCount: seeds.length,
-          sentCount,
-          failedCount,
-          createdCount,
-        },
-        results,
-      },
-      { requestId },
-    );
+    if (redirectTo) return redirectAfterRun(request, redirectTo, result);
+    return ok(result, { requestId });
   } catch (error) {
     return fail(error, requestId);
   }
