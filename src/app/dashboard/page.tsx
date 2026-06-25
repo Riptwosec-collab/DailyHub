@@ -1,10 +1,14 @@
 import { DashboardControlView } from "@/components/dashboard/DashboardControlView";
+import { RunBatchControls } from "@/components/dashboard/RunBatchControls";
 import { AppShell } from "@/components/layout/AppShell";
 
 export default function DashboardPage() {
   return (
     <AppShell>
-      <DashboardControlView />
+      <div className="space-y-8">
+        <RunBatchControls />
+        <DashboardControlView />
+      </div>
     </AppShell>
   );
 }
