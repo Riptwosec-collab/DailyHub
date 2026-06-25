@@ -16,7 +16,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 type TopicKey = "all" | "daily" | "weather" | "product" | "email" | "concert" | "football" | "ideas" | "longread" | "failed";
 type Topic = { key: Exclude<TopicKey, "all" | "failed">; icon: string; th: string; en: string; pattern: RegExp };
-
 type SourceRecord = Record<string, unknown>;
 
 const TOPICS: Topic[] = [
@@ -25,7 +24,7 @@ const TOPICS: Topic[] = [
   { key: "product", icon: "🌍", th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar", pattern: /sale|product|price|radar|gadget|สินค้า|โปร/i },
   { key: "email", icon: "📧", th: "อีเมลสำคัญ", en: "Email Monitor", pattern: /email|gmail|mail|inbox|อีเมล/i },
   { key: "concert", icon: "🎤", th: "คอนเสิร์ต", en: "Concert Alerts", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
-  { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football", pattern: /football|soccer|world cup|match|score|บอล|ฟุตบอล/i },
+  { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football", pattern: /football|soccer|world cup|match|score|team|บอล|ฟุตบอล/i },
   { key: "ideas", icon: "🧭", th: "ไอเดียวันหยุด", en: "Weekend Ideas", pattern: /weekend ideas|weekend idea|trip|travel|idea|เที่ยว|ไอเดีย/i },
   { key: "longread", icon: "📚", th: "บทความอ่านยาว", en: "Long Read", pattern: /weekend long read|long read|article|reading|บทความ|อ่านยาว/i },
 ];
@@ -36,6 +35,16 @@ const FILTERS: Array<{ key: TopicKey; icon: string; th: string; en: string }> = 
   { key: "failed", icon: "❌", th: "มีปัญหา", en: "Failed" },
 ];
 
+const LEGACY_SOURCE_MAP: Array<{ key: string; source: string; title: string }> = [
+  { key: "news", source: "News", title: "News update" },
+  { key: "weather", source: "Weather API", title: "Weather update" },
+  { key: "football", source: "Football API", title: "Football Recap" },
+  { key: "products", source: "Global Product Radar", title: "Global Product Radar" },
+  { key: "concerts", source: "Concert API", title: "Concert Alerts" },
+  { key: "articles", source: "Weekend Long Read", title: "Weekend Long Read" },
+  { key: "gmail", source: "Gmail", title: "Email Monitor" },
+];
+
 function asRecord(value: unknown): SourceRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as SourceRecord) : null;
 }
@@ -44,17 +53,61 @@ function asText(value: unknown) {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   if (typeof value === "boolean") return value ? "true" : "false";
+  if (Array.isArray(value)) return value.map(asText).filter(Boolean).join("\n");
   return "";
 }
 
-function short(value: string, max = 180) {
+function short(value: string, max = 220) {
   const text = value.replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+function normalizeLegacyItems(value: unknown, source: string) {
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (asRecord(item)) return item;
+      const text = asText(item) || String(item ?? "");
+      if (source === "Football API") return { match: text, teamNames: text, highlight: text };
+      if (source === "News") return { title: text, description: text, fullArticle: text };
+      if (source === "Gmail") return { subject: text, description: text };
+      if (source === "Concert API") return { artist: text, title: text, description: text };
+      if (source === "Weekend Long Read") return { title: text, fullArticle: text, description: text };
+      return { title: text, description: text };
+    });
+  }
+
+  if (asRecord(value)) return [value];
+  const text = asText(value) || String(value ?? "");
+  return text ? [{ title: text, description: text, fullArticle: text }] : [];
+}
+
 function sourcesOf(run: TaskRun) {
-  const sources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
-  return sources.map(asRecord).filter((source): source is SourceRecord => Boolean(source));
+  const directSources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
+  const normalized = directSources.map(asRecord).filter((source): source is SourceRecord => Boolean(source));
+  if (normalized.length > 0) return normalized;
+
+  const fallbackSources = LEGACY_SOURCE_MAP.flatMap(({ key, source, title }) => {
+    const value = run.rawInput[key];
+    if (value === undefined || value === null) return [];
+    const items = normalizeLegacyItems(value, source);
+    return [{ source, title, status: "legacy", items, data: items, originalContent: asText(value) || JSON.stringify(value, null, 2) }];
+  });
+
+  if (fallbackSources.length > 0) return fallbackSources;
+
+  return [{
+    source: "GPT Result",
+    title: run.gptOutput.title,
+    status: run.status,
+    items: [{
+      title: run.gptOutput.title,
+      description: run.gptOutput.summary,
+      fullArticle: run.translatedContent || run.originalContent || run.gptOutput.summary,
+      action: run.gptOutput.recommended_action,
+    }],
+    data: run.gptOutput,
+    originalContent: run.originalContent || run.gptOutput.summary,
+  }];
 }
 
 function sourceName(source: SourceRecord) {
@@ -85,7 +138,7 @@ function topicFor(task?: ScheduledTask, run?: TaskRun) {
 function itemMainText(item: unknown) {
   const row = asRecord(item);
   if (!row) return String(item ?? "");
-  return [row.product, row.title, row.match, row.idea, row.subject, row.artist, row.location, row.description, row.content, row.highlight, row.whyInteresting]
+  return [row.teamNames, row.match, row.product, row.title, row.idea, row.subject, row.artist, row.location, row.description, row.highlight, row.whyInteresting]
     .map(asText)
     .filter(Boolean)
     .slice(0, 3)
@@ -96,8 +149,22 @@ function detailRows(item: unknown): Array<[string, string]> {
   const row = asRecord(item);
   if (!row) return [];
   const pairs: Array<[string, unknown]> = [
+    ["ทีม / Teams", row.teamNames || (row.homeTeam && row.awayTeam ? `${row.homeTeam} vs ${row.awayTeam}` : "")],
+    ["ทีมเหย้า / Home", row.homeTeam],
+    ["ทีมเยือน / Away", row.awayTeam],
+    ["สกอร์ / Score", row.score],
+    ["สถานะ / Status", row.status],
+    ["กลุ่ม / Group", row.group],
+    ["เวลาแข่ง / Kickoff", row.kickoff],
+    ["รายการ / Competition", row.competition],
     ["หมวด / Category", row.category],
-    ["แหล่งเทรนด์ / Trend source", row.trendSource || row.country || row.source],
+    ["แหล่งข่าว / Source", row.source],
+    ["วันที่ / Published", row.publishedAt],
+    ["เวลาอ่าน / Read time", row.readTime],
+    ["รายละเอียดเต็ม / Full article", row.fullArticle || row.content],
+    ["ประเด็นสำคัญ / Key points", row.keyPoints],
+    ["ทำไมสำคัญ / Why it matters", row.whyItMatters],
+    ["แหล่งเทรนด์ / Trend source", row.trendSource || row.country],
     ["แบรนด์ / Brand", row.brand || row.maker || row.store],
     ["เหตุผลที่น่าสนใจ / Why", row.whyInteresting || row.why || row.reason],
     ["จุดเด่น / Highlight", row.highlight || row.feature || row.keyMoment],
@@ -185,7 +252,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
           <Badge tone="purple">🧊 Data Library</Badge>
           <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">{isTh ? "คลังข้อมูลเต็มของ Nimbus Daily" : "Nimbus Daily full data library"}</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-            {isTh ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive" : "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards."}
+            {isTh ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข่าวเต็ม รายชื่อทีมฟุตบอล และข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่" : "Telegram sends compact summaries. Full news, football team names, and all collected data are stored here."}
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
@@ -197,7 +264,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
 
       <Card className="p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert..." : "Search full data, sources, products, football, concerts..."} value={query} />
+          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข่าวเต็ม ทีมฟุตบอล สินค้า คอนเสิร์ต..." : "Search full news, football teams, products, concerts..."} value={query} />
           <div className="flex flex-wrap gap-2">
             {runId && <Button onClick={() => setRunId("")} type="button" variant="secondary">{isTh ? "ดูทุก run" : "View all runs"}</Button>}
             <Button onClick={load} type="button" variant="outline">🔄 {isTh ? "รีเฟรช" : "Refresh"}</Button>
@@ -208,7 +275,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
         </div>
       </Card>
 
-      {visibleRuns.length === 0 ? <EmptyState title={isTh ? "ยังไม่มีข้อมูลในหมวดนี้" : "No data in this view"} description={isTh ? "ลองเปลี่ยน filter หรือรัน scheduler อีกครั้ง" : "Try another filter or run the scheduler again."} /> : (
+      {visibleRuns.length === 0 ? <EmptyState title={isTh ? "ยังไม่มีข้อมูลในหมวดนี้" : "No data in this view"} description={isTh ? "ลองกด Run Batch ที่ Dashboard หรือเปลี่ยน filter เป็นทั้งหมด" : "Run a batch on Dashboard or switch the filter to All."} /> : (
         <div className="grid gap-5 xl:grid-cols-2">
           {visibleRuns.map((run) => {
             const task = taskMap.get(run.taskId);
@@ -241,7 +308,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
                             return (
                               <div key={`${run.id}-${sourceIndex}-${itemIndex}`} className="nimbus-console-line rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                                 <p className="relative z-10 text-sm font-bold leading-6 text-cyan-50">{main || JSON.stringify(item).slice(0, 180)}</p>
-                                {rows.length > 0 && <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">{rows.slice(0, 8).map(([rowLabel, value]) => <div key={`${rowLabel}-${value}`}><dt className="text-slate-500">{rowLabel}</dt><dd className="mt-1 break-words text-slate-200">{short(value, 160)}</dd></div>)}</dl>}
+                                {rows.length > 0 && <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">{rows.slice(0, 12).map(([rowLabel, value]) => <div key={`${rowLabel}-${value}`} className={rowLabel.includes("รายละเอียดเต็ม") || rowLabel.includes("Key points") ? "sm:col-span-2" : ""}><dt className="text-slate-500">{rowLabel}</dt><dd className="mt-1 whitespace-pre-line break-words text-slate-200">{short(value, rowLabel.includes("รายละเอียดเต็ม") ? 900 : 220)}</dd></div>)}</dl>}
                               </div>
                             );
                           })}
