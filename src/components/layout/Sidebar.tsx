@@ -9,6 +9,7 @@ import type { TranslationKey } from "@/lib/translations";
 const navItems: { href: string; key: TranslationKey; icon: string }[] = [
   { href: "/", key: "nav_home", icon: "⌂" },
   { href: "/dashboard", key: "nav_dashboard", icon: "◈" },
+  { href: "/data-library", key: "nav_data_library", icon: "📚" },
   { href: "/scheduled-tasks", key: "nav_scheduled_tasks", icon: "⏱" },
   { href: "/scheduled-tasks/create", key: "nav_create_task", icon: "+" },
   { href: "/templates", key: "nav_templates", icon: "▣" },
