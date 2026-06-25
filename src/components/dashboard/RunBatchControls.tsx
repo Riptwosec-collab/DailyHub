@@ -6,6 +6,7 @@ import type { ScheduledTask } from "@/types/scheduled-task";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const TASK_DELAY_MS = 1500;
 const BATCH_DELAY_MS = 3000;
@@ -19,7 +20,8 @@ type RunNowResponse = {
 
 type TaskSeed = {
   key: string;
-  label: string;
+  labelTh: string;
+  labelEn: string;
   emoji: string;
   name: string;
   type: ScheduledTask["type"];
@@ -34,7 +36,8 @@ type TaskSeed = {
 const DEFAULT_TASKS: TaskSeed[] = [
   {
     key: "daily-brief",
-    label: "Morning Daily Brief",
+    labelTh: "Morning Daily Brief",
+    labelEn: "Morning Daily Brief",
     emoji: "📰",
     name: "Morning Daily Brief",
     type: "Daily Brief",
@@ -47,7 +50,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "global-product-radar",
-    label: "สินค้าใหม่/น่าสนใจทั่วโลก",
+    labelTh: "สินค้าใหม่/น่าสนใจทั่วโลก",
+    labelEn: "Global Product Radar",
     emoji: "🌍",
     name: "สินค้าใหม่/น่าสนใจทั่วโลก",
     type: "Sale Monitor",
@@ -60,7 +64,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "weekend-ideas",
-    label: "Weekend Ideas Generator",
+    labelTh: "Weekend Ideas Generator",
+    labelEn: "Weekend Ideas Generator",
     emoji: "🧭",
     name: "Weekend Ideas Generator",
     type: "Weekend Ideas",
@@ -73,7 +78,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "email-monitor",
-    label: "Important Email Monitor",
+    labelTh: "Important Email Monitor",
+    labelEn: "Important Email Monitor",
     emoji: "📧",
     name: "Important Email Monitor",
     type: "Email Monitor",
@@ -86,7 +92,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "concert-alerts",
-    label: "Concert Alerts Near Me",
+    labelTh: "Concert Alerts Near Me",
+    labelEn: "Concert Alerts Near Me",
     emoji: "🎤",
     name: "Concert Alerts Near Me",
     type: "Concert Alerts",
@@ -99,7 +106,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "football-recap",
-    label: "Football Recap Nightly",
+    labelTh: "Football Recap Nightly",
+    labelEn: "Football Recap Nightly",
     emoji: "⚽",
     name: "Football Recap Nightly",
     type: "World Cup Recap",
@@ -112,7 +120,8 @@ const DEFAULT_TASKS: TaskSeed[] = [
   },
   {
     key: "weekend-long-read",
-    label: "Weekend Long Read Picker",
+    labelTh: "Weekend Long Read Picker",
+    labelEn: "Weekend Long Read Picker",
     emoji: "📚",
     name: "Weekend Long Read Picker",
     type: "Weekend Long Read",
@@ -130,13 +139,17 @@ const BATCH_TWO_KEYS = ["concert-alerts", "football-recap", "weekend-long-read"]
 
 const FIXED_BATCHES = [
   {
-    title: "ปุ่มแรก",
-    subtitle: "Daily Brief / Product / Weekend Ideas / Email",
+    titleTh: "ปุ่มแรก",
+    titleEn: "First button",
+    subtitleTh: "Daily Brief / Product / Weekend Ideas / Email",
+    subtitleEn: "Daily Brief / Product / Weekend Ideas / Email",
     keys: BATCH_ONE_KEYS,
   },
   {
-    title: "ปุ่มสอง",
-    subtitle: "Concert / Football / Long Read",
+    titleTh: "ปุ่มสอง",
+    titleEn: "Second button",
+    subtitleTh: "Concert / Football / Long Read",
+    subtitleEn: "Concert / Football / Long Read",
     keys: BATCH_TWO_KEYS,
   },
 ];
@@ -161,14 +174,16 @@ function sentStatus(status?: string | null) {
   return status === "sent" || Boolean(status?.startsWith("mock_sent"));
 }
 
-function taskLines(seeds: TaskSeed[]) {
-  return seeds.map((seed, index) => `${index + 1}. ${seed.emoji} ${seed.label}`);
+function taskLines(seeds: TaskSeed[], isTh: boolean) {
+  return seeds.map((seed, index) => `${index + 1}. ${seed.emoji} ${isTh ? seed.labelTh : seed.labelEn}`);
 }
 
 export function RunBatchControls() {
+  const { lang, t } = useLanguage();
+  const isTh = lang === "th";
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
-  const [message, setMessage] = useState("พร้อมรันแบบแบ่ง 2 ปุ่ม");
+  const [message, setMessage] = useState(t("batch_ready"));
 
   async function loadTasks() {
     const data = await apiRequest<ScheduledTask[]>("/api/scheduled-tasks");
@@ -178,6 +193,10 @@ export function RunBatchControls() {
   useEffect(() => {
     void loadTasks().catch((error) => setMessage(toErrorMessage(error)));
   }, []);
+
+  useEffect(() => {
+    if (!loading) setMessage(t("batch_ready"));
+  }, [lang, loading, t]);
 
   const resolvedBatches = useMemo(
     () =>
@@ -221,7 +240,7 @@ export function RunBatchControls() {
   async function ensureBatchTasks(seeds: TaskSeed[]) {
     const missing = seeds.filter((seed) => !findTask(tasks, seed));
     if (missing.length) {
-      setMessage(`กำลังเติม task ที่ขาด ${missing.length} รายการ...`);
+      setMessage(isTh ? `กำลังเติม task ที่ขาด ${missing.length} รายการ...` : `Creating ${missing.length} missing task(s)...`);
       await createMissingTasks(missing);
       const latest = await apiRequest<ScheduledTask[]>("/api/scheduled-tasks");
       setTasks(latest);
@@ -234,9 +253,10 @@ export function RunBatchControls() {
   async function runBatch(batchIndex: number) {
     const batch = resolvedBatches[batchIndex];
     if (!batch) return;
+    const batchTitle = isTh ? batch.titleTh : batch.titleEn;
 
     setLoading(`batch-${batchIndex}`);
-    setMessage(`กำลังรัน ${batch.title}...`);
+    setMessage(isTh ? `กำลังรัน ${batchTitle}...` : `Running ${batchTitle}...`);
 
     try {
       const runnableTasks = await ensureBatchTasks(batch.seeds);
@@ -255,7 +275,7 @@ export function RunBatchControls() {
         if (index < runnableTasks.length - 1) await delay(TASK_DELAY_MS);
       }
 
-      setMessage(`${batch.title} เสร็จแล้ว: ส่ง ${sent}/${batch.seeds.length}, ผิดพลาด ${failed}`);
+      setMessage(isTh ? `${batchTitle} เสร็จแล้ว: ส่ง ${sent}/${batch.seeds.length}, ผิดพลาด ${failed}` : `${batchTitle} complete: sent ${sent}/${batch.seeds.length}, failed ${failed}`);
       await loadTasks();
     } catch (error) {
       setMessage(toErrorMessage(error));
@@ -272,7 +292,8 @@ export function RunBatchControls() {
 
     try {
       for (const [index, batch] of resolvedBatches.entries()) {
-        setMessage(`กำลังรัน ${batch.title} (${index + 1}/${resolvedBatches.length})...`);
+        const batchTitle = isTh ? batch.titleTh : batch.titleEn;
+        setMessage(isTh ? `กำลังรัน ${batchTitle} (${index + 1}/${resolvedBatches.length})...` : `Running ${batchTitle} (${index + 1}/${resolvedBatches.length})...`);
         const runnableTasks = await ensureBatchTasks(batch.seeds);
         expected += batch.seeds.length;
 
@@ -290,7 +311,7 @@ export function RunBatchControls() {
         if (index < resolvedBatches.length - 1) await delay(BATCH_DELAY_MS);
       }
 
-      setMessage(`รันครบ 2 ปุ่มแล้ว: ส่ง ${sent}/${expected}, ผิดพลาด ${failed}`);
+      setMessage(isTh ? `รันครบ 2 ปุ่มแล้ว: ส่ง ${sent}/${expected}, ผิดพลาด ${failed}` : `Both buttons complete: sent ${sent}/${expected}, failed ${failed}`);
       await loadTasks();
     } catch (error) {
       setMessage(toErrorMessage(error));
@@ -305,14 +326,12 @@ export function RunBatchControls() {
       <div className="relative space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Badge tone="green">⚡ Batch Runner</Badge>
-            <h2 className="mt-3 text-2xl font-black text-white">ส่ง Telegram แบบ 2 ปุ่ม</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              ปุ่มแรกส่ง 4 หัวข้อหลัก ส่วนปุ่มสองส่ง 3 หัวข้อที่เหลือ ถ้า task ขาด ระบบจะพยายามสร้าง task ให้ครบก่อนรัน
-            </p>
+            <Badge tone="green">⚡ {t("batch_badge")}</Badge>
+            <h2 className="mt-3 text-2xl font-black text-white">{t("batch_title")}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("batch_desc")}</p>
           </div>
           <Button disabled={Boolean(loading)} onClick={() => void runAllBatches()} type="button">
-            {loading === "all" ? "กำลังรัน..." : "🚀 Run ทั้ง 2 ปุ่ม"}
+            {loading === "all" ? t("batch_running") : `🚀 ${t("batch_run_all")}`}
           </Button>
         </div>
 
@@ -320,23 +339,24 @@ export function RunBatchControls() {
           {resolvedBatches.map((batch, index) => {
             const foundCount = batch.found.filter((item) => item.task).length;
             const missingCount = batch.seeds.length - foundCount;
+            const batchTitle = isTh ? batch.titleTh : batch.titleEn;
             return (
-              <div key={batch.title} className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 shadow-2xl shadow-black/20">
+              <div key={batch.titleEn} className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 shadow-2xl shadow-black/20">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batch.title}</p>
-                    <h3 className="mt-1 text-lg font-black text-white">{batch.subtitle}</h3>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batchTitle}</p>
+                    <h3 className="mt-1 text-lg font-black text-white">{isTh ? batch.subtitleTh : batch.subtitleEn}</h3>
                     <p className="mt-1 text-xs text-slate-400">
-                      พร้อม {foundCount}/{batch.seeds.length} หัวข้อ{missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}
+                      {isTh ? `พร้อม ${foundCount}/${batch.seeds.length} หัวข้อ${missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}` : `Ready ${foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
                     </p>
                   </div>
                   <Button disabled={Boolean(loading)} onClick={() => void runBatch(index)} type="button" variant="secondary">
-                    {loading === `batch-${index}` ? "กำลังรัน..." : `▶ รัน${batch.title}`}
+                    {loading === `batch-${index}` ? t("batch_running") : `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`}
                   </Button>
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
-                  {taskLines(batch.seeds).map((line) => (
+                  {taskLines(batch.seeds, isTh).map((line) => (
                     <p key={line}>{line}</p>
                   ))}
                 </div>
@@ -346,7 +366,7 @@ export function RunBatchControls() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
-          {message} · มี task ในระบบตอนนี้ {readyCount}/7
+          {message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}
         </div>
       </div>
     </Card>
