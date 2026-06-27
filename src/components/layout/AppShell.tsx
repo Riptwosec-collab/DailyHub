@@ -8,10 +8,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#050816] text-slate-100">
-          <div className="pointer-events-none fixed inset-0 -z-10">
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(56,189,248,0.10),transparent_32%),linear-gradient(225deg,rgba(139,92,246,0.10),transparent_38%),linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.94))]" />
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.035)_1px,transparent_1px)] bg-[size:64px_64px]" />
+    <div className="app-root min-h-screen overflow-hidden text-slate-100">
+          <div className="app-backdrop pointer-events-none fixed inset-0 -z-10">
+            <div className="app-backdrop-glow absolute inset-0" />
+            <div className="app-backdrop-grid absolute inset-0" />
           </div>
 
           <div className="flex min-h-screen">

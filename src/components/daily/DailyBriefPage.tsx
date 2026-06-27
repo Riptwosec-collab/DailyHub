@@ -71,6 +71,10 @@ const copy = {
     on: "เปิด",
     offMock: "ปิด / ใช้ mock",
     provider: "ผู้ให้บริการ",
+    providerHybrid: "NewsData.io + Google News RSS",
+    providerGoogle: "Google News RSS",
+    providerNewsData: "NewsData.io",
+    noFakeData: "โหมดข่าวจริง: ระบบไม่สร้างข่าวปลอม หากบางหมวดไม่มีผลจากแหล่งข่าวจริงจะแสดง no-data state แทน",
     countries: "ประเทศ",
     languages: "ภาษา",
     apiKeyNote: "คีย์ API ต้องอยู่ใน server env เท่านั้น เช่น NEWSDATA_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ห้ามใช้ NEXT_PUBLIC",
@@ -145,6 +149,10 @@ const copy = {
     on: "On",
     offMock: "Off / mock",
     provider: "Provider",
+    providerHybrid: "NewsData.io + Google News RSS",
+    providerGoogle: "Google News RSS",
+    providerNewsData: "NewsData.io",
+    noFakeData: "Real-news mode: the system does not fabricate stories. Categories with no real-source result show a no-data state instead.",
     countries: "Countries",
     languages: "Languages",
     apiKeyNote: "API keys must live in server env only, such as NEWSDATA_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Never use NEXT_PUBLIC for secrets.",
@@ -463,14 +471,20 @@ function NewsSummaryPanel({ data, message, lang }: { data: DailyBriefApiResponse
 
 function DailyBriefSettings({ data, lang }: { data: DailyBriefApiResponse; lang: Lang }) {
   const text = copy[lang];
+  const providerLabel = data.settings.newsProvider === "hybrid"
+    ? text.providerHybrid
+    : data.settings.newsProvider === "newsdata"
+      ? text.providerNewsData
+      : text.providerGoogle;
   return (
     <Card className="p-5">
       <Badge tone="blue">{text.settings}</Badge>
       <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
         <p>{text.realNews}: <span className="font-bold text-white">{data.settings.useRealNews ? text.on : text.offMock}</span></p>
-        <p>{text.provider}: <span className="font-bold text-white">NewsData.io</span></p>
+        <p>{text.provider}: <span className="font-bold text-white">{providerLabel}</span></p>
         <p>{text.countries}: <span className="font-bold text-white">{data.settings.countries.join(", ")}</span></p>
         <p>{text.languages}: <span className="font-bold text-white">{data.settings.languages.join(", ")}</span></p>
+        <p className="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] p-3 text-xs text-emerald-100">{text.noFakeData}</p>
         <p className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3 text-xs text-amber-100">{text.apiKeyNote}</p>
       </div>
     </Card>

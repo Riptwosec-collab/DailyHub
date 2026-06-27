@@ -17,6 +17,7 @@ export const translations = {
     // Topbar
     topbar_subtitle: "แดชบอร์ดเชื่อมต่อ API",
     topbar_live: "API ทำงานอยู่",
+    topbar_search: "ค้นหาใน DailyHub...",
     // Sidebar
     sidebar_phase: "เฟส 27",
     sidebar_desc: "แดชบอร์ด, คลังข้อมูลเต็ม, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน",
@@ -125,6 +126,7 @@ export const translations = {
     // Topbar
     topbar_subtitle: "API-connected Dashboard",
     topbar_live: "API Live",
+    topbar_search: "Search DailyHub...",
     // Sidebar
     sidebar_phase: "Phase 27",
     sidebar_desc: "Dashboard, full Data Library, API, Scheduler, Templates, Settings, Admin & Deploy ready.",

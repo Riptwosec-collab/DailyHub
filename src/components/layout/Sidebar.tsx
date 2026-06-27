@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
+import { ThemeToggle } from "./ThemeToggle";
 
 type NavItem = { href: string; icon: string; key?: TranslationKey; th?: string; en?: string };
 
@@ -29,10 +30,15 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const { t, lang } = useLanguage();
 
   return (
-    <aside className={cn("border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl", mobile ? "h-full w-full p-4" : "fixed left-0 top-0 hidden h-screen w-72 p-5 lg:block")}>
+    <aside className={cn("daily-sidebar border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl", mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-5 lg:flex")}>
       <Link href="/dashboard" className="flex items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
-        <div className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-200/20 bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-600 text-sm font-black text-white shadow-[0_0_28px_rgba(34,211,238,0.22)]">DH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border border-slate-950 bg-emerald-400" /></div>
-        <div><p className="text-lg font-extrabold text-white">DailyHub</p><p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p></div>
+        <div className="daily-logo relative grid h-12 w-12 grid-cols-2 gap-0.5 rounded-xl border border-cyan-200/20 bg-slate-950/40 p-1 shadow-[0_0_28px_rgba(34,211,238,0.22)]">
+          <span className="rounded-sm bg-cyan-300" />
+          <span className="rounded-sm bg-blue-400" />
+          <span className="rounded-sm bg-emerald-300" />
+          <span className="rounded-sm bg-violet-500" />
+        </div>
+        <div><p className="text-2xl font-extrabold text-white">DailyHub</p><p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p></div>
       </Link>
 
       <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.065] p-4">
@@ -40,7 +46,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         <p className="mt-2 text-sm leading-7 text-slate-300">{t("sidebar_desc")}</p>
       </div>
 
-      <nav className="mt-7 space-y-1.5">
+      <nav className="mt-7 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const label = item.key ? t(item.key) : (lang === "th" ? item.th : item.en);
@@ -52,6 +58,18 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           );
         })}
       </nav>
+      <div className="mt-5 border-t border-white/10 pt-5">
+        <p className="text-xs font-bold text-white">Design System</p>
+        <div className="mt-3 flex gap-2">
+          {["bg-cyan-300", "bg-sky-400", "bg-blue-500", "bg-violet-500", "bg-purple-500"].map((color) => (
+            <span key={color} className={cn("h-5 w-5 rounded-full shadow-lg", color)} />
+          ))}
+        </div>
+        <p className="mt-4 text-xs font-bold text-slate-400">{lang === "th" ? "ธีม" : "Theme"}</p>
+        <div className="mt-2">
+          <ThemeToggle />
+        </div>
+      </div>
     </aside>
   );
 }

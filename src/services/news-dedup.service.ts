@@ -34,12 +34,13 @@ function samePublishedWindow(a: DailyBriefItem, b: DailyBriefItem) {
 }
 
 function isLikelyDuplicate(a: DailyBriefItem, b: DailyBriefItem) {
-  const sameUrl = a.sourceUrl && b.sourceUrl && a.sourceUrl === b.sourceUrl;
-  const sameNormalizedTitle = normalizeTitle(a.titleTh || a.title) === normalizeTitle(b.titleTh || b.title);
+  const sameCategory = a.category === b.category;
+  const sameUrl = sameCategory && a.sourceUrl && b.sourceUrl && a.sourceUrl === b.sourceUrl;
+  const sameNormalizedTitle = sameCategory && normalizeTitle(a.titleTh || a.title) === normalizeTitle(b.titleTh || b.title);
   const similarTitle = jaccardSimilarity(a.titleTh || a.title, b.titleTh || b.title) >= 0.72;
-  const categoryOverlap = a.category === b.category || a.tags.some((tag) => b.tags.includes(tag));
+  const categoryOverlap = sameCategory || a.tags.some((tag) => b.tags.includes(tag));
 
-  return Boolean(sameUrl || sameNormalizedTitle || (similarTitle && categoryOverlap && samePublishedWindow(a, b)));
+  return Boolean(sameUrl || sameNormalizedTitle || (sameCategory && similarTitle && categoryOverlap && samePublishedWindow(a, b)));
 }
 
 export function dedupeDailyBriefItems(items: DailyBriefItem[]) {

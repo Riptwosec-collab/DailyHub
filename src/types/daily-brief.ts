@@ -77,7 +77,7 @@ export interface TelegramBriefPayload {
 
 export interface DailyBriefSettings {
   useRealNews: boolean;
-  newsProvider: "newsdata";
+  newsProvider: "newsdata" | "googleNewsRss" | "hybrid";
   countries: string[];
   languages: string[];
   enabledCategories: DailyBriefCategoryKey[];

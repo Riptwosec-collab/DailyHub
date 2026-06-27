@@ -1,0 +1,56 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+
+export type AppTheme = "dark" | "cream";
+
+interface ThemeContextValue {
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: "dark",
+  setTheme: () => {},
+  toggleTheme: () => {},
+});
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<AppTheme>("dark");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("dailyhub_theme");
+      if (saved === "dark" || saved === "cream") setThemeState(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme === "cream" ? "light" : "dark";
+  }, [theme]);
+
+  const setTheme = useCallback((nextTheme: AppTheme) => {
+    setThemeState(nextTheme);
+    try { localStorage.setItem("dailyhub_theme", nextTheme); } catch {}
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((current) => {
+      const nextTheme = current === "dark" ? "cream" : "dark";
+      try { localStorage.setItem("dailyhub_theme", nextTheme); } catch {}
+      return nextTheme;
+    });
+  }, []);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}

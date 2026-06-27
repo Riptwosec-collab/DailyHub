@@ -341,8 +341,8 @@ export const mockDailyBriefItems: DailyBriefItem[] = [
 ];
 
 export const defaultDailyBriefSettings: DailyBriefSettings = {
-  useRealNews: process.env.USE_REAL_NEWS === "true",
-  newsProvider: "newsdata",
+  useRealNews: process.env.USE_REAL_NEWS !== "false",
+  newsProvider: process.env.NEWSDATA_API_KEY ? "hybrid" : "googleNewsRss",
   countries: (process.env.NEWS_COUNTRIES || "th,us,gb").split(",").map((item) => item.trim()).filter(Boolean),
   languages: (process.env.NEWS_LANGUAGES || "th,en").split(",").map((item) => item.trim()).filter(Boolean),
   enabledCategories: dailyBriefCategories.filter((category) => category.key !== "all" && category.enabled).map((category) => category.key),

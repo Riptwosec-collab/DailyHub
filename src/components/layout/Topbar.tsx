@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageToggle } from "./LanguageToggle";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -18,7 +19,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 px-4 py-3.5 backdrop-blur-2xl sm:px-6 lg:px-8">
+    <header className="daily-topbar sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 px-4 py-3.5 backdrop-blur-2xl sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -36,7 +37,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <div className="hidden min-w-[18rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-slate-400 xl:flex">
+            <span className="text-base">⌕</span>
+            <span className="truncate">{t("topbar_search")}</span>
+            <span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] font-bold">⌘K</span>
+          </div>
           <LanguageToggle />
+          <div className="hidden sm:block">
+            <ThemeToggle compact />
+          </div>
           <div className="hidden rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-slate-400 md:block">
             {now ? formatDateTime(now) : "-"}
           </div>
