@@ -9,18 +9,18 @@ import { useLanguage } from "@/contexts/LanguageContext";
 type TaskSeed = { key: string; labelTh: string; labelEn: string; emoji: string; name: string; type: ScheduledTask["type"] };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  { key: "daily-brief", labelTh: "Morning Daily Brief / ข่าวโลกน่าสนใจ", labelEn: "Morning Daily Brief / Global News", emoji: "📰", name: "Morning Daily Brief", type: "Daily Brief" },
+  { key: "daily-brief", labelTh: "Morning Daily Brief", labelEn: "Morning Daily Brief", emoji: "📰", name: "Morning Daily Brief", type: "Daily Brief" },
   { key: "global-product-radar", labelTh: "สินค้าเทคโนโลยี/นวัตกรรมทั่วโลก", labelEn: "Global Innovation Product Radar", emoji: "🌍", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor" },
   { key: "us-stock-news", labelTh: "US Stock News", labelEn: "US Stock News", emoji: "📈", name: "US Stock News", type: "US Stock News" },
   { key: "email-monitor", labelTh: "สรุปทุกเมลรายวัน", labelEn: "Daily Email Digest", emoji: "📧", name: "Daily Email Digest", type: "Email Monitor" },
   { key: "concert-alerts", labelTh: "คอนเสิร์ตในไทย", labelEn: "Thailand Concert Alerts", emoji: "🎤", name: "Thailand Concert Alerts", type: "Concert Alerts" },
-  { key: "football-recap", labelTh: "ข่าวบอลไทย/บอลโลก/ลีกใหญ่", labelEn: "Thai & Global Football News", emoji: "⚽", name: "Football Recap Nightly", type: "World Cup Recap" },
-  { key: "weekend-long-read", labelTh: "Weekend Long Read Picker", labelEn: "Weekend Long Read Picker", emoji: "📚", name: "Weekend Long Read Picker", type: "Weekend Long Read" },
+  { key: "football-recap", labelTh: "ข่าวบอลไทย/บอลโลก/ลีกใหญ่", labelEn: "Football Recap Nightly", emoji: "⚽", name: "Football Recap Nightly", type: "World Cup Recap" },
+  { key: "lifestyle-ideas", labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์", labelEn: "Lifestyle Ideas", emoji: "💡", name: "Lifestyle Ideas", type: "Lifestyle Ideas" },
 ];
 
 const FIXED_BATCHES = [
-  { id: "one" as const, titleTh: "ปุ่มแรก", titleEn: "First button", subtitleTh: "ข่าวโลก / สินค้านวัตกรรม / US Stock News / อีเมลรายวัน", subtitleEn: "Global News / Innovation Products / US Stock News / Daily Email", keys: ["daily-brief", "global-product-radar", "us-stock-news", "email-monitor"] },
-  { id: "two" as const, titleTh: "ปุ่มสอง", titleEn: "Second button", subtitleTh: "คอนเสิร์ตไทย / ข่าวฟุตบอล / Long Read", subtitleEn: "Thailand Concerts / Football News / Long Read", keys: ["concert-alerts", "football-recap", "weekend-long-read"] },
+  { id: "one" as const, titleTh: "ปุ่มแรก", titleEn: "First button", subtitleTh: "Morning Daily Brief / Global Innovation Product Radar / US Stock News / Daily Email Digest", subtitleEn: "Morning Daily Brief / Global Innovation Product Radar / US Stock News / Daily Email Digest", keys: ["daily-brief", "global-product-radar", "us-stock-news", "email-monitor"] },
+  { id: "two" as const, titleTh: "ปุ่มสอง", titleEn: "Second button", subtitleTh: "Thailand Concert Alerts / Football Recap Nightly / Lifestyle Ideas", subtitleEn: "Thailand Concert Alerts / Football Recap Nightly / Lifestyle Ideas", keys: ["concert-alerts", "football-recap", "lifestyle-ideas"] },
 ];
 
 function getBatchSeeds(keys: string[]) { return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[]; }
