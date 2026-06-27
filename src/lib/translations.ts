@@ -46,7 +46,7 @@ export const translations = {
     common_visible: "ที่แสดงอยู่",
     // Dashboard
     dashboard_badge_api_connected: "UI เชื่อมต่อ API",
-    dashboard_title: "แดชบอร์ด Nimbus Daily",
+    dashboard_title: "แดชบอร์ด DailyHub",
     dashboard_description: "หน้านี้ดึงข้อมูลจาก API routes จริง พร้อมใช้กับ Supabase, Groq/OpenAI และ Telegram integration",
     dashboard_badge_api_fetch: "ดึงข้อมูลผ่าน API",
     dashboard_badge_supabase_ready: "พร้อมใช้ Supabase",
@@ -92,7 +92,7 @@ export const translations = {
     dashboard_loading_failed: "โหลด Dashboard ไม่สำเร็จ",
     // Data Library
     data_library_badge: "คลังข้อมูล",
-    data_library_title: "คลังข้อมูลเต็มของ Nimbus Daily",
+    data_library_title: "คลังข้อมูลเต็มของ DailyHub",
     data_library_desc: "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive",
     data_library_search: "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert...",
     data_library_view_all_runs: "ดูทุก run",
@@ -153,7 +153,7 @@ export const translations = {
     common_visible: "Visible",
     // Dashboard
     dashboard_badge_api_connected: "API-connected UI",
-    dashboard_title: "Nimbus Daily Dashboard",
+    dashboard_title: "DailyHub Dashboard",
     dashboard_description: "This page fetches live data from API routes and is ready for Supabase, Groq/OpenAI, and Telegram integration.",
     dashboard_badge_api_fetch: "API Fetch",
     dashboard_badge_supabase_ready: "Supabase Ready",
@@ -199,7 +199,7 @@ export const translations = {
     dashboard_loading_failed: "Dashboard loading failed",
     // Data Library
     data_library_badge: "Data Library",
-    data_library_title: "Nimbus Daily full data library",
+    data_library_title: "DailyHub full data library",
     data_library_desc: "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards.",
     data_library_search: "Search full data, sources, products, football, concerts...",
     data_library_view_all_runs: "View all runs",

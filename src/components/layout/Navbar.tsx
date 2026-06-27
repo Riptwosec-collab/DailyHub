@@ -18,7 +18,7 @@ export function Navbar() {
             AI
           </div>
           <div>
-            <p className="font-black leading-tight text-white">Nimbus Daily</p>
+            <p className="font-black leading-tight text-white">DailyHub</p>
             <p className="text-xs text-slate-400">Scheduled GPT OS</p>
           </div>
         </Link>

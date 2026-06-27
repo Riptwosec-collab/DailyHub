@@ -176,7 +176,7 @@ export function ScheduledTasksProView() {
     setTelegramBusy(true);
     pushToast({ title: "📤 กำลังส่ง Telegram test...", tone: "info" });
     try {
-      await apiFetch("/api/telegram/test", { method: "POST", body: JSON.stringify({ message: "Nimbus Daily — Telegram test ✅" }) });
+      await apiFetch("/api/telegram/test", { method: "POST", body: JSON.stringify({ message: "DailyHub — Telegram test ✅" }) });
       pushToast({ title: "✅ Telegram test ส่งสำเร็จ", description: "เช็คมือถือได้เลย", tone: "success" });
     } catch (err) {
       pushToast({ title: "❌ Telegram test ล้มเหลว", description: getFriendlyApiError(err), tone: "error" });

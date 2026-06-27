@@ -14,7 +14,7 @@ export async function GET() {
   const productionEnv = validateProductionEnv();
 
   return ok({
-    app: "Nimbus Daily",
+    app: "DailyHub",
     status: productionEnv.ok ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV ?? "development",

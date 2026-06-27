@@ -195,7 +195,7 @@ export function TaskForm() {
             <Badge tone="purple">Phase 4 Create Task Form</Badge>
             <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">Create Scheduled Task</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              สร้าง Task สำหรับ Nimbus Daily โดยเลือก schedule, data sources, GPT actions, output channels และ min priority score เพื่อเตรียมต่อ Mock API ใน Phase 7
+              สร้าง Task สำหรับ DailyHub โดยเลือก schedule, data sources, GPT actions, output channels และ min priority score เพื่อเตรียมต่อ Mock API ใน Phase 7
             </p>
           </div>
         </Card>

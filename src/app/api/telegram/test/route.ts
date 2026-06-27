@@ -26,7 +26,7 @@ function isAuthorized(request: Request) {
 
 function getMessage(request: Request) {
   const url = new URL(request.url);
-  return url.searchParams.get("message") || "🧠 Nimbus Daily ทดสอบ Telegram สำเร็จแล้ว";
+  return url.searchParams.get("message") || "DailyHub Telegram test completed";
 }
 
 export async function GET(request: Request) {

@@ -200,7 +200,7 @@ export function ScheduledTasksView({ initialTasks }: ScheduledTasksViewProps) {
             <Badge tone="purple">Phase 8 Run Now Mock API</Badge>
             <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">Scheduled Tasks</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              จัดการ Task ทั้งหมดของ Nimbus Daily และทดสอบ Run Now ผ่าน API mock ที่จะสร้าง Task Run, GPT Output, Notification และ Telegram status จำลอง
+              จัดการ Task ทั้งหมดของ DailyHub และทดสอบ Run Now ผ่าน API mock ที่จะสร้าง Task Run, GPT Output, Notification และ Telegram status จำลอง
             </p>
           </div>
         </Card>

@@ -5,7 +5,7 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
   return (
     <select
       className={cn(
-        "w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/70",
+        "h-11 w-full rounded-xl border border-white/10 bg-slate-950/45 px-4 text-sm font-medium text-white outline-none transition hover:border-white/15 focus:border-cyan-300/60 focus:ring-4 focus:ring-cyan-300/10",
         className,
       )}
       {...props}

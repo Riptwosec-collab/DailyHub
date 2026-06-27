@@ -59,7 +59,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#050816] px-4 py-10 text-white">
       <Card className="w-full max-w-md p-6 sm:p-8">
-        <Badge tone="purple">Nimbus Daily Auth</Badge>
+        <Badge tone="purple">DailyHub Auth</Badge>
         <h1 className="mt-5 text-3xl font-black">
           {mode === "login" ? "Login" : "Create account"}
         </h1>
