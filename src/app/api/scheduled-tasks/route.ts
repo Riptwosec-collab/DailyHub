@@ -16,6 +16,11 @@ import type { ScheduledTask } from "@/types/scheduled-task";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isLegacyLongReadTask(task: ScheduledTask) {
+  const haystack = [task.name, task.type, task.dataSources.join(" ")].join(" ").toLowerCase();
+  return haystack.includes("long read") || haystack.includes("อ่านยาว");
+}
+
 function normalizeTaskForDisplay(task: ScheduledTask): ScheduledTask {
   const isLegacyWeekendIdeas =
     task.type === "Weekend Ideas" ||
@@ -56,7 +61,7 @@ export async function GET(request: Request) {
       return matchesSearch && matchesType && matchesStatus && matchesActive;
     });
 
-    const normalizedTasks = tasks.map(normalizeTaskForDisplay);
+    const normalizedTasks = tasks.filter((task) => !isLegacyLongReadTask(task)).map(normalizeTaskForDisplay);
     return Response.json({ success: true, data: normalizedTasks, meta: { total: normalizedTasks.length, user: user ? (user.isMock ? "mock" : "supabase") : "public-demo" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "Failed to list tasks", 401, "BAD_REQUEST");
@@ -70,17 +75,22 @@ export async function POST(request: Request) {
   try {
     const user = await requireCurrentUser();
     const name = normalizeString(body.name);
+    const type = normalizeString(body.type, "Custom") as ScheduledTask["type"];
+    const dataSources = normalizeStringArray(body.dataSources ?? body.data_sources, ["News"]);
+    const candidateText = [name, type, dataSources.join(" ")].join(" ").toLowerCase();
+
     if (name.length < 3) return errorResponse("Task name must be at least 3 characters", 422, "VALIDATION_ERROR");
+    if (candidateText.includes("long read") || candidateText.includes("อ่านยาว")) return errorResponse("Legacy long-read tasks are archived and cannot be created", 422, "VALIDATION_ERROR");
 
     const task = await createScheduledTask({
       userId: user.id,
       name,
-      type: normalizeString(body.type, "Custom") as ScheduledTask["type"],
+      type,
       scheduleType: normalizeString(body.scheduleType ?? body.schedule_type, "Daily") as ScheduledTask["scheduleType"],
       cronExpression: normalizeString(body.cronExpression ?? body.cron_expression, "0 8 * * *"),
       time: normalizeString(body.time) || null,
       timezone: normalizeString(body.timezone, "Asia/Bangkok"),
-      dataSources: normalizeStringArray(body.dataSources ?? body.data_sources, ["News"]),
+      dataSources,
       gptActions: normalizeStringArray(body.gptActions ?? body.gpt_actions, ["Summarize"]),
       outputChannels: normalizeStringArray(body.outputChannels ?? body.output_channels, ["Save to Web Dashboard"]),
       minPriorityScore: normalizeNumber(body.minPriorityScore ?? body.min_priority_score, 70),
