@@ -14,6 +14,7 @@ function isProduction() {
 function allowMockUser() {
   if (process.env.ALLOW_MOCK_USER === "true") return true;
   if (process.env.ALLOW_MOCK_USER === "false") return false;
+  if (process.env.USE_SUPABASE !== "true") return true;
   return !isProduction();
 }
 
