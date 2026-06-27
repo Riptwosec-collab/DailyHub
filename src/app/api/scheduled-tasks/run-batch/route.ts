@@ -16,6 +16,7 @@ type TaskSeed = { key: string; label: string; name: string; type: ScheduledTask[
 const DEFAULT_TASKS: TaskSeed[] = [
   { key: "daily-brief", label: "Daily Brief / ข่าวประจำวัน", name: "Daily Brief / ข่าวประจำวัน", type: "Daily Brief", scheduleType: "Daily", cronExpression: "0 8 * * *", time: "08:00", dataSources: ["NewsData.io", "Weather API", "Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
   { key: "thai-news", label: "ข่าวไทยวันนี้", name: "ข่าวไทยวันนี้", type: "Daily Brief", scheduleType: "Daily", cronExpression: "5 8 * * *", time: "08:05", dataSources: ["NewsData.io", "Thailand News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 65 },
+  { key: "public-notices", label: "ประกาศสำคัญ / แจ้งเตือนรัฐ", name: "ประกาศสำคัญ / แจ้งเตือนรัฐ", type: "Daily Brief", scheduleType: "Daily", cronExpression: "7 8 * * *", time: "08:07", dataSources: ["NewsData.io", "Thailand Public Notices", "Government Alerts"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 75 },
   { key: "world-news", label: "ข่าวต่างประเทศ", name: "ข่าวต่างประเทศ", type: "Daily Brief", scheduleType: "Daily", cronExpression: "10 8 * * *", time: "08:10", dataSources: ["World News", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 65 },
   { key: "ai-tech", label: "AI / Tech Update", name: "AI / Tech Update", type: "Daily Brief", scheduleType: "Daily", cronExpression: "15 8 * * *", time: "08:15", dataSources: ["NewsData.io", "AI Tech News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
   { key: "cybersecurity", label: "Cybersecurity Alert", name: "Cybersecurity Alert", type: "Daily Brief", scheduleType: "Daily", cronExpression: "20 8 * * *", time: "08:20", dataSources: ["NewsData.io", "Cybersecurity News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 80 },
@@ -23,6 +24,7 @@ const DEFAULT_TASKS: TaskSeed[] = [
   { key: "market-crypto", label: "หุ้น / ตลาด / Crypto", name: "หุ้น / ตลาด / Crypto", type: "US Stock News", scheduleType: "Daily", cronExpression: "0 7 * * 1-5", time: "07:00", dataSources: ["US Stock News", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
   { key: "weather-pm25", label: "อากาศ / PM2.5", name: "อากาศ / PM2.5", type: "Daily Brief", scheduleType: "Daily", cronExpression: "30 7 * * *", time: "07:30", dataSources: ["Weather API", "PM2.5"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
   { key: "traffic", label: "เดินทาง / จราจร", name: "เดินทาง / จราจร", type: "Daily Brief", scheduleType: "Daily", cronExpression: "35 7 * * *", time: "07:35", dataSources: ["NewsData.io", "Traffic Alerts"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "bts-mrt-alerts", label: "BTS/MRT ขัดข้อง", name: "BTS/MRT ขัดข้อง", type: "Daily Brief", scheduleType: "Daily", cronExpression: "37 7 * * *", time: "07:37", dataSources: ["NewsData.io", "BTS MRT Alerts", "Transit Status"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
   { key: "today-tasks", label: "งานวันนี้", name: "งานวันนี้", type: "Daily Brief", scheduleType: "Daily", cronExpression: "40 7 * * *", time: "07:40", dataSources: ["Scheduler", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 50 },
   { key: "important-email", label: "อีเมลสำคัญ", name: "อีเมลสำคัญ", type: "Email Monitor", scheduleType: "Hourly", cronExpression: "*/30 * * * *", time: null, dataSources: ["Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
   { key: "sports-football", label: "กีฬา / ฟุตบอล", name: "กีฬา / ฟุตบอล", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
@@ -31,9 +33,9 @@ const DEFAULT_TASKS: TaskSeed[] = [
   { key: "lifestyle", label: "ไอเดียวันหยุด / ไลฟ์สไตล์", name: "ไอเดียวันหยุด / ไลฟ์สไตล์", type: "Lifestyle Ideas", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["Lifestyle", "Restaurants", "Cafe", "Weekend Ideas"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
 ];
 
-const BATCH_ONE_KEYS = ["daily-brief", "thai-news", "world-news", "ai-tech"];
+const BATCH_ONE_KEYS = ["daily-brief", "thai-news", "public-notices", "world-news", "ai-tech"];
 const BATCH_TWO_KEYS = ["cybersecurity", "network-cloud", "market-crypto", "weather-pm25"];
-const BATCH_THREE_KEYS = ["traffic", "today-tasks", "important-email", "sports-football"];
+const BATCH_THREE_KEYS = ["traffic", "bts-mrt-alerts", "today-tasks", "important-email", "sports-football"];
 const BATCH_FOUR_KEYS = ["events-products", "deals-promos", "lifestyle"];
 
 function getKeys(batch: BatchId) {
