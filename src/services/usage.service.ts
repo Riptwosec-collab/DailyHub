@@ -9,24 +9,30 @@ import type { AdminUsageMetrics } from "@/types/usage";
 
 export async function getUsageMetrics(userId?: string | null): Promise<AdminUsageMetrics> {
   const db = getMockDb();
+  const [runNowToday, openAiToday, telegramToday, events] = await Promise.all([
+    countUsageToday("run_now", userId),
+    countUsageToday("openai_call", userId),
+    countUsageToday("telegram_send", userId),
+    listUsageEvents(100),
+  ]);
 
   return {
     runNowToday: createUsageStatus({
       key: "run_now_today",
       label: "Run Now Today",
-      used: countUsageToday("run_now", userId),
+      used: runNowToday,
       limit: getNumberEnv("DAILY_RUN_NOW_LIMIT", 30),
     }),
     openAiToday: createUsageStatus({
       key: "openai_today",
       label: "OpenAI Calls Today",
-      used: countUsageToday("openai_call", userId),
+      used: openAiToday,
       limit: getNumberEnv("DAILY_OPENAI_CALL_LIMIT", 100),
     }),
     telegramToday: createUsageStatus({
       key: "telegram_today",
       label: "Telegram Sends Today",
-      used: countUsageToday("telegram_send", userId),
+      used: telegramToday,
       limit: getNumberEnv("DAILY_TELEGRAM_LIMIT", 100),
     }),
     taskCount: createUsageStatus({
@@ -35,6 +41,6 @@ export async function getUsageMetrics(userId?: string | null): Promise<AdminUsag
       used: db.scheduledTasks.length,
       limit: getNumberEnv("MAX_TASKS_PER_USER", 50),
     }),
-    events: listUsageEvents(100),
+    events,
   };
 }

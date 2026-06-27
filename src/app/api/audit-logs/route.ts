@@ -1,4 +1,5 @@
 import { fail, getRequestId, ok } from "@/lib/api/response";
+import { requireAdminRequest } from "@/lib/auth";
 import { getAuditLogs } from "@/services/audit-log.service";
 
 export const runtime = "nodejs";
@@ -7,6 +8,8 @@ export async function GET(request: Request) {
   const requestId = getRequestId(request);
 
   try {
+    await requireAdminRequest(request);
+
     const url = new URL(request.url);
     const logs = await getAuditLogs({
       entityType: url.searchParams.get("entity_type"),

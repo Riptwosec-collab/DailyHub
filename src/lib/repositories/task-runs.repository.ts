@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { TaskRun } from "@/types/task-run";
 import { mapRunRow, mapRunToRow, type TaskRunRow } from "./mappers";
 
-function useSupabase() {
+function shouldUseSupabase() {
   return process.env.USE_SUPABASE === "true" && Boolean(createAdminClient());
 }
 
@@ -14,7 +14,7 @@ export interface RunQuery {
 }
 
 export async function listTaskRuns(query: RunQuery = {}) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("task_runs").select("*").order("started_at", { ascending: false });
     if (query.taskId) request = request.eq("task_id", query.taskId);
@@ -39,9 +39,9 @@ export async function listTaskRuns(query: RunQuery = {}) {
 }
 
 export async function getTaskRunById(id: string, userId?: string) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
-    let request = supabase.from("task_runs").select("*").eq("id", id).single();
+    const request = supabase.from("task_runs").select("*").eq("id", id).single();
     const { data, error } = await request;
     if (error || !data) return null;
     const run = mapRunRow(data as TaskRunRow);
@@ -54,7 +54,7 @@ export async function getTaskRunById(id: string, userId?: string) {
 }
 
 export async function createTaskRun(run: TaskRun) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     const { data, error } = await supabase.from("task_runs").insert(mapRunToRow(run)).select("*").single();
     if (error) throw error;
@@ -66,7 +66,7 @@ export async function createTaskRun(run: TaskRun) {
 }
 
 export async function updateTaskRun(id: string, patch: Partial<TaskRun>) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     const { data, error } = await supabase.from("task_runs").update(mapRunToRow(patch)).eq("id", id).select("*").single();
     if (error || !data) return null;

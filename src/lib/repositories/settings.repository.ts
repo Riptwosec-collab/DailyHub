@@ -16,7 +16,7 @@ type UserSettingsRow = {
   updated_at: string;
 };
 
-function useSupabasePersistence() {
+function shouldUseSupabasePersistence() {
   return process.env.USE_SUPABASE === "true";
 }
 
@@ -52,7 +52,7 @@ function mapSettingsToRow(userId: string, settings: NimbusDailySettings) {
 }
 
 export async function getUserSettings(userId: string): Promise<NimbusDailySettings> {
-  if (!useSupabasePersistence()) {
+  if (!shouldUseSupabasePersistence()) {
     return getNimbusDailySettings();
   }
 
@@ -74,7 +74,7 @@ export async function getUserSettings(userId: string): Promise<NimbusDailySettin
 }
 
 export async function updateUserSettings(userId: string, input: UpdateNimbusDailySettingsInput): Promise<NimbusDailySettings> {
-  if (!useSupabasePersistence()) {
+  if (!shouldUseSupabasePersistence()) {
     return updateNimbusDailySettings(input);
   }
 

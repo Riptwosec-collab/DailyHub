@@ -15,7 +15,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   try {
     const ip = getClientIp(request);
-    assertRateLimit({
+    await assertRateLimit({
       key: `regenerate-run:${ip}:${id}`,
       limit: 8,
       windowMs: 60_000,

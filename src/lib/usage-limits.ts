@@ -1,4 +1,5 @@
 import { rateLimited } from "@/lib/api/response";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { UsageEvent, UsageEventType, UsageLimitStatus } from "@/types/usage";
 
 declare global {
@@ -9,6 +10,10 @@ declare global {
 function getStore() {
   if (!globalThis.dailyHubUsageEvents) globalThis.dailyHubUsageEvents = [];
   return globalThis.dailyHubUsageEvents;
+}
+
+function shouldUseSupabase() {
+  return process.env.USE_SUPABASE === "true" && Boolean(createAdminClient());
 }
 
 function createId() {
@@ -34,7 +39,25 @@ export function getNumberEnv(name: string, fallback: number) {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-export function recordUsageEvent(input: {
+function mapUsageRow(row: {
+  id: string;
+  user_id: string | null;
+  type: UsageEventType;
+  amount: number;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}): UsageEvent {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    amount: row.amount,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+  };
+}
+
+export async function recordUsageEvent(input: {
   userId?: string | null;
   type: UsageEventType;
   amount?: number;
@@ -49,18 +72,57 @@ export function recordUsageEvent(input: {
     createdAt: new Date().toISOString(),
   };
 
+  if (shouldUseSupabase()) {
+    const supabase = createAdminClient()!;
+    const { data, error } = await supabase
+      .from("usage_events")
+      .insert({
+        user_id: event.userId,
+        type: event.type,
+        amount: event.amount,
+        metadata: event.metadata ?? {},
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapUsageRow(data);
+  }
+
   const store = getStore();
   store.unshift(event);
   if (store.length > 1000) store.splice(1000);
   return event;
 }
 
-export function listUsageEvents(limit = 100) {
+export async function listUsageEvents(limit = 100) {
+  if (shouldUseSupabase()) {
+    const supabase = createAdminClient()!;
+    const { data, error } = await supabase.from("usage_events").select("*").order("created_at", { ascending: false }).limit(limit);
+    if (error) throw error;
+    return data.map(mapUsageRow);
+  }
+
   return getStore().slice(0, limit);
 }
 
-export function countUsageToday(type: UsageEventType, userId?: string | null) {
+export async function countUsageToday(type: UsageEventType, userId?: string | null) {
   const today = startOfToday();
+
+  if (shouldUseSupabase()) {
+    const supabase = createAdminClient()!;
+    let request = supabase
+      .from("usage_events")
+      .select("amount")
+      .eq("type", type)
+      .gte("created_at", today);
+
+    if (userId) request = request.eq("user_id", userId);
+    const { data, error } = await request;
+    if (error) throw error;
+    return data.reduce((sum, event) => sum + Number(event.amount ?? 0), 0);
+  }
+
   return getStore()
     .filter((event) => event.type === type)
     .filter((event) => !userId || event.userId === userId)
@@ -90,7 +152,7 @@ export function createUsageStatus({
   };
 }
 
-export function assertDailyUsageLimit(input: {
+export async function assertDailyUsageLimit(input: {
   type: UsageEventType;
   label: string;
   limitEnvName: string;
@@ -100,7 +162,7 @@ export function assertDailyUsageLimit(input: {
   if (!isUsageLimitsEnabled()) return;
 
   const limit = getNumberEnv(input.limitEnvName, input.fallbackLimit);
-  const used = countUsageToday(input.type, input.userId);
+  const used = await countUsageToday(input.type, input.userId);
 
   if (used >= limit) {
     throw rateLimited(`${input.label} reached daily limit ${used}/${limit}. Try again tomorrow.`);

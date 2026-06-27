@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScheduledTask, ScheduledTaskStatus } from "@/types/scheduled-task";
 import { mapTaskRow, mapTaskToRow, type ScheduledTaskRow } from "./mappers";
 
-function useSupabase() {
+function shouldUseSupabase() {
   return process.env.USE_SUPABASE === "true" && Boolean(createAdminClient());
 }
 
@@ -31,7 +31,7 @@ export interface CreateTaskInput {
 }
 
 export async function listScheduledTasks(query: TaskQuery = {}) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("scheduled_tasks").select("*").order("created_at", { ascending: false });
 
@@ -59,7 +59,7 @@ export async function listScheduledTasks(query: TaskQuery = {}) {
 }
 
 export async function getScheduledTaskById(id: string, userId?: string) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("scheduled_tasks").select("*").eq("id", id);
     if (userId) request = request.eq("user_id", userId);
@@ -97,7 +97,7 @@ export async function createScheduledTask(input: CreateTaskInput) {
     updatedAt: now,
   };
 
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     const { data, error } = await supabase.from("scheduled_tasks").insert(mapTaskToRow(task)).select("*").single();
     if (error) throw error;
@@ -111,7 +111,7 @@ export async function createScheduledTask(input: CreateTaskInput) {
 export async function updateScheduledTask(id: string, patch: Partial<ScheduledTask>, userId?: string) {
   const updatedAt = new Date().toISOString();
 
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("scheduled_tasks").update(mapTaskToRow({ ...patch, updatedAt })).eq("id", id);
     if (userId) request = request.eq("user_id", userId);
@@ -128,7 +128,7 @@ export async function updateScheduledTask(id: string, patch: Partial<ScheduledTa
 }
 
 export async function deleteScheduledTask(id: string, userId?: string) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("scheduled_tasks").delete().eq("id", id);
     if (userId) request = request.eq("user_id", userId);
@@ -145,7 +145,7 @@ export async function deleteScheduledTask(id: string, userId?: string) {
 }
 
 export async function listDueScheduledTasks(nowIso = new Date().toISOString()) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     const { data, error } = await supabase
       .from("scheduled_tasks")

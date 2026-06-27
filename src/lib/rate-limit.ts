@@ -1,4 +1,5 @@
 import { rateLimited } from "@/lib/api/response";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface RateLimitRecord {
   count: number;
@@ -22,6 +23,10 @@ function getStore() {
   }
 
   return globalThis.dailyHubRateLimitStore;
+}
+
+function shouldUseSupabase() {
+  return process.env.USE_SUPABASE === "true" && Boolean(createAdminClient());
 }
 
 export function getClientIp(request: Request) {
@@ -64,8 +69,44 @@ export function checkRateLimit({ key, limit, windowMs }: RateLimitOptions) {
   };
 }
 
-export function assertRateLimit(options: RateLimitOptions) {
-  const result = checkRateLimit(options);
+export async function checkPersistentRateLimit({ key, limit, windowMs }: RateLimitOptions) {
+  if (!shouldUseSupabase()) return checkRateLimit({ key, limit, windowMs });
+
+  const supabase = createAdminClient()!;
+  const now = Date.now();
+  const windowStart = new Date(now - windowMs).toISOString();
+  const resetAt = now + windowMs;
+
+  await supabase.from("rate_limit_events").delete().lt("created_at", new Date(now - windowMs * 2).toISOString());
+
+  const { count, error: countError } = await supabase
+    .from("rate_limit_events")
+    .select("*", { count: "exact", head: true })
+    .eq("key", key)
+    .gte("created_at", windowStart);
+
+  if (countError) throw countError;
+
+  if ((count ?? 0) >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt,
+    };
+  }
+
+  const { error: insertError } = await supabase.from("rate_limit_events").insert({ key });
+  if (insertError) throw insertError;
+
+  return {
+    allowed: true,
+    remaining: Math.max(limit - (count ?? 0) - 1, 0),
+    resetAt,
+  };
+}
+
+export async function assertRateLimit(options: RateLimitOptions) {
+  const result = await checkPersistentRateLimit(options);
 
   if (!result.allowed) {
     const retryAfterSeconds = Math.max(Math.ceil((result.resetAt - Date.now()) / 1000), 1);

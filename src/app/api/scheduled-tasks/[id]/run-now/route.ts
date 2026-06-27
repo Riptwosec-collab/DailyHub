@@ -20,8 +20,8 @@ export async function POST(request: Request, context: RouteContext) {
 
   try {
     const ip = getClientIp(request);
-    assertRateLimit({ key: `run-now:${ip}:${id}`, limit: 10, windowMs: 60_000 });
-    assertDailyUsageLimit({
+    await assertRateLimit({ key: `run-now:${ip}:${id}`, limit: 10, windowMs: 60_000 });
+    await assertDailyUsageLimit({
       type: "run_now",
       label: "Run Now",
       limitEnvName: "DAILY_RUN_NOW_LIMIT",
@@ -39,7 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
     const result = await runTaskNow(id, { forceTelegram });
     if (!result) throw notFound(`Scheduled task ${id} was not found`);
 
-    recordUsageEvent({
+    await recordUsageEvent({
       type: "run_now",
       metadata: {
         taskId: id,
@@ -50,11 +50,11 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     if (result.taskRun.status === "success") {
-      recordUsageEvent({ type: "openai_call", metadata: { taskId: id, taskRunId: result.taskRun.id } });
+      await recordUsageEvent({ type: "openai_call", metadata: { taskId: id, taskRunId: result.taskRun.id } });
     }
 
     if (result.taskRun.telegramStatus === "sent" || result.taskRun.telegramStatus.startsWith("mock_sent")) {
-      recordUsageEvent({ type: "telegram_send", metadata: { taskId: id, taskRunId: result.taskRun.id, forceTelegram } });
+      await recordUsageEvent({ type: "telegram_send", metadata: { taskId: id, taskRunId: result.taskRun.id, forceTelegram } });
     }
 
     await audit({

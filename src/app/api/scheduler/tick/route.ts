@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 function isAuthorized(request: Request) {
   const configuredSecret = process.env.CRON_SECRET || process.env.SCHEDULER_SECRET;
-  if (!configuredSecret) return true;
+  if (!configuredSecret || configuredSecret.includes("change-this")) {
+    return process.env.NODE_ENV !== "production";
+  }
 
   const authHeader = request.headers.get("authorization");
   const schedulerHeader = request.headers.get("x-scheduler-secret");

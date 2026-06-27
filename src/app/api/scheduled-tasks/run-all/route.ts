@@ -15,8 +15,8 @@ export async function POST(request: Request) {
 
   try {
     const ip = getClientIp(request);
-    assertRateLimit({ key: `run-all:${ip}`, limit: 3, windowMs: 60_000 });
-    assertDailyUsageLimit({
+    await assertRateLimit({ key: `run-all:${ip}`, limit: 3, windowMs: 60_000 });
+    await assertDailyUsageLimit({
       type: "run_now",
       label: "Run All Now",
       limitEnvName: "DAILY_RUN_ALL_LIMIT",
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const sentCount = result.results.filter((item) => isTelegramSent(item.telegramStatus)).length;
     const failedCount = result.results.filter((item) => item.status === "failed" || String(item.telegramStatus ?? "").includes("failed")).length;
 
-    recordUsageEvent({
+    await recordUsageEvent({
       type: "run_now",
       metadata: {
         mode: "run_all",
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     });
 
     if (sentCount > 0) {
-      recordUsageEvent({ type: "telegram_send", metadata: { mode: "run_all", sentCount } });
+      await recordUsageEvent({ type: "telegram_send", metadata: { mode: "run_all", sentCount } });
     }
 
     await audit({

@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { WebNotification } from "@/types/notification";
 import { mapNotificationRow, mapNotificationToRow, type WebNotificationRow } from "./mappers";
 
-function useSupabase() {
+function shouldUseSupabase() {
   return process.env.USE_SUPABASE === "true" && Boolean(createAdminClient());
 }
 
@@ -15,7 +15,7 @@ export interface NotificationQuery {
 }
 
 export async function listNotifications(query: NotificationQuery = {}) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("web_notifications").select("*").order("created_at", { ascending: false });
     if (query.userId) request = request.eq("user_id", query.userId);
@@ -37,7 +37,7 @@ export async function listNotifications(query: NotificationQuery = {}) {
 }
 
 export async function createNotification(notification: WebNotification) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     const { data, error } = await supabase.from("web_notifications").insert(mapNotificationToRow(notification)).select("*").single();
     if (error) throw error;
@@ -49,7 +49,7 @@ export async function createNotification(notification: WebNotification) {
 }
 
 export async function updateNotificationRead(id: string, isRead: boolean, userId?: string) {
-  if (useSupabase()) {
+  if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
     let request = supabase.from("web_notifications").update({ is_read: isRead }).eq("id", id);
     if (userId) request = request.eq("user_id", userId);

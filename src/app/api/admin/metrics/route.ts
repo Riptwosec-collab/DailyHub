@@ -1,5 +1,6 @@
 import { getMockDb } from "@/lib/mock-db";
 import { fail, getRequestId, ok } from "@/lib/api/response";
+import { requireAdminRequest } from "@/lib/auth";
 import { isUsageLimitsEnabled } from "@/lib/usage-limits";
 import { getAuditLogs } from "@/services/audit-log.service";
 import { getOpenAiModeStatus } from "@/services/openai.service";
@@ -12,6 +13,8 @@ export async function GET(request: Request) {
   const requestId = getRequestId(request);
 
   try {
+    await requireAdminRequest(request);
+
     const db = getMockDb();
     const auditLogs = await getAuditLogs({ limit: 20 });
     const usage = await getUsageMetrics();

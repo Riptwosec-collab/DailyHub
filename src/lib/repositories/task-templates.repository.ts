@@ -24,7 +24,7 @@ type TaskTemplateRow = {
   updated_at: string;
 };
 
-function useSupabasePersistence() {
+function shouldUseSupabasePersistence() {
   return process.env.USE_SUPABASE === "true";
 }
 
@@ -49,7 +49,7 @@ function mapTemplateRow(row: TaskTemplateRow): TaskTemplate {
 }
 
 export async function listTaskTemplates(userId?: string | null): Promise<TaskTemplate[]> {
-  if (!useSupabasePersistence()) return taskTemplates;
+  if (!shouldUseSupabasePersistence()) return taskTemplates;
 
   const supabase = createAdminClient();
   if (!supabase) return taskTemplates;

@@ -1,4 +1,5 @@
 import { ok } from "@/lib/api/response";
+import { validateProductionEnv } from "@/lib/env";
 import { isUsageLimitsEnabled } from "@/lib/usage-limits";
 import { getOpenAiModeStatus } from "@/services/openai.service";
 import { getTelegramModeStatus } from "@/services/telegram.service";
@@ -10,10 +11,11 @@ export async function GET() {
   const openAi = getOpenAiModeStatus();
   const telegram = getTelegramModeStatus();
   const usage = await getUsageMetrics();
+  const productionEnv = validateProductionEnv();
 
   return ok({
     app: "Nimbus Daily",
-    status: "ok",
+    status: productionEnv.ok ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV ?? "development",
     modes: {
@@ -28,6 +30,7 @@ export async function GET() {
       hasOpenAiKey: openAi.hasApiKey,
       hasTelegramToken: telegram.hasToken,
       hasTelegramChatId: telegram.hasChatId,
+      productionEnv,
     },
     usage: {
       runNowRemaining: usage.runNowToday.remaining,
