@@ -1,4 +1,4 @@
-﻿# Nimbus Daily Data Library
+# NimbusDaily Data Library
 
 Copy these files into your project:
 
@@ -9,7 +9,7 @@ Then commit and push:
 
 ```bash
 git add src/app/data-library/page.tsx src/components/data-library/DataLibraryView.tsx
-git commit -m "feat: add Nimbus Daily data library"
+git commit -m "feat: add NimbusDaily data library"
 git push
 ```
 

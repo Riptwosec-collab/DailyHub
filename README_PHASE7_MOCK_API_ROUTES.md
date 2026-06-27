@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 7: Mock API Routes
+# NimbusDaily AI - Phase 7: Mock API Routes
 
 Phase 7 adds mock backend API routes for Scheduled Tasks, Task Runs, and Notifications.
 
@@ -27,6 +27,6 @@ curl -X PATCH http://localhost:3000/api/notifications/noti_001/read -H "Content-
 
 ## Notes
 
-- Data is stored in memory through `globalThis.dailyHubMockDb`.
+- Data is stored in memory through `globalThis.nimbusDailyMockDb`.
 - This is for development/mock mode only.
 - Run Now is intentionally left for Phase 8.

@@ -4,12 +4,12 @@ import type { UsageEvent, UsageEventType, UsageLimitStatus } from "@/types/usage
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubUsageEvents: UsageEvent[] | undefined;
+  var nimbusDailyUsageEvents: UsageEvent[] | undefined;
 }
 
 function getStore() {
-  if (!globalThis.dailyHubUsageEvents) globalThis.dailyHubUsageEvents = [];
-  return globalThis.dailyHubUsageEvents;
+  if (!globalThis.nimbusDailyUsageEvents) globalThis.nimbusDailyUsageEvents = [];
+  return globalThis.nimbusDailyUsageEvents;
 }
 
 function shouldUseSupabase() {

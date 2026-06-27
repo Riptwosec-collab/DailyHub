@@ -172,7 +172,7 @@ export function ScheduledTasksProView() {
 
   async function handleTelegramTest() {
     try {
-      await apiFetch("/api/telegram/test", { method: "POST", body: JSON.stringify({ message: "DailyHub — Telegram test" }) });
+      await apiFetch("/api/telegram/test", { method: "POST", body: JSON.stringify({ message: "NimbusDaily — Telegram test" }) });
       setMessage(text.telegramSent);
     } catch (err) {
       setMessage(getFriendlyApiError(err));

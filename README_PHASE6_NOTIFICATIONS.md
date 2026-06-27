@@ -1,6 +1,6 @@
 # Phase 6: Notifications Page
 
-เพิ่มหน้า `/notifications` สำหรับ DailyHub AI
+เพิ่มหน้า `/notifications` สำหรับ NimbusDaily AI
 
 ## Features
 

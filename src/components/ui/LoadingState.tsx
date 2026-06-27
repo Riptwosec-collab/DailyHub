@@ -10,7 +10,7 @@ interface LoadingStateProps {
 
 export function LoadingState({ title, description }: LoadingStateProps) {
   const { lang } = useLanguage();
-  const defaultTitle = lang === "th" ? "กำลังโหลดข้อมูล DailyHub..." : "Loading DailyHub data...";
+  const defaultTitle = lang === "th" ? "กำลังโหลดข้อมูล NimbusDaily..." : "Loading NimbusDaily data...";
   const defaultDescription = lang === "th" ? "กำลังดึงข้อมูลจาก API routes" : "Fetching data from API routes";
 
   return (

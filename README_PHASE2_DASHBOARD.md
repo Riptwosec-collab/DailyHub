@@ -1,6 +1,6 @@
-# DailyHub AI - Phase 2 Dashboard UI
+# NimbusDaily AI - Phase 2 Dashboard UI
 
-ให้นำไฟล์ในโฟลเดอร์นี้ไปวางทับโปรเจกต์ DailyHub AI Phase 1
+ให้นำไฟล์ในโฟลเดอร์นี้ไปวางทับโปรเจกต์ NimbusDaily AI Phase 1
 
 ## Pages
 

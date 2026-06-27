@@ -1,6 +1,6 @@
-# DailyHub AI Phase 12-16
+# NimbusDaily AI Phase 12-16
 
-ชุดนี้อัปเกรด DailyHub AI จาก mock memory ให้พร้อม production มากขึ้น
+ชุดนี้อัปเกรด NimbusDaily AI จาก mock memory ให้พร้อม production มากขึ้น
 
 ## Included phases
 

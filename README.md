@@ -1,6 +1,6 @@
-# DailyHub AI - Phase 1 Setup
+# NimbusDaily AI - Phase 1 Setup
 
-DailyHub AI is a mock-first scheduled GPT automation dashboard built with Next.js, TypeScript, Tailwind CSS, and App Router.
+NimbusDaily AI is a mock-first scheduled GPT automation dashboard built with Next.js, TypeScript, Tailwind CSS, and App Router.
 
 ## Run
 

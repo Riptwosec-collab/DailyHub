@@ -19,15 +19,15 @@ export const defaultSettings: NimbusDailySettings = {
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubSettings: NimbusDailySettings | undefined;
+  var nimbusDailySettings: NimbusDailySettings | undefined;
 }
 
 export function getNimbusDailySettings() {
-  if (!globalThis.dailyHubSettings) {
-    globalThis.dailyHubSettings = { ...defaultSettings, updatedAt: new Date().toISOString() };
+  if (!globalThis.nimbusDailySettings) {
+    globalThis.nimbusDailySettings = { ...defaultSettings, updatedAt: new Date().toISOString() };
   }
 
-  return globalThis.dailyHubSettings;
+  return globalThis.nimbusDailySettings;
 }
 
 function normalizeBoolean(value: unknown, fallback: boolean) {
@@ -64,6 +64,6 @@ export function normalizeNimbusDailySettings(
 
 export function updateNimbusDailySettings(input: UpdateNimbusDailySettingsInput) {
   const next = normalizeNimbusDailySettings(input, getNimbusDailySettings());
-  globalThis.dailyHubSettings = next;
+  globalThis.nimbusDailySettings = next;
   return next;
 }

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
     if (name.length < 3) return errorResponse("Task name must be at least 3 characters", 422, "VALIDATION_ERROR");
     if (candidateText.includes("long read") || candidateText.includes("อ่านยาว")) return errorResponse("Legacy long-read tasks are archived and cannot be created", 422, "VALIDATION_ERROR");
-    if (/weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(candidateText)) return errorResponse("This retired task category is no longer available in DailyHub", 422, "VALIDATION_ERROR");
+    if (/weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(candidateText)) return errorResponse("This retired task category is no longer available in NimbusDaily", 422, "VALIDATION_ERROR");
 
     const task = await createScheduledTask({
       userId: user.id,

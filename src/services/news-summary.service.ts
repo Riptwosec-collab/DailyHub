@@ -21,7 +21,7 @@ function thaiOnly(value: string | null | undefined, fallback: string, max = 260)
 
 function clampTelegramTopicMessage(text: string) {
   if (text.length <= TELEGRAM_TOPIC_LIMIT) return text;
-  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
+  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด NimbusDaily เพื่ออ่านรายละเอียดเต็ม";
   return `${text.slice(0, TELEGRAM_TOPIC_LIMIT - footer.length - 1).trim()}…${footer}`;
 }
 
@@ -29,7 +29,7 @@ function getAppBaseUrl() {
   const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
   if (explicit) return explicit.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "https://daily-hub-pi.vercel.app";
+  return "https://nimbusdaily.vercel.app";
 }
 
 function buildDailyBriefTopicUrl(categoryKey: DailyBriefItem["category"]) {
@@ -111,7 +111,7 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
   const detail = getDailyBriefTopicDetail(categoryKey);
   const topicSummary = thaiOnly(
     summary.categorySummaries[categoryKey] || categoryItems[0]?.summaryTh,
-    `${detail.labelTh}: มีข่าวในหัวข้อนี้ที่พร้อมอ่านบน DailyHub`,
+    `${detail.labelTh}: มีข่าวในหัวข้อนี้ที่พร้อมอ่านบน NimbusDaily`,
     420,
   );
   const visibleItems = categoryItems
@@ -121,8 +121,8 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
 
   const itemLines = visibleItems.slice(0, TELEGRAM_STORY_LIMIT).map((item, index) => {
     const title = thaiOnly(item.titleTh, `${detail.labelTh} รายการที่ ${index + 1}`, 130);
-    const itemSummary = thaiOnly(item.summaryTh, "สรุปภาษาไทยพร้อมอ่านบน DailyHub", 220);
-    const keyPoint = getThaiBulletPoints(item)[0] || "เปิด DailyHub เพื่ออ่านรายละเอียดเพิ่มเติม";
+    const itemSummary = thaiOnly(item.summaryTh, "สรุปภาษาไทยพร้อมอ่านบน NimbusDaily", 220);
+    const keyPoint = getThaiBulletPoints(item)[0] || "เปิด NimbusDaily เพื่ออ่านรายละเอียดเพิ่มเติม";
     return `เรื่องที่ ${index + 1}: ${title}\nสรุป: ${itemSummary}\nประเด็น: ${truncate(keyPoint, 140)}`;
   });
 
@@ -131,7 +131,7 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
   const fullDataUrl = buildDailyBriefTopicUrl(categoryKey);
 
   return clampTelegramTopicMessage([
-    `${detail.icon} DailyHub Brief`,
+    `${detail.icon} NimbusDaily Brief`,
     `หัวข้อ: ${detail.labelTh}`,
     `วันที่: ${summary.date}`,
     `จำนวนข่าวในหัวข้อนี้: ${visibleItems.length}`,
@@ -141,16 +141,16 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
     "",
     "⭐ เรื่องสำคัญ",
     itemLines.join("\n\n") || "ยังไม่มีข่าวในหัวข้อนี้",
-    remainingCount > 0 ? `\nและอีก ${remainingCount} รายการ เปิดอ่านเต็มได้ใน DailyHub` : "",
+    remainingCount > 0 ? `\nและอีก ${remainingCount} รายการ เปิดอ่านเต็มได้ใน NimbusDaily` : "",
     "",
     "🔗 แหล่งข้อมูล",
-    sources.length ? sources.map((source) => `- ${truncate(source, 80)}`).join("\n") : "- DailyHub",
+    sources.length ? sources.map((source) => `- ${truncate(source, 80)}`).join("\n") : "- NimbusDaily",
     "",
     "🌐 ข้อมูลเต็ม",
     fullDataUrl,
     "",
     `ภาษา: ไทย | Priority: ${visibleItems[0]?.priorityScore ?? 70}/100 | Status: success`,
-    "ส่งจาก DailyHub",
+    "ส่งจาก NimbusDaily",
   ].filter(Boolean).join("\n"));
 }
 
@@ -166,11 +166,11 @@ export function buildTelegramBriefTopicMessages(summary: DailyBriefSummary, item
   if (messages.length) return messages;
 
   return [clampTelegramTopicMessage([
-    "DailyHub Brief",
+    "NimbusDaily Brief",
     `วันที่: ${summary.date}`,
     "หัวข้อ: ข่าวประจำวัน",
     "",
     "ยังไม่มีข่าวที่พร้อมส่ง Telegram ในรอบนี้",
-    "เปิด DailyHub เพื่อตรวจสถานะการดึงข่าวและรันใหม่",
+    "เปิด NimbusDaily เพื่อตรวจสถานะการดึงข่าวและรันใหม่",
   ].join("\n"))];
 }

@@ -1,7 +1,7 @@
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
 
-const TELEGRAM_BRAND_NAME = "Nimbus Daily";
+const TELEGRAM_BRAND_NAME = "NimbusDaily";
 const TELEGRAM_SAFE_LIMIT = 3600;
 const MAX_TELEGRAM_BULLETS = 4;
 const MAX_TELEGRAM_STORIES = 5;
@@ -86,7 +86,7 @@ function getAppBaseUrl() {
   const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
   if (explicit) return explicit.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "https://daily-hub-pi.vercel.app";
+  return "https://nimbusdaily.vercel.app";
 }
 
 function getTaskFullDataUrl(run: TaskRun) {
@@ -95,7 +95,7 @@ function getTaskFullDataUrl(run: TaskRun) {
 
 function clampSingleTopicMessage(text: string) {
   if (text.length <= TELEGRAM_SAFE_LIMIT) return text;
-  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
+  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด NimbusDaily เพื่ออ่านรายละเอียดเต็ม";
   return `${text.slice(0, TELEGRAM_SAFE_LIMIT - footer.length - 1).trim()}…${footer}`;
 }
 
@@ -183,7 +183,7 @@ function getDataStats(run: TaskRun) {
 
 function getThaiBullets(run: TaskRun) {
   const fallbackBullets = [
-    "เปิด DailyHub เพื่ออ่านรายละเอียดเต็มจากแหล่งข้อมูลต้นฉบับ",
+    "เปิด NimbusDaily เพื่ออ่านรายละเอียดเต็มจากแหล่งข้อมูลต้นฉบับ",
     "ระบบแปลและสรุปเป็นภาษาไทยก่อนส่ง Telegram",
   ];
 
@@ -217,7 +217,7 @@ function getTelegramStories(task: ScheduledTask, run: TaskRun) {
     return getSourceItems(source).map((item) => describeSourceItem(item, `ข้อมูลจาก ${sourceName}`));
   });
   const translatedStories = run.translation?.translatedBullets?.map((item) => thaiTelegramText(item, `ประเด็นจาก ${task.name}`, 220)) ?? [];
-  const summaryStory = thaiTelegramText(run.translatedContent ?? run.gptOutput.summary, `${task.name} พร้อมอ่านรายละเอียดเต็มใน DailyHub`, 240);
+  const summaryStory = thaiTelegramText(run.translatedContent ?? run.gptOutput.summary, `${task.name} พร้อมอ่านรายละเอียดเต็มใน NimbusDaily`, 240);
 
   const stories = [...sourceStories, ...translatedStories, summaryStory]
     .map((item) => item.trim())
@@ -226,7 +226,7 @@ function getTelegramStories(task: ScheduledTask, run: TaskRun) {
 
   while (uniqueStories.length < MAX_TELEGRAM_STORIES) {
     const next = uniqueStories.length + 1;
-    uniqueStories.push(`เปิด DailyHub เพื่อดูรายละเอียดเรื่องที่ ${next} พร้อมแหล่งข้อมูลเต็มของหัวข้อนี้`);
+    uniqueStories.push(`เปิด NimbusDaily เพื่อดูรายละเอียดเรื่องที่ ${next} พร้อมแหล่งข้อมูลเต็มของหัวข้อนี้`);
   }
 
   return uniqueStories.map((item, index) => `เรื่องที่ ${index + 1}: ${truncate(item, 260)}`).join("\n");
@@ -244,7 +244,7 @@ function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
   const topicMeta = getTaskTopicMeta(task);
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
-  const title = thaiTelegramText(translation?.translatedTitle ?? run.gptOutput.title, `${topicMeta.label} จาก DailyHub`, 180);
+  const title = thaiTelegramText(translation?.translatedTitle ?? run.gptOutput.title, `${topicMeta.label} จาก NimbusDaily`, 180);
   const stats = getDataStats(run);
   const sources = formatSourceList(stats, task);
   const fullDataUrl = getTaskFullDataUrl(run);

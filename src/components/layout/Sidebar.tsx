@@ -38,7 +38,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           <span className="rounded-sm bg-emerald-300" />
           <span className="rounded-sm bg-violet-500" />
         </div>
-        <div><p className="text-2xl font-extrabold text-white">DailyHub</p><p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p></div>
+        <div><p className="text-2xl font-extrabold text-white">NimbusDaily</p><p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p></div>
       </Link>
 
       <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.065] p-4">

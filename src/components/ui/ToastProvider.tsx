@@ -56,8 +56,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       pushToast(custom.detail);
     }
 
-    window.addEventListener("dailyhub:toast", handler);
-    return () => window.removeEventListener("dailyhub:toast", handler);
+    window.addEventListener("nimbusdaily:toast", handler);
+    return () => window.removeEventListener("nimbusdaily:toast", handler);
   }, [pushToast]);
 
   const value = useMemo(() => ({ pushToast, removeToast }), [pushToast, removeToast]);
@@ -103,7 +103,7 @@ export function useToast() {
     return {
       pushToast: (toast: ToastInput) => {
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("dailyhub:toast", { detail: toast }));
+          window.dispatchEvent(new CustomEvent("nimbusdaily:toast", { detail: toast }));
         }
       },
       removeToast: () => undefined,
@@ -115,6 +115,6 @@ export function useToast() {
 
 export function showToast(toast: ToastInput) {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("dailyhub:toast", { detail: toast }));
+    window.dispatchEvent(new CustomEvent("nimbusdaily:toast", { detail: toast }));
   }
 }

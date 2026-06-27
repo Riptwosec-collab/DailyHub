@@ -1,4 +1,4 @@
--- DailyHub AI Phase 19-25 optional production usage tables
+-- NimbusDaily AI Phase 19-25 optional production usage tables
 
 create table if not exists usage_events (
   id uuid primary key default gen_random_uuid(),

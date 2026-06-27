@@ -96,7 +96,7 @@ export function getOpenAiModeStatus() {
 export function buildGptPrompt(task: ScheduledTask, rawInput: Record<string, unknown>) {
   const identity = getPromptTaskIdentity(task);
 
-  return `You are Nimbus Daily.
+  return `You are NimbusDaily.
 Task Name: ${identity.name}
 Task Type: ${identity.type}
 Task Instruction: ${identity.instruction}

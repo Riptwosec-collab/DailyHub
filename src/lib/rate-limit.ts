@@ -14,15 +14,15 @@ interface RateLimitOptions {
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubRateLimitStore: Map<string, RateLimitRecord> | undefined;
+  var nimbusDailyRateLimitStore: Map<string, RateLimitRecord> | undefined;
 }
 
 function getStore() {
-  if (!globalThis.dailyHubRateLimitStore) {
-    globalThis.dailyHubRateLimitStore = new Map<string, RateLimitRecord>();
+  if (!globalThis.nimbusDailyRateLimitStore) {
+    globalThis.nimbusDailyRateLimitStore = new Map<string, RateLimitRecord>();
   }
 
-  return globalThis.dailyHubRateLimitStore;
+  return globalThis.nimbusDailyRateLimitStore;
 }
 
 function shouldUseSupabase() {

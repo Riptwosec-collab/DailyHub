@@ -1,6 +1,6 @@
 # Phase 11: Deploy Vercel
 
-Phase 11 คือขั้นตอนเตรียมโปรเจกต์ DailyHub AI สำหรับ deploy ขึ้น Vercel พร้อม endpoint สำหรับ Vercel Cron เรียก Scheduler Tick
+Phase 11 คือขั้นตอนเตรียมโปรเจกต์ NimbusDaily AI สำหรับ deploy ขึ้น Vercel พร้อม endpoint สำหรับ Vercel Cron เรียก Scheduler Tick
 
 ## สิ่งที่เพิ่มใน Phase นี้
 
@@ -59,7 +59,7 @@ Vercel Dashboard
 ใส่ค่าต่อไปนี้:
 
 ```env
-NEXT_PUBLIC_APP_NAME="DailyHub AI"
+NEXT_PUBLIC_APP_NAME="NimbusDaily AI"
 NEXT_PUBLIC_APP_URL="https://your-project.vercel.app"
 APP_TIMEZONE="Asia/Bangkok"
 
@@ -144,7 +144,7 @@ curl -X POST http://localhost:3000/api/scheduler/tick \
 1. Push code ขึ้น GitHub
 2. เข้า Vercel Dashboard
 3. กด `Add New Project`
-4. Import repository `dailyhub-ai`
+4. Import repository `nimbusdaily-ai`
 5. Framework Preset: `Next.js`
 6. Build Command: `npm run build`
 7. Output Directory: ไม่ต้องใส่ ให้ Vercel auto detect
@@ -262,7 +262,7 @@ x-scheduler-secret: your-secret
 ตอนนี้ระบบยังใช้ mock memory:
 
 ```txt
-globalThis.dailyHubMockDb
+globalThis.nimbusDailyMockDb
 ```
 
 บน local จะพอใช้งานทดสอบ flow ได้ แต่บน Vercel serverless:
@@ -336,7 +336,7 @@ TELEGRAM_CHAT_ID="..."
 ```bash
 curl -X POST https://your-project.vercel.app/api/telegram/test \
   -H "Content-Type: application/json" \
-  -d '{"message":"DailyHub AI test"}'
+  -d '{"message":"NimbusDaily AI test"}'
 ```
 
 ---

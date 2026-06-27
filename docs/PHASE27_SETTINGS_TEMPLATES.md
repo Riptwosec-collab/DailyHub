@@ -1,6 +1,6 @@
 # Phase 27: Settings Page + Task Templates
 
-Phase 27 เพิ่มหน้า Settings และ Task Templates เพื่อให้ DailyHub AI ใช้งานง่ายขึ้นก่อนต่อ production integrations จริง
+Phase 27 เพิ่มหน้า Settings และ Task Templates เพื่อให้ NimbusDaily AI ใช้งานง่ายขึ้นก่อนต่อ production integrations จริง
 
 ## สิ่งที่เพิ่ม
 

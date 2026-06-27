@@ -99,7 +99,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     <main className="flex min-h-screen items-center justify-center bg-[#050816] px-4 py-10 text-white">
       <Card className="w-full max-w-md p-6 sm:p-8">
         <div className="flex items-center justify-between gap-3">
-          <Badge tone="purple">DailyHub Auth</Badge>
+          <Badge tone="purple">NimbusDaily Auth</Badge>
           <LanguageToggle />
         </div>
         <h1 className="mt-5 text-3xl font-black">{mode === "login" ? text.loginTitle : text.registerTitle}</h1>

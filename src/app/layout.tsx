@@ -12,7 +12,7 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "DailyHub",
+  title: "NimbusDaily",
   description: "Scheduled GPT automation dashboard with AI, Telegram, and full data library integrations.",
 };
 

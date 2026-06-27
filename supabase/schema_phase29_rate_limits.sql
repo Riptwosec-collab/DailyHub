@@ -1,4 +1,4 @@
--- DailyHub AI Phase 29: persistent server-side rate limit events.
+-- NimbusDaily AI Phase 29: persistent server-side rate limit events.
 -- Run this when USE_SUPABASE=true so serverless instances share limits.
 
 create table if not exists rate_limit_events (

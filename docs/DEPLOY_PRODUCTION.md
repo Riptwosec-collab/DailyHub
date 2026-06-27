@@ -1,11 +1,11 @@
-# DailyHub AI Production Deploy
+# NimbusDaily AI Production Deploy
 
 ## GitHub
 
 ```bash
 git init
 git add .
-git commit -m "DailyHub AI production MVP"
+git commit -m "NimbusDaily AI production MVP"
 git branch -M main
 git remote add origin <your-github-repo-url>
 git push -u origin main
@@ -35,7 +35,7 @@ curl https://your-app.vercel.app/api/health
 curl -X POST https://your-app.vercel.app/api/gpt/test
 curl -X POST https://your-app.vercel.app/api/telegram/test \
   -H "Content-Type: application/json" \
-  -d '{"message":"DailyHub AI production test"}'
+  -d '{"message":"NimbusDaily AI production test"}'
 ```
 
 ## Cron

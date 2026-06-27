@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
   const startedAt = new Date();
 
-  // TODO: ใส่งาน scheduled jobs ของ DailyHub ตรงนี้
+  // TODO: ใส่งาน scheduled jobs ของ NimbusDaily ตรงนี้
   // ตัวอย่าง:
   // await checkNews();
   // await checkEmailMonitor();
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    message: "DailyHub cron job executed successfully",
+    message: "NimbusDaily cron job executed successfully",
     startedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
   });

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DailyHub / Nimbus Daily is a Next.js App Router project using TypeScript, Tailwind CSS, Supabase-ready config, Groq/OpenAI AI provider support, Telegram alerts, scheduler tasks, and Vercel deployment.
+NimbusDaily / NimbusDaily is a Next.js App Router project using TypeScript, Tailwind CSS, Supabase-ready config, Groq/OpenAI AI provider support, Telegram alerts, scheduler tasks, and Vercel deployment.
 
 ## Tech Stack
 

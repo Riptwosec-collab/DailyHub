@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 17: UI ต่อ API จริง
+# NimbusDaily AI - Phase 17: UI ต่อ API จริง
 
 Phase นี้แก้ UI หลักให้เรียก API routes จริงแทนการ import `mock-data.ts` โดยตรง
 
@@ -98,6 +98,6 @@ npm run dev
 
 ## หมายเหตุ
 
-- ถ้า `USE_SUPABASE=false` API จะยังใช้ mock memory ผ่าน `globalThis.dailyHubMockDb`
+- ถ้า `USE_SUPABASE=false` API จะยังใช้ mock memory ผ่าน `globalThis.nimbusDailyMockDb`
 - ถ้า `USE_SUPABASE=true` API จะอ่าน/เขียน Supabase ตาม Phase 12–16
 - UI ไม่ควร import `mock-data.ts` โดยตรงอีกแล้วหลัง Phase 17

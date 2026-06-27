@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 3: Scheduled Tasks Page
+# NimbusDaily AI - Phase 3: Scheduled Tasks Page
 
 Phase 3 เพิ่มหน้า `/scheduled-tasks` สำหรับจัดการ Scheduled Tasks แบบ mock UI
 

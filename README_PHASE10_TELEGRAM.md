@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 10: Telegram Bot Integration
+# NimbusDaily AI - Phase 10: Telegram Bot Integration
 
 Phase 10 เพิ่ม Telegram Bot API ของจริงเข้า backend โดยยังมี mock fallback เพื่อให้ dev flow ไม่พัง
 
@@ -47,7 +47,7 @@ Run Now
 ```bash
 curl -X POST http://localhost:3000/api/telegram/test \
   -H "Content-Type: application/json" \
-  -d '{"message":"DailyHub AI Telegram test"}'
+  -d '{"message":"NimbusDaily AI Telegram test"}'
 ```
 
 ## วิธีทดสอบผ่าน Run Now
@@ -88,6 +88,6 @@ failed_missing_config
 
 ## หมายเหตุ
 
-ตอนนี้ Database ยังเป็น mock memory ผ่าน `globalThis.dailyHubMockDb`
+ตอนนี้ Database ยังเป็น mock memory ผ่าน `globalThis.nimbusDailyMockDb`
 
 Phase ถัดไปคือ Phase 11: Deploy Vercel

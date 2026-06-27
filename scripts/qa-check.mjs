@@ -19,7 +19,7 @@ const requiredFiles = [
 const missing = requiredFiles.filter((file) => !existsSync(join(root, file)));
 
 if (missing.length > 0) {
-  console.error("\nDailyHub AI QA failed. Missing files:\n");
+  console.error("\nNimbusDaily AI QA failed. Missing files:\n");
   for (const file of missing) console.error(`- ${file}`);
   process.exit(1);
 }
@@ -30,10 +30,10 @@ const requiredScripts = ["dev", "build", "lint", "typecheck"];
 const missingScripts = requiredScripts.filter((name) => !scripts[name]);
 
 if (missingScripts.length > 0) {
-  console.error("\nDailyHub AI QA failed. Missing npm scripts:\n");
+  console.error("\nNimbusDaily AI QA failed. Missing npm scripts:\n");
   for (const script of missingScripts) console.error(`- ${script}`);
   process.exit(1);
 }
 
-console.log("DailyHub AI QA file check passed.");
+console.log("NimbusDaily AI QA file check passed.");
 console.log("Next steps: npm run typecheck && npm run lint && npm run build");

@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 8: Run Now Mock Flow
+# NimbusDaily AI - Phase 8: Run Now Mock Flow
 
 Phase 8 เพิ่มระบบ Run Now จำลองผ่าน API จริงของ Next.js Route Handler
 
@@ -69,6 +69,6 @@ curl -X POST http://localhost:3000/api/task-runs/run_001/regenerate
 
 ## หมายเหตุ
 
-ยังเป็น mock backend ผ่าน `globalThis.dailyHubMockDb` ก่อน ข้อมูลจะ reset เมื่อ dev server restart
+ยังเป็น mock backend ผ่าน `globalThis.nimbusDailyMockDb` ก่อน ข้อมูลจะ reset เมื่อ dev server restart
 
 Phase ถัดไปคือ Phase 9: ต่อ OpenAI API จริง

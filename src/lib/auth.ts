@@ -55,17 +55,17 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const useSupabase = process.env.USE_SUPABASE === "true";
 
   if (!useSupabase) {
-    return allowMock ? { id: "user_001", email: "mock@dailyhub.local", isMock: true } : null;
+    return allowMock ? { id: "user_001", email: "mock@nimbusdaily.local", isMock: true } : null;
   }
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) {
-    return allowMock ? { id: "user_001", email: "mock@dailyhub.local", isMock: true } : null;
+    return allowMock ? { id: "user_001", email: "mock@nimbusdaily.local", isMock: true } : null;
   }
 
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
-    return allowMock ? { id: "user_001", email: "mock@dailyhub.local", isMock: true } : null;
+    return allowMock ? { id: "user_001", email: "mock@nimbusdaily.local", isMock: true } : null;
   }
 
   return {

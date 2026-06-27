@@ -1,6 +1,6 @@
-# DailyHub AI
+# NimbusDaily AI
 
-DailyHub AI คือเว็บ Dashboard สำหรับสร้างและจัดการ **Scheduled Tasks** ภายในระบบ โดยให้ Backend Scheduler เป็นตัวรันงานตามเวลาที่ผู้ใช้ตั้งไว้ จากนั้นดึงข้อมูลจากแหล่งที่เลือก ส่งเข้า **OpenAI GPT API** เพื่อสรุป วิเคราะห์ ให้คะแนนความสำคัญ และสร้างคอนเทนต์ แล้วบันทึกผลลัพธ์กลับมาแสดงในหน้าเว็บ พร้อมส่งแจ้งเตือนผ่าน **Telegram Bot API** หากผู้ใช้เปิดใช้งาน
+NimbusDaily AI คือเว็บ Dashboard สำหรับสร้างและจัดการ **Scheduled Tasks** ภายในระบบ โดยให้ Backend Scheduler เป็นตัวรันงานตามเวลาที่ผู้ใช้ตั้งไว้ จากนั้นดึงข้อมูลจากแหล่งที่เลือก ส่งเข้า **OpenAI GPT API** เพื่อสรุป วิเคราะห์ ให้คะแนนความสำคัญ และสร้างคอนเทนต์ แล้วบันทึกผลลัพธ์กลับมาแสดงในหน้าเว็บ พร้อมส่งแจ้งเตือนผ่าน **Telegram Bot API** หากผู้ใช้เปิดใช้งาน
 
 > สถานะโปรเจกต์: Mock-first MVP  
 > โครงสร้างถูกออกแบบให้เริ่มด้วย Mock Data ได้ก่อน และพร้อมต่อ API จริง เช่น OpenAI, Telegram, Gmail, News API, Product Price API, Football API, Weather API และ Concert API ในภายหลัง
@@ -157,7 +157,7 @@ Action buttons:
 
 ### 5. Dashboard
 
-หน้า Dashboard หลักของ DailyHub AI
+หน้า Dashboard หลักของ NimbusDaily AI
 
 สิ่งที่ต้องแสดงเพิ่ม:
 
@@ -198,7 +198,7 @@ UI Style: Modern SaaS Dashboard, Dark Mode, Neon Blue + Purple, Glassmorphism
 ## Folder Structure
 
 ```txt
-dailyhub-ai/
+nimbusdaily-ai/
 ├─ README.md
 ├─ package.json
 ├─ .env.example
@@ -661,7 +661,7 @@ Scheduler จะทำงานทุก 1 นาที หรือถูกเ
 ตัวอย่าง Prompt:
 
 ```txt
-You are DailyHub AI.
+You are NimbusDaily AI.
 Task Type: Daily Brief
 Data Sources: News, Weather API
 Actions: Summarize, Analyze Priority, Recommend Action
@@ -696,7 +696,7 @@ Raw Input:
 ตัวอย่างข้อความที่ส่งไป Telegram:
 
 ```txt
-🤖 DailyHub AI Alert
+🤖 NimbusDaily AI Alert
 
 Task: Morning AI Brief
 Type: Daily Brief
@@ -726,7 +726,7 @@ AND TELEGRAM_CHAT_ID exists
 
 ```env
 # App
-NEXT_PUBLIC_APP_NAME="DailyHub AI"
+NEXT_PUBLIC_APP_NAME="NimbusDaily AI"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 APP_TIMEZONE="Asia/Bangkok"
 
@@ -1078,7 +1078,7 @@ Authorization: Bearer your-scheduler-secret
 
 ## Summary
 
-DailyHub AI คือระบบ Dashboard ที่ช่วยให้ผู้ใช้สร้าง Scheduled Tasks ได้จากหน้าเว็บ แล้วให้ Backend เป็นตัวรันงานตามเวลา ดึงข้อมูล ส่งให้ GPT วิเคราะห์ สรุป ให้คะแนน สร้างคอนเทนต์ บันทึกผลกลับมาแสดงในเว็บ และส่ง Telegram Notification ได้
+NimbusDaily AI คือระบบ Dashboard ที่ช่วยให้ผู้ใช้สร้าง Scheduled Tasks ได้จากหน้าเว็บ แล้วให้ Backend เป็นตัวรันงานตามเวลา ดึงข้อมูล ส่งให้ GPT วิเคราะห์ สรุป ให้คะแนน สร้างคอนเทนต์ บันทึกผลกลับมาแสดงในเว็บ และส่ง Telegram Notification ได้
 
 เป้าหมายของ MVP:
 

@@ -1,6 +1,6 @@
 # Phase 18: Production Error Handling + Logs
 
-Phase 18 เพิ่ม production hardening ให้ DailyHub AI หลังจาก UI ต่อ API จริงแล้วใน Phase 17
+Phase 18 เพิ่ม production hardening ให้ NimbusDaily AI หลังจาก UI ต่อ API จริงแล้วใน Phase 17
 
 ## สิ่งที่เพิ่ม
 

@@ -4,15 +4,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 declare global {
   // eslint-disable-next-line no-var
-  var dailyHubAuditLogs: AuditLog[] | undefined;
+  var nimbusDailyAuditLogs: AuditLog[] | undefined;
 }
 
 function getAuditStore() {
-  if (!globalThis.dailyHubAuditLogs) {
-    globalThis.dailyHubAuditLogs = [];
+  if (!globalThis.nimbusDailyAuditLogs) {
+    globalThis.nimbusDailyAuditLogs = [];
   }
 
-  return globalThis.dailyHubAuditLogs;
+  return globalThis.nimbusDailyAuditLogs;
 }
 
 function createId() {

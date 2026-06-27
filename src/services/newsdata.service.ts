@@ -166,7 +166,7 @@ async function fetchGoogleNewsXml(query: string) {
       cache: "no-store",
       signal: controller.signal,
       headers: {
-        "User-Agent": "DailyHub/1.0 (+https://daily-hub-pi.vercel.app)",
+        "User-Agent": "NimbusDaily/1.0 (+https://nimbusdaily.vercel.app)",
         Accept: "application/rss+xml, application/xml, text/xml",
       },
     });

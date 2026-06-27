@@ -1,4 +1,4 @@
-# DailyHub AI Phase 19-25 Final Pack
+# NimbusDaily AI Phase 19-25 Final Pack
 
 This patch completes the remaining production-facing phases.
 
@@ -16,7 +16,7 @@ This patch completes the remaining production-facing phases.
 
 ## Install
 
-Copy this patch over your existing DailyHub AI project.
+Copy this patch over your existing NimbusDaily AI project.
 
 ```bash
 npm install

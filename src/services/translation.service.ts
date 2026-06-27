@@ -161,7 +161,7 @@ function buildOriginalContent(input: TranslationInput) {
 }
 
 function normalizeThaiFallback(input: TranslationInput, originalLanguage: ContentLanguage, originalContent: string): TranslatedResult {
-  const title = input.gptOutput?.title || input.title || "DailyHub AI Result";
+  const title = input.gptOutput?.title || input.title || "NimbusDaily AI Result";
   const summary = input.gptOutput?.summary || input.content || "ยังไม่มีรายละเอียดจากแหล่งข้อมูล";
   const bullets = extractBullets(summary || originalContent);
 
@@ -253,7 +253,7 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
 
   const config = resolveTranslationConfig();
   if (!config.enabled || !config.apiKey || !config.baseUrl) {
-    console.warn("[DailyHub Translation] AI translation is disabled or missing API config", {
+    console.warn("[NimbusDaily Translation] AI translation is disabled or missing API config", {
       provider: config.provider,
       enabled: config.enabled,
       hasApiKey: Boolean(config.apiKey),
@@ -275,7 +275,7 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
         messages: [
           {
             role: "system",
-            content: "คุณคือระบบแปลและสรุปของ DailyHub AI ตอบกลับเป็น JSON เท่านั้น ห้ามใช้ markdown และห้ามแต่งข้อเท็จจริงเพิ่ม",
+            content: "คุณคือระบบแปลและสรุปของ NimbusDaily AI ตอบกลับเป็น JSON เท่านั้น ห้ามใช้ markdown และห้ามแต่งข้อเท็จจริงเพิ่ม",
           },
           {
             role: "user",
@@ -295,7 +295,7 @@ export async function translateToThai(input: TranslationInput): Promise<Translat
     const outputText = parseChatCompletionOutput(json);
     return normalizeTranslatedJson(JSON.parse(extractJsonObject(outputText)), input, originalLanguage, originalContent);
   } catch (error) {
-    console.error("[DailyHub Translation] AI translation failed; using Thai fallback", {
+    console.error("[NimbusDaily Translation] AI translation failed; using Thai fallback", {
       provider: config.provider,
       model: config.model,
       error: error instanceof Error ? error.message : String(error),
@@ -331,7 +331,7 @@ export function formatTelegramThaiMessage(input: {
     ? translation.translatedBullets.map((item) => `- ${item}`).join("\n")
     : "- ไม่มีรายละเอียดเพิ่มเติม";
 
-  const message = `🧠 DailyHub AI\nหัวข้อ: ${translation.translatedTitle}\n\nสรุปภาษาไทย:\n${bullets}\n\nรายละเอียดสำคัญ:\n${translation.translatedSummary}\n\nแหล่งที่มา:\n${translation.originalSource || taskName || "DailyHub"}\n\nภาษาเดิม: ${translation.originalLanguage}\nTask: ${taskName || "-"}${taskType ? ` (${taskType})` : ""}\nPriority: ${priorityScore ?? "-"}/100\nStatus: ${status || "-"}\nเวลาอัปเดต: ${translation.translatedAt}`;
+  const message = `🧠 NimbusDaily AI\nหัวข้อ: ${translation.translatedTitle}\n\nสรุปภาษาไทย:\n${bullets}\n\nรายละเอียดสำคัญ:\n${translation.translatedSummary}\n\nแหล่งที่มา:\n${translation.originalSource || taskName || "NimbusDaily"}\n\nภาษาเดิม: ${translation.originalLanguage}\nTask: ${taskName || "-"}${taskType ? ` (${taskType})` : ""}\nPriority: ${priorityScore ?? "-"}/100\nStatus: ${status || "-"}\nเวลาอัปเดต: ${translation.translatedAt}`;
 
   return message.length > MAX_TELEGRAM_LENGTH ? `${message.slice(0, MAX_TELEGRAM_LENGTH - 80)}\n...\nเปิด Dashboard เพื่อดูต้นฉบับเต็ม` : message;
 }

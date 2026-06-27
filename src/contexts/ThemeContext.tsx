@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("dailyhub_theme");
+      const saved = localStorage.getItem("nimbusdaily_theme");
       if (saved === "dark" || saved === "cream") setThemeState(saved);
     } catch {}
   }, []);
@@ -33,13 +33,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((nextTheme: AppTheme) => {
     setThemeState(nextTheme);
-    try { localStorage.setItem("dailyhub_theme", nextTheme); } catch {}
+    try { localStorage.setItem("nimbusdaily_theme", nextTheme); } catch {}
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const nextTheme = current === "dark" ? "cream" : "dark";
-      try { localStorage.setItem("dailyhub_theme", nextTheme); } catch {}
+      try { localStorage.setItem("nimbusdaily_theme", nextTheme); } catch {}
       return nextTheme;
     });
   }, []);

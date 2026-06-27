@@ -36,7 +36,7 @@ export async function extractArticleFromUrl(url: string): Promise<ExtractedArtic
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "DailyHubBot/1.0 (+https://dailyhub.local)",
+        "User-Agent": "NimbusDailyBot/1.0 (+https://nimbusdaily.local)",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });

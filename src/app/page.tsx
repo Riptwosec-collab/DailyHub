@@ -65,7 +65,7 @@ export default function HomePage() {
               DH
             </div>
             <div>
-              <p className="font-extrabold text-white">DailyHub</p>
+              <p className="font-extrabold text-white">NimbusDaily</p>
               <p className="text-xs text-slate-400">{text.tagline}</p>
             </div>
           </Link>
@@ -88,7 +88,7 @@ export default function HomePage() {
             <Badge tone="blue">{text.badges[1]}</Badge>
             <Badge tone="green">{text.badges[2]}</Badge>
           </div>
-          <h1 className="mt-6 max-w-4xl text-4xl font-extrabold leading-tight text-white sm:text-6xl">DailyHub</h1>
+          <h1 className="mt-6 max-w-4xl text-4xl font-extrabold leading-tight text-white sm:text-6xl">NimbusDaily</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">{text.description}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/dashboard">

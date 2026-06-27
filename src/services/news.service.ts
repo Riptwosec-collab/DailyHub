@@ -118,7 +118,7 @@ async function translateArticlesToThai(articles: NewsArticle[]): Promise<ThaiNew
         messages: [
           {
             role: "system",
-            content: "คุณคือระบบแปลและจัดหมวดข่าวของ Nimbus Daily ตอบกลับเป็น JSON array เท่านั้น ห้ามใช้ markdown และห้ามแต่งข้อเท็จจริงเพิ่ม",
+            content: "คุณคือระบบแปลและจัดหมวดข่าวของ NimbusDaily ตอบกลับเป็น JSON array เท่านั้น ห้ามใช้ markdown และห้ามแต่งข้อเท็จจริงเพิ่ม",
           },
           {
             role: "user",
@@ -159,7 +159,7 @@ async function translateArticlesToThai(articles: NewsArticle[]): Promise<ThaiNew
       action: item.action || fallback[index].action,
     }));
   } catch (error) {
-    console.error("[Nimbus Daily News] Thai news translation fallback", error instanceof Error ? error.message : String(error));
+    console.error("[NimbusDaily News] Thai news translation fallback", error instanceof Error ? error.message : String(error));
     return fallbackThaiArticles(articles);
   }
 }
@@ -172,9 +172,9 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       source: "Nimbus Research Desk",
       title: "AI automation ถูกนำไปใช้กับงานประจำวันมากขึ้น",
       description: "องค์กรเริ่มใช้ AI ช่วยสรุปข้อมูล ตรวจอีเมล จัดลำดับความสำคัญ และสร้าง workflow อัตโนมัติ",
-      fullArticle: "กระแส AI automation กำลังขยับจากการทดลองใช้งานไปสู่การใช้งานจริงในงานประจำวันมากขึ้น โดยเฉพาะงานที่ต้องรวบรวมข้อมูลจากหลายแหล่ง เช่น ข่าว อีเมล สภาพอากาศ และข้อมูลสินค้า ระบบแบบ Nimbus Daily จึงควรเก็บข้อมูลเต็มไว้บนเว็บ แล้วส่ง Telegram เพียงสรุปสั้น เพื่อให้ผู้ใช้ไม่ถูกท่วมด้วยข้อความยาวเกินไป แต่ยังสามารถกลับมาอ่านรายละเอียดเต็มได้ทุกเมื่อ",
+      fullArticle: "กระแส AI automation กำลังขยับจากการทดลองใช้งานไปสู่การใช้งานจริงในงานประจำวันมากขึ้น โดยเฉพาะงานที่ต้องรวบรวมข้อมูลจากหลายแหล่ง เช่น ข่าว อีเมล สภาพอากาศ และข้อมูลสินค้า ระบบแบบ NimbusDaily จึงควรเก็บข้อมูลเต็มไว้บนเว็บ แล้วส่ง Telegram เพียงสรุปสั้น เพื่อให้ผู้ใช้ไม่ถูกท่วมด้วยข้อความยาวเกินไป แต่ยังสามารถกลับมาอ่านรายละเอียดเต็มได้ทุกเมื่อ",
       keyPoints: ["AI ถูกใช้เพื่อสรุปข้อมูลหลายแหล่ง", "Telegram ควรส่งสรุปสั้น", "ข้อมูลเต็มควรอยู่ใน Data Library"],
-      whyItMatters: "ทำให้ Nimbus Daily เป็นทั้งระบบแจ้งเตือนและคลังข้อมูลสำหรับอ่านต่อ",
+      whyItMatters: "ทำให้ NimbusDaily เป็นทั้งระบบแจ้งเตือนและคลังข้อมูลสำหรับอ่านต่อ",
       readTime: "3 นาที",
       category: "AI / Automation",
       tags: ["AI", "Automation", "Workflow"],
@@ -202,7 +202,7 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       source: "Nimbus Research Desk",
       title: "Cybersecurity monitoring ควรถูกย่อยเป็นภาษาคนอ่านง่าย",
       description: "ข้อมูลความปลอดภัยมักเป็น log ยาว ๆ แต่ผู้ใช้ต้องการรู้ว่าเกิดอะไร สำคัญแค่ไหน และต้องทำอะไรต่อ",
-      fullArticle: "ระบบแจ้งเตือนด้านความปลอดภัยที่ดีไม่ควรส่ง raw log ทั้งหมดไปยัง Telegram เพราะจะอ่านยากและทำให้ผู้ใช้พลาดประเด็นสำคัญ Nimbus Daily ควรย่อยข้อมูลเป็น 4 ส่วน คือ เหตุการณ์, ความเสี่ยง, ผลกระทบ และสิ่งที่ต้องทำต่อ ส่วน log เต็มให้เก็บไว้ใน Data Library เพื่อค้นหาและตรวจย้อนหลังได้",
+      fullArticle: "ระบบแจ้งเตือนด้านความปลอดภัยที่ดีไม่ควรส่ง raw log ทั้งหมดไปยัง Telegram เพราะจะอ่านยากและทำให้ผู้ใช้พลาดประเด็นสำคัญ NimbusDaily ควรย่อยข้อมูลเป็น 4 ส่วน คือ เหตุการณ์, ความเสี่ยง, ผลกระทบ และสิ่งที่ต้องทำต่อ ส่วน log เต็มให้เก็บไว้ใน Data Library เพื่อค้นหาและตรวจย้อนหลังได้",
       keyPoints: ["แยก severity ให้ชัด", "อธิบาย impact เป็นภาษาคน", "เก็บ log เต็มไว้บนเว็บ"],
       whyItMatters: "ช่วยให้การแจ้งเตือนอีเมลและ security alert ใช้งานจริงมากขึ้น",
       readTime: "3 นาที",
@@ -249,7 +249,7 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       description: "การเติบโตของ AI ทำให้ข่าวเรื่อง GPU, power, cooling, network และ cloud region น่าสนใจมากขึ้น",
       fullArticle: "AI infrastructure ไม่ได้มีแค่โมเดล AI แต่รวมถึง data center, GPU cluster, network fabric, storage, cooling และ power capacity ข่าวกลุ่มนี้เหมาะกับผู้เรียนสาย Network/System เพราะช่วยเชื่อมโยงความรู้พื้นฐานกับงานจริง เช่น spine-leaf, high bandwidth, latency, observability และ capacity planning",
       keyPoints: ["AI ต้องใช้ infrastructure ขนาดใหญ่", "Network และ power เป็นข้อจำกัดสำคัญ", "เหมาะกับสาย Network Engineer"],
-      whyItMatters: "ช่วยให้ Nimbus Daily เป็นแหล่งอ่านข่าวที่ต่อยอดกับเส้นทาง Network Engineer ได้",
+      whyItMatters: "ช่วยให้ NimbusDaily เป็นแหล่งอ่านข่าวที่ต่อยอดกับเส้นทาง Network Engineer ได้",
       readTime: "4 นาที",
       category: "AI Infrastructure",
       tags: ["AI Infra", "Data Center", "Network"],
@@ -262,7 +262,7 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       source: "Nimbus Research Desk",
       title: "Open source tools ช่วยลดต้นทุนโปรเจกต์ automation",
       description: "โปรเจกต์ที่ใช้ scheduler, notification และ data library สามารถใช้ open source stack เพื่อลด dependency และค่าใช้จ่ายได้",
-      fullArticle: "สำหรับระบบอย่าง Nimbus Daily การเลือกใช้ open source tools เช่น queue, cron runner, database dashboard, log viewer และ observability จะช่วยลดต้นทุนและทำให้ย้าย hosting ได้ง่ายขึ้น แนวทางที่ดีคือแยก core logic ออกจาก hosting provider เพื่อให้สามารถย้ายจาก Vercel ไป Cloudflare, Render หรือ GitHub Actions ได้โดยไม่ต้องเขียนใหม่ทั้งหมด",
+      fullArticle: "สำหรับระบบอย่าง NimbusDaily การเลือกใช้ open source tools เช่น queue, cron runner, database dashboard, log viewer และ observability จะช่วยลดต้นทุนและทำให้ย้าย hosting ได้ง่ายขึ้น แนวทางที่ดีคือแยก core logic ออกจาก hosting provider เพื่อให้สามารถย้ายจาก Vercel ไป Cloudflare, Render หรือ GitHub Actions ได้โดยไม่ต้องเขียนใหม่ทั้งหมด",
       keyPoints: ["แยก core service ออกจาก provider", "ลด lock-in", "ทำให้ย้าย deploy ง่ายขึ้น"],
       whyItMatters: "ช่วยแก้ปัญหา free quota และทำให้ระบบโตต่อได้",
       readTime: "3 นาที",
@@ -307,7 +307,7 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       source: "Nimbus Research Desk",
       title: "ระบบแจ้งเตือนที่ดีควรมี Priority Score และเหตุผลประกอบ",
       description: "แค่บอกว่ามีข่าวใหม่ยังไม่พอ ควรบอกว่าทำไมข่าวนี้สำคัญและควรทำอะไรต่อ",
-      fullArticle: "Priority Score ช่วยให้ผู้ใช้จัดลำดับสิ่งที่ต้องอ่านหรือทำต่อได้ดีขึ้น แต่คะแนนอย่างเดียวไม่พอ ควรมีเหตุผลประกอบ เช่น ผลกระทบ ความเร่งด่วน ความเกี่ยวข้องกับความสนใจ และ action ที่แนะนำ ระบบอย่าง Nimbus Daily ควรแสดง score พร้อม whyItMatters และ action ในทั้ง Telegram และ Data Library",
+      fullArticle: "Priority Score ช่วยให้ผู้ใช้จัดลำดับสิ่งที่ต้องอ่านหรือทำต่อได้ดีขึ้น แต่คะแนนอย่างเดียวไม่พอ ควรมีเหตุผลประกอบ เช่น ผลกระทบ ความเร่งด่วน ความเกี่ยวข้องกับความสนใจ และ action ที่แนะนำ ระบบอย่าง NimbusDaily ควรแสดง score พร้อม whyItMatters และ action ในทั้ง Telegram และ Data Library",
       keyPoints: ["มี score", "มีเหตุผล", "มี action ต่อ"],
       whyItMatters: "ช่วยให้ระบบไม่ใช่แค่ feed ข่าว แต่เป็นผู้ช่วยตัดสินใจ",
       readTime: "3 นาที",
@@ -398,7 +398,7 @@ async function fetchNewsApiArticles(apiKey: string): Promise<NewsArticle[]> {
 
     if (!response.ok) {
       const text = await response.text();
-      console.error(`[Nimbus Daily News] News API failed ${response.status}: ${text.slice(0, 220)}`);
+      console.error(`[NimbusDaily News] News API failed ${response.status}: ${text.slice(0, 220)}`);
       continue;
     }
 
@@ -433,7 +433,7 @@ async function fetchHackerNewsArticles(): Promise<NewsArticle[]> {
       content: `Hacker News discussion: ${hit.title || hit.story_title || "Untitled"}`,
     }));
   } catch (error) {
-    console.error("[Nimbus Daily News] HN source failed", error instanceof Error ? error.message : String(error));
+    console.error("[NimbusDaily News] HN source failed", error instanceof Error ? error.message : String(error));
     return [];
   }
 }

@@ -1,4 +1,4 @@
-# DailyHub AI - Phase 4: Create Task Form
+# NimbusDaily AI - Phase 4: Create Task Form
 
 Phase 4 เพิ่มหน้า `/scheduled-tasks/create` ให้เป็นฟอร์มสร้าง Scheduled Task แบบ mock UI พร้อม validation, payload preview และ mock save result
 

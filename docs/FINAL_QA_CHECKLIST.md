@@ -1,4 +1,4 @@
-# DailyHub AI Final QA Checklist
+# NimbusDaily AI Final QA Checklist
 
 ## Local checks
 

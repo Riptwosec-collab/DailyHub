@@ -31,7 +31,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             Menu
           </button>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase text-cyan-300">DailyHub</p>
+            <p className="text-[11px] font-bold uppercase text-cyan-300">NimbusDaily</p>
             <h1 className="truncate text-lg font-extrabold text-white sm:text-2xl">{t("topbar_subtitle")}</h1>
           </div>
         </div>

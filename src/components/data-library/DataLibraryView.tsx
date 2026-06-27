@@ -119,7 +119,7 @@ function enrichProduct(text: string, index: number): RichRecord {
       source: "Global Innovation Product Radar",
       summary: "จอ e-ink สำหรับแสดงตารางงาน สภาพอากาศ habit และ dashboard ส่วนตัวแบบไม่รบกวนสายตา",
       whyInteresting: "เหมาะกับโต๊ะทำงานหรือห้องนอน เพราะอ่านง่าย ประหยัดไฟ และช่วยลดการเปิดมือถือบ่อย",
-      useCase: "daily planner, calendar, weather, task list, habit tracker, DailyHub mini dashboard",
+      useCase: "daily planner, calendar, weather, task list, habit tracker, NimbusDaily mini dashboard",
       audience: "สาย productivity, นักเรียน, คนทำงาน, smart home user",
       whatToCheck: ["รองรับภาษาไทย", "เชื่อม Google Calendar ได้ไหม", "แบตเตอรี่", "API", "refresh rate"],
       caution: "บางรุ่นเป็น niche หรือ pre-order ต้องเช็กรีวิวจริงและความน่าเชื่อถือของผู้ขาย",
@@ -235,7 +235,7 @@ function runToLibraryItem(run: TaskRun, task?: ScheduledTask): LibraryViewItem {
   const text = `${task?.name ?? ""} ${task?.type ?? ""} ${run.gptOutput.title} ${run.gptOutput.summary} ${run.translatedContent ?? ""} ${JSON.stringify(rawInput)}`;
   const topic = topicFromText(text);
   const topicMeta = TOPICS.find((item) => item.key === topic);
-  const title = topic === "market" ? "US Stock News" : run.translation?.translatedTitle || run.gptOutput.title || task?.name || "DailyHub Result";
+  const title = topic === "market" ? "US Stock News" : run.translation?.translatedTitle || run.gptOutput.title || task?.name || "NimbusDaily Result";
   const summary = run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary || run.originalContent || "ยังไม่มีสรุป";
   const details = itemDetailLines(items).slice(0, 18);
   const fullText = fullArticleText(items);
@@ -249,7 +249,7 @@ function runToLibraryItem(run: TaskRun, task?: ScheduledTask): LibraryViewItem {
     summaryTh: summary,
     summaryEn: run.gptOutput.summary || summary,
     source: task?.dataSources?.join(", ") || "Task Run",
-    category: task?.type || topicMeta?.en || "DailyHub",
+    category: task?.type || topicMeta?.en || "NimbusDaily",
     priority: run.priorityScore,
     readTime: details.length > 8 ? "5-8 นาที" : "3-5 นาที",
     tags: [topicMeta?.en, task?.type, run.status, run.telegramStatus].filter(Boolean) as string[],

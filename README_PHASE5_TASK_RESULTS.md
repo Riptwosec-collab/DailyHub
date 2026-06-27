@@ -1,6 +1,6 @@
-# DailyHub AI - Phase 5: Task Results Page
+# NimbusDaily AI - Phase 5: Task Results Page
 
-Phase 5 adds full Task Results UI for DailyHub AI.
+Phase 5 adds full Task Results UI for NimbusDaily AI.
 
 ## Pages
 
@@ -38,7 +38,7 @@ src/components/results/ErrorLogCard.tsx
 
 ## How to use
 
-Copy the `src` folder into the existing DailyHub AI project, then run:
+Copy the `src` folder into the existing NimbusDaily AI project, then run:
 
 ```bash
 npm install

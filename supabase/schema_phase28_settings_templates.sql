@@ -1,4 +1,4 @@
--- DailyHub AI Phase 28: Persist Settings + Task Templates in Supabase
+-- NimbusDaily AI Phase 28: Persist Settings + Task Templates in Supabase
 -- Run this in Supabase Dashboard > SQL Editor after the Phase 12-16 schema.
 
 create extension if not exists pgcrypto;

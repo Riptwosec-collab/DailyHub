@@ -1,4 +1,4 @@
--- DailyHub AI Phase 12-16 Supabase schema
+-- NimbusDaily AI Phase 12-16 Supabase schema
 -- Run this in Supabase Dashboard > SQL Editor.
 
 create extension if not exists pgcrypto;

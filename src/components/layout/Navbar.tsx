@@ -24,7 +24,7 @@ export function Navbar() {
             AI
           </div>
           <div>
-            <p className="font-black leading-tight text-white">DailyHub</p>
+            <p className="font-black leading-tight text-white">NimbusDaily</p>
             <p className="text-xs text-slate-400">{lang === "th" ? "ระบบข่าวและงานอัตโนมัติ" : "News and automation OS"}</p>
           </div>
         </Link>

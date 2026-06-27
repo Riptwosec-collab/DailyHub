@@ -56,7 +56,7 @@ const FILTERS: Array<{ key: FilterKey; emoji: string; label: Localized; tone: Ba
 const LABELS: Record<Lang, Record<string, string>> = {
   th: {
     overview: "ภาพรวมระบบ",
-    overviewTitle: "สถานะ DailyHub วันนี้",
+    overviewTitle: "สถานะ NimbusDaily วันนี้",
     todayRuns: "รันวันนี้",
     telegramSent: "Telegram ส่งแล้ว",
     failedTasks: "งานมีปัญหา",
@@ -100,7 +100,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
   },
   en: {
     overview: "System Overview",
-    overviewTitle: "DailyHub status today",
+    overviewTitle: "NimbusDaily status today",
     todayRuns: "Runs Today",
     telegramSent: "Telegram Sent",
     failedTasks: "Failed Tasks",
@@ -455,7 +455,7 @@ export function DashboardControlView() {
           <div className="absolute -right-28 -top-28 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="absolute -bottom-32 left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
           <div className="relative">
-            <Badge tone="purple">DailyHub</Badge>
+            <Badge tone="purple">NimbusDaily</Badge>
             <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">{t("dashboard_title")}</h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">{t("dashboard_description")}</p>
             <div className="mt-6 flex flex-wrap gap-2">
