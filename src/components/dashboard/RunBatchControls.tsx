@@ -9,25 +9,46 @@ import { useLanguage } from "@/contexts/LanguageContext";
 type TaskSeed = { key: string; labelTh: string; labelEn: string; emoji: string; name: string; type: ScheduledTask["type"] };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  { key: "daily-brief", labelTh: "Morning Daily Brief", labelEn: "Morning Daily Brief", emoji: "📰", name: "Morning Daily Brief", type: "Daily Brief" },
-  { key: "global-product-radar", labelTh: "สินค้าเทคโนโลยี/นวัตกรรมทั่วโลก", labelEn: "Global Innovation Product Radar", emoji: "🌍", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor" },
-  { key: "us-stock-news", labelTh: "US Stock News", labelEn: "US Stock News", emoji: "📈", name: "US Stock News", type: "US Stock News" },
-  { key: "email-monitor", labelTh: "สรุปทุกเมลรายวัน", labelEn: "Daily Email Digest", emoji: "📧", name: "Daily Email Digest", type: "Email Monitor" },
-  { key: "concert-alerts", labelTh: "คอนเสิร์ตในไทย", labelEn: "Thailand Concert Alerts", emoji: "🎤", name: "Thailand Concert Alerts", type: "Concert Alerts" },
-  { key: "football-recap", labelTh: "ข่าวบอลไทย/บอลโลก/ลีกใหญ่", labelEn: "Football Recap Nightly", emoji: "⚽", name: "Football Recap Nightly", type: "World Cup Recap" },
-  { key: "lifestyle-ideas", labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์", labelEn: "Lifestyle Ideas", emoji: "💡", name: "Lifestyle Ideas", type: "Lifestyle Ideas" },
+  { key: "daily-brief", labelTh: "Daily Brief / ข่าวประจำวัน", labelEn: "Daily Brief / News Hub", emoji: "📰", name: "Daily Brief / ข่าวประจำวัน", type: "Daily Brief" },
+  { key: "thai-news", labelTh: "ข่าวไทยวันนี้", labelEn: "Thailand News Today", emoji: "📰", name: "ข่าวไทยวันนี้", type: "Daily Brief" },
+  { key: "world-news", labelTh: "ข่าวต่างประเทศ", labelEn: "World News", emoji: "🌍", name: "ข่าวต่างประเทศ", type: "Daily Brief" },
+  { key: "ai-tech", labelTh: "AI / Tech Update", labelEn: "AI / Tech Update", emoji: "🤖", name: "AI / Tech Update", type: "Daily Brief" },
+  { key: "cybersecurity", labelTh: "Cybersecurity Alert", labelEn: "Cybersecurity Alert", emoji: "🛡️", name: "Cybersecurity Alert", type: "Daily Brief" },
+  { key: "network-cloud", labelTh: "Network / Cloud News", labelEn: "Network / Cloud News", emoji: "🌐", name: "Network / Cloud News", type: "Daily Brief" },
+  { key: "market-crypto", labelTh: "หุ้น / ตลาด / Crypto", labelEn: "Stocks / Markets / Crypto", emoji: "📈", name: "หุ้น / ตลาด / Crypto", type: "US Stock News" },
+  { key: "weather-pm25", labelTh: "อากาศ / PM2.5", labelEn: "Weather / PM2.5", emoji: "🌦️", name: "อากาศ / PM2.5", type: "Daily Brief" },
+  { key: "traffic", labelTh: "เดินทาง / จราจร", labelEn: "Commute / Traffic", emoji: "🚗", name: "เดินทาง / จราจร", type: "Daily Brief" },
+  { key: "today-tasks", labelTh: "งานวันนี้", labelEn: "Today Tasks", emoji: "📅", name: "งานวันนี้", type: "Daily Brief" },
+  { key: "important-email", labelTh: "อีเมลสำคัญ", labelEn: "Important Email", emoji: "📧", name: "อีเมลสำคัญ", type: "Email Monitor" },
+  { key: "sports-football", labelTh: "กีฬา / ฟุตบอล", labelEn: "Sports / Football", emoji: "⚽", name: "กีฬา / ฟุตบอล", type: "World Cup Recap" },
+  { key: "events-products", labelTh: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", labelEn: "Events / Concerts / New Products", emoji: "🎤", name: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", type: "Concert Alerts" },
+  { key: "deals-promos", labelTh: "ดีล / โปรโมชัน", labelEn: "Deals / Promotions", emoji: "🛒", name: "ดีล / โปรโมชัน", type: "Sale Monitor" },
+  { key: "lifestyle", labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์", labelEn: "Weekend Ideas / Lifestyle", emoji: "💡", name: "ไอเดียวันหยุด / ไลฟ์สไตล์", type: "Lifestyle Ideas" },
 ];
 
 const FIXED_BATCHES = [
-  { id: "one" as const, titleTh: "ปุ่มแรก", titleEn: "First button", subtitleTh: "Morning Daily Brief / Global Innovation Product Radar / US Stock News / Daily Email Digest", subtitleEn: "Morning Daily Brief / Global Innovation Product Radar / US Stock News / Daily Email Digest", keys: ["daily-brief", "global-product-radar", "us-stock-news", "email-monitor"] },
-  { id: "two" as const, titleTh: "ปุ่มสอง", titleEn: "Second button", subtitleTh: "Thailand Concert Alerts / Football Recap Nightly / Lifestyle Ideas", subtitleEn: "Thailand Concert Alerts / Football Recap Nightly / Lifestyle Ideas", keys: ["concert-alerts", "football-recap", "lifestyle-ideas"] },
+  { id: "one" as const, titleTh: "ปุ่มแรก", titleEn: "First button", subtitleTh: "Daily Brief / ข่าวไทย / ข่าวต่างประเทศ / AI Tech", subtitleEn: "Daily Brief / Thailand / World / AI Tech", keys: ["daily-brief", "thai-news", "world-news", "ai-tech"] },
+  { id: "two" as const, titleTh: "ปุ่มสอง", titleEn: "Second button", subtitleTh: "Cybersecurity / Network Cloud / หุ้น Crypto / อากาศ PM2.5", subtitleEn: "Cybersecurity / Network Cloud / Markets Crypto / Weather PM2.5", keys: ["cybersecurity", "network-cloud", "market-crypto", "weather-pm25"] },
+  { id: "three" as const, titleTh: "ปุ่มสาม", titleEn: "Third button", subtitleTh: "จราจร / งานวันนี้ / อีเมลสำคัญ / กีฬา", subtitleEn: "Traffic / Today Tasks / Important Email / Sports", keys: ["traffic", "today-tasks", "important-email", "sports-football"] },
+  { id: "four" as const, titleTh: "ปุ่มสี่", titleEn: "Fourth button", subtitleTh: "อีเวนต์ คอนเสิร์ต สินค้าใหม่ / ดีล / ไลฟ์สไตล์", subtitleEn: "Events Concerts Products / Deals / Lifestyle", keys: ["events-products", "deals-promos", "lifestyle"] },
 ];
 
 function getBatchSeeds(keys: string[]) { return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[]; }
 function isLegacyWeekendTask(task: ScheduledTask) { return task.type === "Weekend Ideas" || task.name === "Weekend Ideas Generator" || task.name === "Weekend Ideas" || task.dataSources.includes("Weekend Ideas"); }
-function matchesTask(task: ScheduledTask, seed: TaskSeed) { return task.type === seed.type || task.name.toLowerCase() === seed.name.toLowerCase() || (seed.key === "us-stock-news" && isLegacyWeekendTask(task)); }
-function displayLine(seed: TaskSeed, index: number) { return `${index + 1}. ${seed.emoji} ${seed.labelEn}`; }
-function runUrl(batch: "one" | "two" | "all") { return `/api/scheduled-tasks/run-batch?batch=${batch}&redirect=/dashboard`; }
+function matchesTask(task: ScheduledTask, seed: TaskSeed) {
+  const name = task.name.toLowerCase();
+  if (name === seed.name.toLowerCase()) return true;
+  if (seed.key === "daily-brief") return /morning daily brief|daily brief \/ ข่าวประจำวัน/i.test(task.name);
+  if (seed.key === "market-crypto") return task.type === "US Stock News" || name === "us stock news";
+  if (seed.key === "important-email") return task.type === "Email Monitor" && /email|อีเมล/i.test(task.name);
+  if (seed.key === "sports-football") return task.type === "World Cup Recap" || /football|ฟุตบอล|กีฬา/i.test(task.name);
+  if (seed.key === "events-products") return task.type === "Concert Alerts" || /concert|คอนเสิร์ต|อีเวนต์/i.test(task.name);
+  if (seed.key === "deals-promos") return task.type === "Sale Monitor" && /deal|promo|โปร|สินค้า/i.test(task.name);
+  if (seed.key === "lifestyle") return task.type === "Lifestyle Ideas" || isLegacyWeekendTask(task);
+  return false;
+}
+function displayLine(seed: TaskSeed, index: number, isTh: boolean) { return `${index + 1}. ${seed.emoji} ${isTh ? seed.labelTh : seed.labelEn}`; }
+function runUrl(batch: "one" | "two" | "three" | "four" | "all") { return `/api/scheduled-tasks/run-batch?batch=${batch}&redirect=/dashboard`; }
 
 function RunButton({ href, label, primary = false }: { href: string; label: string; primary?: boolean }) {
   return <a className={primary ? "inline-flex min-h-12 min-w-[11rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98]" : "inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/50 hover:bg-cyan-300/20 active:scale-[0.98]"} href={href}>{label}</a>;
@@ -65,10 +86,10 @@ export function RunBatchControls() {
             const missingCount = batch.seeds.length - batch.foundCount;
             const batchTitle = isTh ? batch.titleTh : batch.titleEn;
             const buttonLabel = `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`;
-            return <a key={batch.id} aria-label={buttonLabel} className="block cursor-pointer rounded-3xl border border-white/10 bg-slate-950/40 p-4 text-inherit shadow-2xl shadow-black/20 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08]" href={runUrl(batch.id)}><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batchTitle}</p><h3 className="mt-1 text-lg font-black text-white">{isTh ? batch.subtitleTh : batch.subtitleEn}</h3><p className="mt-1 text-xs text-slate-400">{isTh ? `พร้อม ${batch.foundCount}/${batch.seeds.length} หัวข้อ${missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}` : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}</p></div><span className="inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20">{buttonLabel}</span></div><div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">{batch.seeds.map((seed, index) => <p key={seed.key}>{displayLine(seed, index)}</p>)}</div><p className="mt-4 text-xs font-bold text-cyan-200">{isTh ? "กดตรงไหนในการ์ดนี้ก็รันได้" : "Click anywhere on this card to run"}</p></a>;
+            return <a key={batch.id} aria-label={buttonLabel} className="block cursor-pointer rounded-3xl border border-white/10 bg-slate-950/40 p-4 text-inherit shadow-2xl shadow-black/20 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08]" href={runUrl(batch.id)}><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batchTitle}</p><h3 className="mt-1 text-lg font-black text-white">{isTh ? batch.subtitleTh : batch.subtitleEn}</h3><p className="mt-1 text-xs text-slate-400">{isTh ? `พร้อม ${batch.foundCount}/${batch.seeds.length} หัวข้อ${missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}` : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}</p></div><span className="inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20">{buttonLabel}</span></div><div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">{batch.seeds.map((seed, index) => <p key={seed.key}>{displayLine(seed, index, isTh)}</p>)}</div><p className="mt-4 text-xs font-bold text-cyan-200">{isTh ? "กดตรงไหนในการ์ดนี้ก็รันได้" : "Click anywhere on this card to run"}</p></a>;
           })}
         </div>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">{message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}</div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">{message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/15` : `Current tasks in system ${readyCount}/15`}</div>
       </div>
     </section>
   );

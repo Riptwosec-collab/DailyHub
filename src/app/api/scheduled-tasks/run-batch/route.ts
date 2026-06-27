@@ -10,39 +10,72 @@ import type { TaskRun } from "@/types/task-run";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type BatchId = "one" | "two" | "all";
+type BatchId = "one" | "two" | "three" | "four" | "all";
 type TaskSeed = { key: string; label: string; name: string; type: ScheduledTask["type"]; scheduleType: ScheduledTask["scheduleType"]; cronExpression: string; time: string | null; dataSources: string[]; gptActions: string[]; minPriorityScore: number };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  { key: "daily-brief", label: "Morning Daily Brief", name: "Morning Daily Brief", type: "Daily Brief", scheduleType: "Daily", cronExpression: "0 8 * * *", time: "08:00", dataSources: ["NewsData.io", "Weather", "Market", "Email", "Scheduler"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
-  { key: "global-product-radar", label: "Global Innovation Product Radar", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor", scheduleType: "Hourly", cronExpression: "0 * * * *", time: null, dataSources: ["Global Innovation Product Radar"], gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"], minPriorityScore: 70 },
-  { key: "us-stock-news", label: "US Stock News", name: "US Stock News", type: "US Stock News", scheduleType: "Daily", cronExpression: "0 7 * * 1-5", time: "07:00", dataSources: ["US Stock News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
-  { key: "email-digest", label: "Daily Email Digest", name: "Daily Email Digest", type: "Email Monitor", scheduleType: "Daily", cronExpression: "0 18 * * *", time: "18:00", dataSources: ["Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 50 },
-  { key: "concert-alerts", label: "Thailand Concert Alerts", name: "Thailand Concert Alerts", type: "Concert Alerts", scheduleType: "Daily", cronExpression: "0 20 * * *", time: "20:00", dataSources: ["Concert API Thailand Only"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 75 },
-  { key: "football-recap", label: "Football Recap Nightly", name: "Football Recap Nightly", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
-  { key: "lifestyle-ideas", label: "Lifestyle Ideas", name: "Lifestyle Ideas", type: "Lifestyle Ideas", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["Lifestyle", "Restaurants", "Cafe", "Weekend Ideas"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "daily-brief", label: "Daily Brief / ข่าวประจำวัน", name: "Daily Brief / ข่าวประจำวัน", type: "Daily Brief", scheduleType: "Daily", cronExpression: "0 8 * * *", time: "08:00", dataSources: ["NewsData.io", "Weather API", "Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
+  { key: "thai-news", label: "ข่าวไทยวันนี้", name: "ข่าวไทยวันนี้", type: "Daily Brief", scheduleType: "Daily", cronExpression: "5 8 * * *", time: "08:05", dataSources: ["NewsData.io", "Thailand News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 65 },
+  { key: "world-news", label: "ข่าวต่างประเทศ", name: "ข่าวต่างประเทศ", type: "Daily Brief", scheduleType: "Daily", cronExpression: "10 8 * * *", time: "08:10", dataSources: ["World News", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 65 },
+  { key: "ai-tech", label: "AI / Tech Update", name: "AI / Tech Update", type: "Daily Brief", scheduleType: "Daily", cronExpression: "15 8 * * *", time: "08:15", dataSources: ["NewsData.io", "AI Tech News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
+  { key: "cybersecurity", label: "Cybersecurity Alert", name: "Cybersecurity Alert", type: "Daily Brief", scheduleType: "Daily", cronExpression: "20 8 * * *", time: "08:20", dataSources: ["NewsData.io", "Cybersecurity News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 80 },
+  { key: "network-cloud", label: "Network / Cloud News", name: "Network / Cloud News", type: "Daily Brief", scheduleType: "Daily", cronExpression: "25 8 * * *", time: "08:25", dataSources: ["NewsData.io", "Network Cloud News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
+  { key: "market-crypto", label: "หุ้น / ตลาด / Crypto", name: "หุ้น / ตลาด / Crypto", type: "US Stock News", scheduleType: "Daily", cronExpression: "0 7 * * 1-5", time: "07:00", dataSources: ["US Stock News", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
+  { key: "weather-pm25", label: "อากาศ / PM2.5", name: "อากาศ / PM2.5", type: "Daily Brief", scheduleType: "Daily", cronExpression: "30 7 * * *", time: "07:30", dataSources: ["Weather API", "PM2.5"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "traffic", label: "เดินทาง / จราจร", name: "เดินทาง / จราจร", type: "Daily Brief", scheduleType: "Daily", cronExpression: "35 7 * * *", time: "07:35", dataSources: ["NewsData.io", "Traffic Alerts"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "today-tasks", label: "งานวันนี้", name: "งานวันนี้", type: "Daily Brief", scheduleType: "Daily", cronExpression: "40 7 * * *", time: "07:40", dataSources: ["Scheduler", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 50 },
+  { key: "important-email", label: "อีเมลสำคัญ", name: "อีเมลสำคัญ", type: "Email Monitor", scheduleType: "Hourly", cronExpression: "*/30 * * * *", time: null, dataSources: ["Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
+  { key: "sports-football", label: "กีฬา / ฟุตบอล", name: "กีฬา / ฟุตบอล", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
+  { key: "events-products", label: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", name: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", type: "Concert Alerts", scheduleType: "Daily", cronExpression: "0 20 * * *", time: "20:00", dataSources: ["Concert API Thailand Only", "Global Innovation Product Radar"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 75 },
+  { key: "deals-promos", label: "ดีล / โปรโมชัน", name: "ดีล / โปรโมชัน", type: "Sale Monitor", scheduleType: "Daily", cronExpression: "0 10 * * *", time: "10:00", dataSources: ["Product Prices", "Global Innovation Product Radar"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "lifestyle", label: "ไอเดียวันหยุด / ไลฟ์สไตล์", name: "ไอเดียวันหยุด / ไลฟ์สไตล์", type: "Lifestyle Ideas", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["Lifestyle", "Restaurants", "Cafe", "Weekend Ideas"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
 ];
 
-const BATCH_ONE_KEYS = ["daily-brief", "global-product-radar", "us-stock-news", "email-digest"];
-const BATCH_TWO_KEYS = ["concert-alerts", "football-recap", "lifestyle-ideas"];
+const BATCH_ONE_KEYS = ["daily-brief", "thai-news", "world-news", "ai-tech"];
+const BATCH_TWO_KEYS = ["cybersecurity", "network-cloud", "market-crypto", "weather-pm25"];
+const BATCH_THREE_KEYS = ["traffic", "today-tasks", "important-email", "sports-football"];
+const BATCH_FOUR_KEYS = ["events-products", "deals-promos", "lifestyle"];
 
-function getKeys(batch: BatchId) { if (batch === "one") return BATCH_ONE_KEYS; if (batch === "two") return BATCH_TWO_KEYS; return [...BATCH_ONE_KEYS, ...BATCH_TWO_KEYS]; }
+function getKeys(batch: BatchId) {
+  if (batch === "one") return BATCH_ONE_KEYS;
+  if (batch === "two") return BATCH_TWO_KEYS;
+  if (batch === "three") return BATCH_THREE_KEYS;
+  if (batch === "four") return BATCH_FOUR_KEYS;
+  return [...BATCH_ONE_KEYS, ...BATCH_TWO_KEYS, ...BATCH_THREE_KEYS, ...BATCH_FOUR_KEYS];
+}
 function getSeeds(batch: BatchId) { const keys = new Set(getKeys(batch)); return DEFAULT_TASKS.filter((task) => keys.has(task.key)); }
 function isLegacyWeekendTask(task: ScheduledTask) { return task.type === "Weekend Ideas" || task.name === "Weekend Ideas Generator" || task.name === "Weekend Ideas" || task.dataSources.includes("Weekend Ideas"); }
-function matchesTask(task: ScheduledTask, seed: TaskSeed) { return task.type === seed.type || task.name.toLowerCase() === seed.name.toLowerCase() || (seed.key === "us-stock-news" && isLegacyWeekendTask(task)); }
+function matchesTask(task: ScheduledTask, seed: TaskSeed) {
+  const name = task.name.toLowerCase();
+  if (name === seed.name.toLowerCase()) return true;
+  if (seed.key === "daily-brief") return /morning daily brief|daily brief \/ ข่าวประจำวัน/i.test(task.name);
+  if (seed.key === "market-crypto") return task.type === "US Stock News" || name === "us stock news";
+  if (seed.key === "important-email") return task.type === "Email Monitor" && /email|อีเมล/i.test(task.name);
+  if (seed.key === "sports-football") return task.type === "World Cup Recap" || /football|ฟุตบอล|กีฬา/i.test(task.name);
+  if (seed.key === "events-products") return task.type === "Concert Alerts" || /concert|คอนเสิร์ต|อีเวนต์/i.test(task.name);
+  if (seed.key === "deals-promos") return task.type === "Sale Monitor" && /deal|promo|โปร|สินค้า/i.test(task.name);
+  if (seed.key === "lifestyle") return task.type === "Lifestyle Ideas" || isLegacyWeekendTask(task);
+  return false;
+}
 function isSent(status?: string | null) { return status === "sent" || Boolean(status?.startsWith("mock_sent")); }
-function toBatchId(value: unknown): BatchId { return value === "two" ? "two" : value === "all" ? "all" : "one"; }
+function toBatchId(value: unknown): BatchId {
+  if (value === "two" || value === "three" || value === "four" || value === "all") return value;
+  return "one";
+}
 function safeRedirectPath(value: unknown) { if (typeof value !== "string" || !value.startsWith("/")) return null; if (value.startsWith("//")) return null; return value; }
 
 async function parsePostBatchRequest(request: Request) {
+  const url = new URL(request.url);
+  const queryBatch = url.searchParams.get("batch");
+  const queryRedirect = url.searchParams.get("redirect");
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     const body = await request.json().catch(() => ({})) as { batch?: string; redirect?: string };
-    return { batch: toBatchId(body.batch), redirectTo: safeRedirectPath(body.redirect) };
+    return { batch: toBatchId(body.batch ?? queryBatch), redirectTo: safeRedirectPath(body.redirect ?? queryRedirect) };
   }
   const formData = await request.formData().catch(() => null);
-  if (formData) return { batch: toBatchId(formData.get("batch")), redirectTo: safeRedirectPath(formData.get("redirect")) };
-  return { batch: "one" as const, redirectTo: null };
+  if (formData) return { batch: toBatchId(formData.get("batch") ?? queryBatch), redirectTo: safeRedirectPath(formData.get("redirect") ?? queryRedirect) };
+  return { batch: toBatchId(queryBatch), redirectTo: safeRedirectPath(queryRedirect) };
 }
 
 function parseGetBatchRequest(request: Request) {

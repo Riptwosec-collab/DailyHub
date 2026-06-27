@@ -1,0 +1,176 @@
+import type { DailyBriefCategoryKey } from "@/types/daily-brief";
+
+export type DailyBriefTopicDetail = {
+  key: DailyBriefCategoryKey;
+  icon: string;
+  labelTh: string;
+  labelEn: string;
+  descriptionTh: string;
+  descriptionEn: string;
+  subtopicsTh: string[];
+  subtopicsEn: string[];
+  noteTh?: string;
+  noteEn?: string;
+};
+
+export const dailyBriefTopicDetails: Record<DailyBriefCategoryKey, DailyBriefTopicDetail> = {
+  all: {
+    key: "all",
+    icon: "✨",
+    labelTh: "ทั้งหมด",
+    labelEn: "All",
+    descriptionTh: "รวมข่าวและข้อมูลสำคัญทั้งหมดของ Daily Brief",
+    descriptionEn: "All Daily Brief news and important operational updates.",
+    subtopicsTh: ["ข่าวทั้งหมด", "สรุปสำคัญ", "อ่านเต็ม", "ส่ง Telegram"],
+    subtopicsEn: ["All news", "Key summaries", "Full reading", "Telegram delivery"],
+  },
+  thai: {
+    key: "thai",
+    icon: "📰",
+    labelTh: "ข่าวไทยวันนี้",
+    labelEn: "Thailand News Today",
+    descriptionTh: "ข่าวในประเทศที่ควรรู้ก่อนเริ่มวัน",
+    descriptionEn: "Domestic Thailand news to know before the day starts.",
+    subtopicsTh: ["ข่าวในประเทศ", "การเมือง", "เศรษฐกิจไทย", "สังคม", "อุบัติเหตุ", "ประกาศสำคัญ"],
+    subtopicsEn: ["Domestic news", "Politics", "Thai economy", "Society", "Accidents", "Important notices"],
+  },
+  world: {
+    key: "world",
+    icon: "🌍",
+    labelTh: "ข่าวต่างประเทศ",
+    labelEn: "World News",
+    descriptionTh: "ข่าวโลก เศรษฐกิจโลก และเหตุการณ์สำคัญ",
+    descriptionEn: "Global news, macroeconomics, and major world events.",
+    subtopicsTh: ["ข่าวโลก", "เศรษฐกิจโลก", "สงคราม/ภูมิรัฐศาสตร์", "เทคโนโลยีโลก", "เหตุการณ์สำคัญ"],
+    subtopicsEn: ["World news", "Global economy", "War/geopolitics", "Global technology", "Major events"],
+  },
+  aiTech: {
+    key: "aiTech",
+    icon: "🤖",
+    labelTh: "AI / Tech Update",
+    labelEn: "AI / Tech Update",
+    descriptionTh: "ข่าว AI เทคโนโลยี เครื่องมือใหม่ และ developer tools",
+    descriptionEn: "AI, technology, new tools, startups, and developer tooling.",
+    subtopicsTh: ["OpenAI", "Google", "Apple", "Microsoft", "AI tools", "Startup", "Software / Developer tools"],
+    subtopicsEn: ["OpenAI", "Google", "Apple", "Microsoft", "AI tools", "Startups", "Software / Developer tools"],
+  },
+  cybersecurity: {
+    key: "cybersecurity",
+    icon: "🛡️",
+    labelTh: "Cybersecurity Alert",
+    labelEn: "Cybersecurity Alert",
+    descriptionTh: "ข่าวความปลอดภัยเชิงแจ้งเตือนและป้องกัน",
+    descriptionEn: "Defensive security news and awareness alerts.",
+    subtopicsTh: ["ข่าวแฮก", "ข้อมูลรั่ว", "Malware", "Phishing", "Vulnerability / CVE", "Security advisory"],
+    subtopicsEn: ["Hacking news", "Data leaks", "Malware", "Phishing", "Vulnerability / CVE", "Security advisories"],
+    noteTh: "แสดงในเชิงข่าว/แจ้งเตือน/ป้องกันเท่านั้น ไม่ให้ขั้นตอนโจมตีหรือ exploit",
+    noteEn: "News, alerts, and prevention only. No attack steps or exploit instructions.",
+  },
+  networkCloud: {
+    key: "networkCloud",
+    icon: "🌐",
+    labelTh: "Network / Cloud News",
+    labelEn: "Network / Cloud News",
+    descriptionTh: "ข่าว vendor, cloud, infrastructure และ outage",
+    descriptionEn: "Vendor, cloud, infrastructure, and outage updates.",
+    subtopicsTh: ["Cisco", "Fortinet", "Palo Alto", "Cloudflare", "AWS", "Azure", "Google Cloud", "Vercel", "GitHub", "Network / Infrastructure / Outage"],
+    subtopicsEn: ["Cisco", "Fortinet", "Palo Alto", "Cloudflare", "AWS", "Azure", "Google Cloud", "Vercel", "GitHub", "Network / Infrastructure / Outage"],
+  },
+  market: {
+    key: "market",
+    icon: "📈",
+    labelTh: "หุ้น / ตลาด / Crypto",
+    labelEn: "Stocks / Markets / Crypto",
+    descriptionTh: "ข่าวตลาดเพื่ออ่านประกอบ ไม่ใช่คำแนะนำลงทุน",
+    descriptionEn: "Market news for context, not investment advice.",
+    subtopicsTh: ["ตลาดหุ้นสหรัฐ", "หุ้น watchlist", "Bitcoin / Crypto", "ดอลลาร์", "ทอง", "Semiconductor / AI / Space stocks"],
+    subtopicsEn: ["US markets", "Stock watchlist", "Bitcoin / Crypto", "Dollar", "Gold", "Semiconductor / AI / Space stocks"],
+    noteTh: "เป็นข่าวและข้อมูล ไม่ใช่คำแนะนำลงทุน",
+    noteEn: "News and information only, not financial advice.",
+  },
+  weatherPm25: {
+    key: "weatherPm25",
+    icon: "🌦️",
+    labelTh: "อากาศ / PM2.5",
+    labelEn: "Weather / PM2.5",
+    descriptionTh: "สภาพอากาศ ฝน อุณหภูมิ และคำแนะนำก่อนออกจากบ้าน",
+    descriptionEn: "Weather, rain, temperature, PM2.5, and commute prep.",
+    subtopicsTh: ["สภาพอากาศวันนี้", "ฝน", "อุณหภูมิ", "PM2.5", "คำแนะนำก่อนออกจากบ้าน"],
+    subtopicsEn: ["Today weather", "Rain", "Temperature", "PM2.5", "Before-you-leave tips"],
+  },
+  traffic: {
+    key: "traffic",
+    icon: "🚗",
+    labelTh: "เดินทาง / จราจร",
+    labelEn: "Commute / Traffic",
+    descriptionTh: "รถติด ระบบขนส่ง น้ำท่วม และแจ้งเตือนเดินทาง",
+    descriptionEn: "Traffic, transit issues, flooding, and commute alerts.",
+    subtopicsTh: ["รถติด", "BTS/MRT ขัดข้อง", "น้ำท่วม", "เส้นทางสำคัญ", "แจ้งเตือนเดินทาง"],
+    subtopicsEn: ["Traffic", "BTS/MRT disruption", "Flooding", "Key routes", "Commute alerts"],
+  },
+  todayTasks: {
+    key: "todayTasks",
+    icon: "📅",
+    labelTh: "งานวันนี้",
+    labelEn: "Today Tasks",
+    descriptionTh: "สถานะ scheduled tasks และงานที่ต้องตรวจสอบวันนี้",
+    descriptionEn: "Scheduled task status and jobs that need attention today.",
+    subtopicsTh: ["งานจาก scheduled tasks", "งานที่ต้องรันวันนี้", "งานล้มเหลวที่ต้องตรวจสอบ", "งานที่รอส่ง Telegram"],
+    subtopicsEn: ["Scheduled tasks", "Tasks due today", "Failed tasks to review", "Telegram pending tasks"],
+  },
+  importantEmail: {
+    key: "importantEmail",
+    icon: "📧",
+    labelTh: "อีเมลสำคัญ",
+    labelEn: "Important Email",
+    descriptionTh: "อีเมลที่ต้องตอบ งาน ระบบ ใบแจ้งหนี้ และ security alert",
+    descriptionEn: "Important replies, work mail, system notices, invoices, and security alerts.",
+    subtopicsTh: ["อีเมลสำคัญ", "อีเมลที่ต้องตอบ", "อีเมลเกี่ยวกับงาน", "อีเมลระบบ", "ใบแจ้งหนี้", "security alert"],
+    subtopicsEn: ["Important email", "Needs reply", "Work email", "System email", "Invoices", "Security alerts"],
+  },
+  sports: {
+    key: "sports",
+    icon: "⚽",
+    labelTh: "กีฬา / ฟุตบอล",
+    labelEn: "Sports / Football",
+    descriptionTh: "ผลบอล ตารางแข่ง ข่าวฟุตบอล และสรุปหลังจบการแข่งขัน",
+    descriptionEn: "Scores, fixtures, football news, and post-match recaps.",
+    subtopicsTh: ["ผลบอล", "ตารางแข่ง", "ข่าวฟุตบอล", "สรุปหลังจบการแข่งขัน", "รองรับกีฬาอื่นในอนาคต"],
+    subtopicsEn: ["Scores", "Fixtures", "Football news", "Post-match recap", "Future sports support"],
+  },
+  events: {
+    key: "events",
+    icon: "🎤",
+    labelTh: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่",
+    labelEn: "Events / Concerts / New Products",
+    descriptionTh: "รวมสินค้าใหม่ คอนเสิร์ต อีเวนต์ และประกาศศิลปินไว้หมวดเดียว",
+    descriptionEn: "New products, concerts, events, and artist announcements in one category.",
+    subtopicsTh: ["ข่าวคอนเสิร์ต", "ประกาศศิลปิน", "งานอีเวนต์", "สินค้าใหม่ที่สนใจ", "ดีลหรือการเปิดตัวสินค้า"],
+    subtopicsEn: ["Concert news", "Artist announcements", "Events", "Interesting new products", "Deals or launches"],
+  },
+  deals: {
+    key: "deals",
+    icon: "🛒",
+    labelTh: "ดีล / โปรโมชัน",
+    labelEn: "Deals / Promotions",
+    descriptionTh: "โปรที่น่าสนใจจาก e-commerce, software, domain และ hosting",
+    descriptionEn: "Useful e-commerce, software, domain, and hosting promotions.",
+    subtopicsTh: ["Shopee", "Lazada", "Gadget", "Software", "Domain / Hosting", "โปรที่น่าสนใจ"],
+    subtopicsEn: ["Shopee", "Lazada", "Gadgets", "Software", "Domain / Hosting", "Interesting promotions"],
+  },
+  lifestyle: {
+    key: "lifestyle",
+    icon: "💡",
+    labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์",
+    labelEn: "Weekend Ideas / Lifestyle",
+    descriptionTh: "ร้านอาหาร ที่เที่ยว คาเฟ่ บุฟเฟ่ต์ และกิจกรรมพักผ่อน",
+    descriptionEn: "Restaurants, travel, cafes, buffets, and nearby activities.",
+    subtopicsTh: ["ร้านอาหาร", "ที่เที่ยว", "กิจกรรมวันหยุด", "ไอเดียพักผ่อน", "คาเฟ่", "บุฟเฟ่ต์", "อีเวนต์ใกล้ตัว"],
+    subtopicsEn: ["Restaurants", "Places to visit", "Weekend activities", "Rest ideas", "Cafes", "Buffets", "Nearby events"],
+  },
+};
+
+export function getDailyBriefTopicDetail(key: DailyBriefCategoryKey) {
+  return dailyBriefTopicDetails[key] ?? dailyBriefTopicDetails.all;
+}
+

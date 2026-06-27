@@ -5,6 +5,7 @@ export const translations = {
     // Nav
     nav_home: "หน้าหลัก",
     nav_dashboard: "แดชบอร์ด",
+    nav_daily: "ข่าวประจำวัน",
     nav_data_library: "อ่านข้อมูลเต็ม",
     nav_scheduled_tasks: "งานอัตโนมัติ",
     nav_create_task: "สร้างงาน",
@@ -99,19 +100,20 @@ export const translations = {
     data_library_empty_title: "ไม่พบข้อมูล",
     data_library_empty_desc: "ลองเปลี่ยนตัวกรองหรือกด Run Task เพื่อสร้างข้อมูลใหม่",
     // Batch Runner
-    batch_badge: "Batch Runner",
-    batch_title: "ส่ง Telegram แบบ 2 ปุ่ม",
-    batch_desc: "ปุ่มแรกส่ง 4 หัวข้อหลัก ส่วนปุ่มสองส่ง 3 หัวข้อที่เหลือ ถ้า task ขาด ระบบจะพยายามสร้าง task ให้ครบก่อนรัน",
-    batch_run_all: "Run ทั้ง 2 ปุ่ม",
+    batch_badge: "ตัวรันชุดงาน",
+    batch_title: "ส่ง Telegram แบบ 4 ปุ่ม",
+    batch_desc: "แบ่งข่าวและงานสำคัญเป็นชุดละไม่เกิน 4 หัวข้อ ถ้า task ขาด ระบบจะสร้าง task ให้ครบก่อนรันและส่ง Telegram",
+    batch_run_all: "รันทั้ง 4 ปุ่ม",
     batch_running: "กำลังรัน...",
     batch_first: "ปุ่มแรก",
     batch_second: "ปุ่มสอง",
-    batch_ready: "พร้อมรันแบบแบ่ง 2 ปุ่ม",
+    batch_ready: "พร้อมรันแบบแบ่ง 4 ปุ่ม",
   },
   en: {
     // Nav
     nav_home: "Home",
     nav_dashboard: "Dashboard",
+    nav_daily: "Daily Brief",
     nav_data_library: "Data Library",
     nav_scheduled_tasks: "Scheduled Tasks",
     nav_create_task: "Create Task",
@@ -207,13 +209,13 @@ export const translations = {
     data_library_empty_desc: "Try changing filters or run a task to create new data.",
     // Batch Runner
     batch_badge: "Batch Runner",
-    batch_title: "Send Telegram with 2 buttons",
-    batch_desc: "The first button sends 4 core topics. The second button sends the 3 remaining topics. If tasks are missing, the system tries to create them before running.",
-    batch_run_all: "Run both buttons",
+    batch_title: "Send Telegram with 4 buttons",
+    batch_desc: "News and key operations are split into batches of up to 4 topics. Missing tasks are created before the batch runs and sends Telegram.",
+    batch_run_all: "Run all 4 buttons",
     batch_running: "Running...",
     batch_first: "First button",
     batch_second: "Second button",
-    batch_ready: "Ready for 2-button run",
+    batch_ready: "Ready for 4-button run",
   },
 } as const;
 

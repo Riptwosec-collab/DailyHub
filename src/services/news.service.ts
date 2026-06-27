@@ -1,5 +1,7 @@
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { DataSourceResult } from "./data-source.service";
+import { mockDailyBriefItems } from "@/data/daily-brief.mock";
+import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 
 type NewsArticle = {
   source?: { id?: string | null; name?: string | null } | string | null;
@@ -349,6 +351,28 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
   ];
 }
 
+function buildDailyBriefNewsItems(): ThaiNewsArticle[] {
+  return mockDailyBriefItems.map((item) => {
+    const detail = getDailyBriefTopicDetail(item.category);
+    return {
+      source: item.sourceName,
+      title: item.titleTh,
+      description: item.summaryTh,
+      url: item.sourceUrl,
+      publishedAt: item.publishedAt,
+      originalTitle: item.title,
+      fullArticle: item.extractedText || item.rawDescription || item.summaryTh,
+      keyPoints: item.bulletPoints,
+      whyItMatters: item.whyItMatters,
+      readTime: "2-4 นาที",
+      category: detail.labelTh,
+      tags: Array.from(new Set([detail.labelTh, ...item.tags])),
+      contentAngle: `${detail.labelTh}: ${detail.subtopicsTh.slice(0, 4).join(" / ")}`,
+      action: detail.noteTh ? `${detail.noteTh} อ่านข่าวเต็มจากแหล่งต้นฉบับ` : "อ่านข่าวเต็มจากแหล่งต้นฉบับ และส่งข่าวย่อภาษาไทยไป Telegram ได้",
+    };
+  });
+}
+
 function getNewsQueries(): string[] {
   const mainQuery = process.env.NEWS_QUERY || DEFAULT_NEWS_QUERIES[0];
   const extraQueries = (process.env.NEWS_EXTRA_QUERIES || DEFAULT_NEWS_QUERIES.slice(1).join("|")).split("|");
@@ -419,12 +443,12 @@ export async function fetchNewsUpdates(_task: ScheduledTask): Promise<DataSource
   const apiKey = process.env.NEWS_API_KEY;
 
   if (!enabled || !apiKey) {
-    const items = buildMockNewsItems();
+    const items = buildDailyBriefNewsItems();
 
     return {
       source: "News",
       status: "mock",
-      title: "Expanded News Library",
+      title: "Daily Brief / ข่าวประจำวัน",
       language: "th",
       items,
       data: items,

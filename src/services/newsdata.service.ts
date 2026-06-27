@@ -1,4 +1,5 @@
 import type { DailyBriefCategoryKey, DailyBriefItem } from "@/types/daily-brief";
+import { translateToThai } from "@/services/translation.service";
 
 interface NewsDataArticle {
   article_id?: string;
@@ -66,7 +67,7 @@ function asLanguage(value?: string): DailyBriefItem["language"] {
   return "unknown";
 }
 
-export function mapNewsDataArticle(article: NewsDataArticle, index: number): DailyBriefItem {
+export async function mapNewsDataArticle(article: NewsDataArticle, index: number): Promise<DailyBriefItem> {
   const category = detectCategory(article);
   const title = article.title || "Untitled news";
   const description = article.description || article.content || title;
@@ -74,14 +75,31 @@ export function mapNewsDataArticle(article: NewsDataArticle, index: number): Dai
   const sourceName = getSourceName(article);
   const language = asLanguage(article.language);
   const publishedAt = article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString();
+  const translation = await translateToThai({
+    title,
+    source: sourceName,
+    content: description,
+    rawInput: {
+      sourceUrl,
+      publishedAt,
+      category,
+      keywords: article.keywords ?? [],
+      originalLanguage: article.language,
+    },
+    gptOutput: {
+      title,
+      summary: description,
+      recommended_action: "อ่านข่าวเต็มจากแหล่งข่าวต้นฉบับ และใช้สรุปนี้เป็นข่าวย่อสำหรับ Telegram",
+    },
+  });
 
   return {
     id: article.article_id || `newsdata_${index}_${Buffer.from(sourceUrl).toString("base64url").slice(0, 16)}`,
     title,
-    titleTh: title,
-    summaryTh: description.slice(0, 520),
-    bulletPoints: [
-      description.slice(0, 150),
+    titleTh: translation.translatedTitle,
+    summaryTh: translation.translatedSummary.slice(0, 620),
+    bulletPoints: translation.translatedBullets.length ? translation.translatedBullets.slice(0, 3) : [
+      translation.translatedSummary.slice(0, 150),
       `แหล่งข่าว: ${sourceName}`,
       `หมวด: ${category}`,
     ],
@@ -96,7 +114,7 @@ export function mapNewsDataArticle(article: NewsDataArticle, index: number): Dai
     priorityScore: 68 + Math.min(24, Math.max(0, Math.round(description.length / 90))) + (category === "cybersecurity" || category === "aiTech" ? 4 : 0),
     relatedSources: [],
     rawDescription: description,
-    extractedText: article.content || undefined,
+    extractedText: article.content || translation.originalContent || undefined,
     isSaved: false,
     isHidden: false,
     telegramStatus: "idle",
@@ -130,7 +148,7 @@ export async function fetchNewsDataLatest(category?: DailyBriefCategoryKey) {
 
   return {
     mode: "real" as const,
-    items: (payload.results || []).map(mapNewsDataArticle),
+    items: await Promise.all((payload.results || []).map(mapNewsDataArticle)),
     message: `Fetched ${payload.results?.length || 0} item(s) from NewsData.io`,
   };
 }

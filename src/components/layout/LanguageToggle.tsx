@@ -7,7 +7,7 @@ export function LanguageToggle() {
 
   return (
     <button
-      aria-label={lang === "th" ? "Switch language to English" : "เปลี่ยนภาษาเป็นไทย"}
+      aria-label={lang === "th" ? "เปลี่ยนภาษาเป็นอังกฤษ" : "Switch language to Thai"}
       className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/10"
       onClick={() => setLang(lang === "th" ? "en" : "th")}
       type="button"

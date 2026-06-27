@@ -1,4 +1,5 @@
 import { dailyBriefCategories } from "@/data/daily-brief.mock";
+import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import type { DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
 
 function truncate(value: string, max = 260) {
@@ -7,7 +8,8 @@ function truncate(value: string, max = 260) {
 }
 
 function getCategoryLabel(key: string) {
-  return dailyBriefCategories.find((category) => category.key === key)?.labelTh ?? key;
+  const found = dailyBriefCategories.find((category) => category.key === key);
+  return found ? getDailyBriefTopicDetail(found.key).labelTh : key;
 }
 
 export function summarizeDailyBriefItems(items: DailyBriefItem[], mode: DailyBriefSummary["mode"] = "fallback"): DailyBriefSummary {
@@ -62,11 +64,14 @@ export function buildTelegramBriefText(summary: DailyBriefSummary, items: DailyB
   const byCategory = dailyBriefCategories
     .filter((category) => category.key !== "all")
     .map((category) => {
+      const detail = getDailyBriefTopicDetail(category.key);
       const lines = items
         .filter((item) => item.category === category.key && !item.isHidden)
         .slice(0, 3)
         .map((item) => `• ${truncate(item.titleTh, 110)} — ${truncate(item.summaryTh, 160)}\n  อ่านต่อ: ${item.sourceUrl}`);
-      return lines.length ? `${category.icon} ${category.labelTh}\n${lines.join("\n")}` : "";
+      const subtopics = detail.subtopicsTh.slice(0, 6).join(" / ");
+      const note = detail.noteTh ? `\nหมายเหตุ: ${detail.noteTh}` : "";
+      return lines.length ? `${detail.icon} ${detail.labelTh}\nหัวข้อย่อย: ${subtopics}${note}\n${lines.join("\n")}` : "";
     })
     .filter(Boolean);
 
@@ -77,6 +82,7 @@ export function buildTelegramBriefText(summary: DailyBriefSummary, items: DailyB
   return [
     "DailyHub Brief วันนี้",
     `วันที่: ${summary.date}`,
+    "ข่าวทั้งหมดถูก normalize/แปลไทยก่อนสรุป และ Telegram ส่งเฉพาะข่าวย่อพร้อมลิงก์อ่านเต็ม",
     "",
     "🔥 Top 5 ข่าวสำคัญ",
     topStories || "ยังไม่มีข่าวสำคัญ",
