@@ -8,10 +8,12 @@ type DataLibrarySearchParams = {
   article?: string;
 };
 
-export default function DataLibraryPage({ searchParams }: { searchParams?: DataLibrarySearchParams }) {
+export default async function DataLibraryPage({ searchParams }: { searchParams?: Promise<DataLibrarySearchParams> }) {
+  const params = await searchParams;
+
   return (
     <AppShell>
-      <DataLibraryView initialRunId={searchParams?.run ?? ""} initialArticleId={searchParams?.article ?? ""} />
+      <DataLibraryView initialRunId={params?.run ?? ""} initialArticleId={params?.article ?? ""} />
     </AppShell>
   );
 }

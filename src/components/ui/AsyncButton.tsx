@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ButtonHTMLAttributes } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "./Button";
 
 interface AsyncButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> {
@@ -11,6 +12,7 @@ interface AsyncButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
 
 export function AsyncButton({ children, onClick, loadingText = "Loading...", disabled, ...props }: AsyncButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { lang } = useLanguage();
 
   async function handleClick() {
     try {
@@ -23,7 +25,7 @@ export function AsyncButton({ children, onClick, loadingText = "Loading...", dis
 
   return (
     <Button disabled={disabled || isLoading} onClick={handleClick} type="button" {...props}>
-      {isLoading ? loadingText : children}
+      {isLoading ? (loadingText === "Loading..." && lang === "th" ? "กำลังโหลด..." : loadingText) : children}
     </Button>
   );
 }

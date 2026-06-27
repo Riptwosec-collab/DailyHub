@@ -2,10 +2,22 @@ export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function formatDateTime(value: string | null | undefined) {
+function getStoredLang() {
+  if (typeof window === "undefined") return "th";
+  try {
+    const saved = window.localStorage.getItem("nimbus_lang");
+    return saved === "en" ? "en" : "th";
+  } catch {
+    return "th";
+  }
+}
+
+export function formatDateTime(value: string | null | undefined, lang?: "th" | "en") {
   if (!value) return "-";
 
-  return new Intl.DateTimeFormat("th-TH", {
+  const activeLang = lang ?? getStoredLang();
+
+  return new Intl.DateTimeFormat(activeLang === "en" ? "en-US" : "th-TH", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Bangkok",

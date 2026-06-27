@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiFetch, getFriendlyApiError } from "@/lib/api-client";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { formatDateTime } from "@/lib/utils";
 import type { ScheduledTask, ScheduledTaskStatus } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
@@ -40,13 +41,153 @@ const TEMPLATES = [
   { id: "weekend-long-read", name: "Weekend Long Read", emoji: "📚", desc: "หาเรื่องน่าอ่านยาวช่วงสุดสัปดาห์", cron: "0 10 * * 6", type: "Weekend Long Read" },
 ];
 
-const FILTER_TABS = [
-  { label: "ทั้งหมด", value: "All" },
-  { label: "🟢 Active", value: "Active" },
-  { label: "🔵 Running", value: "Running" },
-  { label: "⏸ Paused", value: "Paused" },
-  { label: "🔴 Failed", value: "Failed" },
-];
+const FILTER_TABS = {
+  th: [
+    { label: "ทั้งหมด", value: "All" },
+    { label: "🟢 ใช้งานอยู่", value: "Active" },
+    { label: "🔵 กำลังรัน", value: "Running" },
+    { label: "⏸ หยุดไว้", value: "Paused" },
+    { label: "🔴 ล้มเหลว", value: "Failed" },
+  ],
+  en: [
+    { label: "All", value: "All" },
+    { label: "🟢 Active", value: "Active" },
+    { label: "🔵 Running", value: "Running" },
+    { label: "⏸ Paused", value: "Paused" },
+    { label: "🔴 Failed", value: "Failed" },
+  ],
+} as const;
+
+const copy = {
+  th: {
+    title: "งานอัตโนมัติ",
+    desc: "จัดการงานอัตโนมัติ Daily Brief, Email Monitor, Sale Monitor และ Telegram Alert",
+    testTelegram: "ทดสอบ Telegram",
+    refresh: "รีเฟรช",
+    createTask: "สร้างงาน",
+    total: "ทั้งหมด",
+    active: "ใช้งานอยู่",
+    paused: "หยุดไว้",
+    failed: "ล้มเหลว",
+    running: "กำลังรัน",
+    successRate: "อัตราสำเร็จ",
+    nextTask: "งานถัดไป",
+    retry: "ลองใหม่",
+    loadFailed: "โหลดไม่สำเร็จ",
+    emptyTitle: "ยังไม่มี Scheduled Tasks",
+    emptyDesc: "สร้าง automation task แรกของคุณ เช่น Daily Brief, Email Monitor หรือ Telegram Alert",
+    cancel: "ยกเลิก",
+    confirm: "ยืนยัน",
+    runNow: "Run Now",
+    resume: "Resume",
+    pause: "Pause",
+    delete: "Delete",
+    viewLogs: "View Logs",
+    results: "ผลลัพธ์",
+    retryAction: "ลองใหม่",
+    runningAction: "กำลังรัน...",
+    schedule: "ตารางเวลา",
+    timezone: "เขตเวลา",
+    lastRun: "รันล่าสุด",
+    nextRun: "รันถัดไป",
+    minPriority: "ความสำคัญขั้นต่ำ",
+    failedHint: "งานล้มเหลวในการรันครั้งล่าสุด กดลองใหม่หรือดูบันทึก",
+    taskLogs: "บันทึกงาน",
+    close: "ปิด",
+    noLogs: "ยังไม่มีบันทึกสำหรับงานนี้",
+    started: "เริ่ม",
+    duration: "ระยะเวลา",
+    priority: "ความสำคัญ",
+    showing: (count: number, total: number) => `แสดง ${count} จาก ${total} งาน`,
+    failedCount: (count: number) => `${count} งานล้มเหลว`,
+    hobbyTitle: "Vercel Hobby Plan",
+    hobbyDesc: "Cron รองรับวันละครั้งเท่านั้น สำหรับงานรายชั่วโมงหรือถี่กว่า ใช้ Vercel Pro หรือ external scheduler เช่น cron-job.org",
+    chooseTemplate: "เลือกเทมเพลต",
+    createNewTask: "สร้างงานใหม่",
+    customTask: "งานกำหนดเอง",
+    customTaskDesc: "กำหนดทุกอย่างเอง",
+    runStarting: (name: string) => `กำลังรัน ${name}...`,
+    runSuccess: "Run Now สำเร็จ",
+    runFailed: "Run Now ล้มเหลว",
+    pauseTitle: (name: string) => `หยุด "${name}"?`,
+    pauseDesc: "งานนี้จะไม่รันอัตโนมัติจนกว่าจะ Resume ใหม่",
+    toggleSuccess: (resume: boolean) => resume ? "Resume สำเร็จ" : "Pause สำเร็จ",
+    actionFailed: "ไม่สำเร็จ",
+    deleteTitle: (name: string) => `ลบ "${name}"?`,
+    deleteDesc: "การกระทำนี้ไม่สามารถยกเลิกได้ task runs และ notifications ทั้งหมดจะถูกลบด้วย",
+    deleteSuccess: "ลบสำเร็จ",
+    deleteFailed: "ลบไม่สำเร็จ",
+    telegramSending: "กำลังส่ง Telegram test...",
+    telegramSuccess: "Telegram test ส่งสำเร็จ",
+    telegramCheck: "เช็คมือถือได้เลย",
+    telegramFailed: "Telegram test ล้มเหลว",
+  },
+  en: {
+    title: "Scheduled Tasks",
+    desc: "Manage Daily Brief, Email Monitor, Sale Monitor, and Telegram Alert automations.",
+    testTelegram: "Test Telegram",
+    refresh: "Refresh",
+    createTask: "Create Task",
+    total: "Total",
+    active: "Active",
+    paused: "Paused",
+    failed: "Failed",
+    running: "Running",
+    successRate: "Success Rate",
+    nextTask: "Next task",
+    retry: "Retry",
+    loadFailed: "Loading failed",
+    emptyTitle: "No Scheduled Tasks yet",
+    emptyDesc: "Create your first automation task, such as Daily Brief, Email Monitor, or Telegram Alert.",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    runNow: "Run Now",
+    resume: "Resume",
+    pause: "Pause",
+    delete: "Delete",
+    viewLogs: "View Logs",
+    results: "Results",
+    retryAction: "Retry",
+    runningAction: "Running...",
+    schedule: "Schedule",
+    timezone: "Timezone",
+    lastRun: "Last run",
+    nextRun: "Next run",
+    minPriority: "Min Priority",
+    failedHint: "The latest run failed. Retry the task or view logs.",
+    taskLogs: "Task Logs",
+    close: "Close",
+    noLogs: "No logs for this task yet",
+    started: "Started",
+    duration: "Duration",
+    priority: "Priority",
+    showing: (count: number, total: number) => `Showing ${count} of ${total} tasks`,
+    failedCount: (count: number) => `${count} tasks failed`,
+    hobbyTitle: "Vercel Hobby Plan",
+    hobbyDesc: "Cron runs once per day on the Hobby plan. For hourly or more frequent schedules, use Vercel Pro or an external scheduler such as cron-job.org.",
+    chooseTemplate: "Choose Template",
+    createNewTask: "Create New Task",
+    customTask: "Custom Task",
+    customTaskDesc: "Configure everything yourself",
+    runStarting: (name: string) => `Running ${name}...`,
+    runSuccess: "Run Now succeeded",
+    runFailed: "Run Now failed",
+    pauseTitle: (name: string) => `Pause "${name}"?`,
+    pauseDesc: "This task will not run automatically until you resume it.",
+    toggleSuccess: (resume: boolean) => resume ? "Resume succeeded" : "Pause succeeded",
+    actionFailed: "Action failed",
+    deleteTitle: (name: string) => `Delete "${name}"?`,
+    deleteDesc: "This cannot be undone. Task runs and notifications will also be deleted.",
+    deleteSuccess: "Deleted",
+    deleteFailed: "Delete failed",
+    telegramSending: "Sending Telegram test...",
+    telegramSuccess: "Telegram test sent",
+    telegramCheck: "Check your phone.",
+    telegramFailed: "Telegram test failed",
+  },
+} as const;
+
+type ScheduledTasksCopy = (typeof copy)[keyof typeof copy];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +202,8 @@ interface ConfirmState {
 
 export function ScheduledTasksProView() {
   const { pushToast } = useToast();
+  const { lang } = useLanguage();
+  const text = copy[lang];
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +231,12 @@ export function ScheduledTasksProView() {
   useEffect(() => { void loadTasks(); }, [loadTasks]);
 
   const setBusy = (id: string, busy: boolean) =>
-    setBusyIds((prev) => { const next = new Set(prev); busy ? next.add(id) : next.delete(id); return next; });
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   const filtered = useMemo(() => {
     const kw = search.toLowerCase();
@@ -110,13 +258,13 @@ export function ScheduledTasksProView() {
   async function handleRunNow(task: ScheduledTask) {
     setBusy(task.id, true);
     setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: "Running" as ScheduledTaskStatus } : t));
-    pushToast({ title: `⚡ กำลังรัน ${task.name}...`, tone: "info" });
+    pushToast({ title: `⚡ ${text.runStarting(task.name)}`, tone: "info" });
     try {
       const result = await apiFetch<{ task: ScheduledTask }>(`/api/scheduled-tasks/${task.id}/run-now`, { method: "POST" });
       setTasks((prev) => prev.map((t) => t.id === task.id ? result.task : t));
-      pushToast({ title: "✅ Run Now สำเร็จ", description: task.name, tone: "success" });
+      pushToast({ title: `✅ ${text.runSuccess}`, description: task.name, tone: "success" });
     } catch (err) {
-      pushToast({ title: "❌ Run Now ล้มเหลว", description: getFriendlyApiError(err), tone: "error" });
+      pushToast({ title: `❌ ${text.runFailed}`, description: getFriendlyApiError(err), tone: "error" });
       await loadTasks();
     } finally {
       setBusy(task.id, false);
@@ -127,8 +275,8 @@ export function ScheduledTasksProView() {
     if (task.status === "Paused") { void handleToggle(task); return; }
     setConfirm({
       open: true,
-      title: `หยุด "${task.name}"?`,
-      description: "งานนี้จะไม่รันอัตโนมัติจนกว่าจะ Resume ใหม่",
+      title: text.pauseTitle(task.name),
+      description: text.pauseDesc,
       onConfirm: () => { setConfirm((c) => ({ ...c, open: false })); void handleToggle(task); },
     });
   }
@@ -142,9 +290,9 @@ export function ScheduledTasksProView() {
         body: JSON.stringify({ status: resume ? "Active" : "Paused", isActive: resume, is_active: resume }),
       });
       setTasks((prev) => prev.map((t) => t.id === task.id ? updated : t));
-      pushToast({ title: resume ? "▶️ Resume สำเร็จ" : "⏸ Pause สำเร็จ", description: task.name, tone: "success" });
+      pushToast({ title: resume ? `▶️ ${text.toggleSuccess(true)}` : `⏸ ${text.toggleSuccess(false)}`, description: task.name, tone: "success" });
     } catch (err) {
-      pushToast({ title: "❌ ไม่สำเร็จ", description: getFriendlyApiError(err), tone: "error" });
+      pushToast({ title: `❌ ${text.actionFailed}`, description: getFriendlyApiError(err), tone: "error" });
     } finally {
       setBusy(task.id, false);
     }
@@ -153,8 +301,8 @@ export function ScheduledTasksProView() {
   function confirmDelete(task: ScheduledTask) {
     setConfirm({
       open: true,
-      title: `ลบ "${task.name}"?`,
-      description: "การกระทำนี้ไม่สามารถยกเลิกได้ task runs และ notifications ทั้งหมดจะถูกลบด้วย",
+      title: text.deleteTitle(task.name),
+      description: text.deleteDesc,
       onConfirm: () => { setConfirm((c) => ({ ...c, open: false })); void handleDelete(task); },
     });
   }
@@ -164,9 +312,9 @@ export function ScheduledTasksProView() {
     try {
       await apiFetch(`/api/scheduled-tasks/${task.id}`, { method: "DELETE" });
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
-      pushToast({ title: "🗑️ ลบสำเร็จ", description: task.name, tone: "success" });
+      pushToast({ title: `🗑️ ${text.deleteSuccess}`, description: task.name, tone: "success" });
     } catch (err) {
-      pushToast({ title: "❌ ลบไม่สำเร็จ", description: getFriendlyApiError(err), tone: "error" });
+      pushToast({ title: `❌ ${text.deleteFailed}`, description: getFriendlyApiError(err), tone: "error" });
     } finally {
       setBusy(task.id, false);
     }
@@ -174,12 +322,12 @@ export function ScheduledTasksProView() {
 
   async function handleTelegramTest() {
     setTelegramBusy(true);
-    pushToast({ title: "📤 กำลังส่ง Telegram test...", tone: "info" });
+    pushToast({ title: `📤 ${text.telegramSending}`, tone: "info" });
     try {
       await apiFetch("/api/telegram/test", { method: "POST", body: JSON.stringify({ message: "DailyHub — Telegram test ✅" }) });
-      pushToast({ title: "✅ Telegram test ส่งสำเร็จ", description: "เช็คมือถือได้เลย", tone: "success" });
+      pushToast({ title: `✅ ${text.telegramSuccess}`, description: text.telegramCheck, tone: "success" });
     } catch (err) {
-      pushToast({ title: "❌ Telegram test ล้มเหลว", description: getFriendlyApiError(err), tone: "error" });
+      pushToast({ title: `❌ ${text.telegramFailed}`, description: getFriendlyApiError(err), tone: "error" });
     } finally {
       setTelegramBusy(false);
     }
@@ -192,10 +340,10 @@ export function ScheduledTasksProView() {
       <div className="flex flex-col items-center gap-6 py-20 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-rose-300/30 bg-rose-300/10 text-4xl">⚠️</div>
         <div>
-          <p className="text-lg font-black text-white">โหลดไม่สำเร็จ</p>
+          <p className="text-lg font-black text-white">{text.loadFailed}</p>
           <p className="mt-2 text-sm text-slate-400">{error}</p>
         </div>
-        <button onClick={loadTasks} type="button" className="rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white hover:bg-white/10">🔄 ลองใหม่</button>
+        <button onClick={loadTasks} type="button" className="rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white hover:bg-white/10">↻ {text.retry}</button>
       </div>
     );
 
@@ -206,9 +354,9 @@ export function ScheduledTasksProView() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-2xl">⏱</span>
-            <h1 className="text-2xl font-black text-white sm:text-3xl">Scheduled Tasks</h1>
+            <h1 className="text-2xl font-black text-white sm:text-3xl">{text.title}</h1>
           </div>
-          <p className="mt-1 text-sm text-slate-400">จัดการงานอัตโนมัติ Daily Brief, Email Monitor, Sale Monitor, Telegram Alert</p>
+          <p className="mt-1 text-sm text-slate-400">{text.desc}</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <button
@@ -217,27 +365,27 @@ export function ScheduledTasksProView() {
             type="button"
             className="inline-flex items-center gap-1.5 rounded-2xl border border-violet-300/30 bg-violet-300/10 px-4 py-2.5 text-sm font-bold text-violet-100 transition hover:bg-violet-300/15 disabled:opacity-50"
           >
-            {telegramBusy ? "⏳" : "✈️"} Test Telegram
+            {telegramBusy ? "⏳" : "✈"} {text.testTelegram}
           </button>
-          <button onClick={loadTasks} type="button" className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/10">🔄 Refresh</button>
+          <button onClick={loadTasks} type="button" className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/10">↻ {text.refresh}</button>
           <button
             onClick={() => setShowTemplates(true)}
             type="button"
             className="inline-flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-90"
           >
-            + Create Task
+            + {text.createTask}
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <SummaryCard label="Total" value={total} emoji="📋" color="slate" />
-        <SummaryCard label="Active" value={activeCount} emoji="🟢" color="emerald" />
-        <SummaryCard label="Paused" value={pausedCount} emoji="⏸" color="amber" />
-        <SummaryCard label="Failed" value={failedCount} emoji="🔴" color="rose" />
-        <SummaryCard label="Running" value={runningCount} emoji="🔵" color="violet" />
-        <SummaryCard label="Success Rate" value={`${successRate}%`} emoji="📈" color="cyan" />
+        <SummaryCard label={text.total} value={total} emoji="□" color="slate" />
+        <SummaryCard label={text.active} value={activeCount} emoji="●" color="emerald" />
+        <SummaryCard label={text.paused} value={pausedCount} emoji="Ⅱ" color="amber" />
+        <SummaryCard label={text.failed} value={failedCount} emoji="!" color="rose" />
+        <SummaryCard label={text.running} value={runningCount} emoji="●" color="violet" />
+        <SummaryCard label={text.successRate} value={`${successRate}%`} emoji="%" color="cyan" />
       </div>
 
       {/* Next Task Banner */}
@@ -245,9 +393,9 @@ export function ScheduledTasksProView() {
         <div className="flex items-center gap-3 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-3 text-sm">
           <span className="text-base">⏰</span>
           <span className="text-slate-300">
-            งานถัดไป: <span className="font-bold text-white">{nextTask.name}</span>
+            {text.nextTask}: <span className="font-bold text-white">{nextTask.name}</span>
             {" — "}
-            <span className="text-cyan-300">{nextTask.nextRunAt ? formatDateTime(nextTask.nextRunAt) : "-"}</span>
+            <span className="text-cyan-300">{nextTask.nextRunAt ? formatDateTime(nextTask.nextRunAt, lang) : "-"}</span>
           </span>
         </div>
       )}
@@ -261,7 +409,7 @@ export function ScheduledTasksProView() {
           className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-300/40 focus:outline-none"
         />
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {FILTER_TABS.map((tab) => (
+            {FILTER_TABS[lang].map((tab) => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
@@ -280,13 +428,13 @@ export function ScheduledTasksProView() {
 
       {/* Count */}
       <div className="flex items-center justify-between text-sm text-slate-400">
-        <span>แสดง {filtered.length} จาก {total} task</span>
-        {failedCount > 0 && <span className="font-bold text-rose-300">⚠️ {failedCount} task ล้มเหลว</span>}
+        <span>{text.showing(filtered.length, total)}</span>
+        {failedCount > 0 && <span className="font-bold text-rose-300">⚠️ {text.failedCount(failedCount)}</span>}
       </div>
 
       {/* Task Grid */}
       {filtered.length === 0 ? (
-        <EmptyState onCreate={() => setShowTemplates(true)} />
+        <EmptyState onCreate={() => setShowTemplates(true)} title={text.emptyTitle} description={text.emptyDesc} buttonLabel={text.createTask} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((task) => (
@@ -298,6 +446,8 @@ export function ScheduledTasksProView() {
               onTogglePause={() => confirmPause(task)}
               onDelete={() => confirmDelete(task)}
               onViewLogs={() => setDrawerTask(task)}
+              text={text}
+              lang={lang}
             />
           ))}
         </div>
@@ -305,18 +455,20 @@ export function ScheduledTasksProView() {
 
       {/* Vercel Hobby Warning */}
       <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4 text-sm text-amber-200">
-        <p className="font-bold">⚠️ Vercel Hobby Plan</p>
-        <p className="mt-1 text-amber-200/70">Cron รองรับวันละครั้งเท่านั้น สำหรับ Hourly หรือถี่กว่า ใช้ Vercel Pro หรือ external scheduler เช่น cron-job.org</p>
+        <p className="font-bold">⚠️ {text.hobbyTitle}</p>
+        <p className="mt-1 text-amber-200/70">{text.hobbyDesc}</p>
       </div>
 
-      {drawerTask && <LogDrawer task={drawerTask} onClose={() => setDrawerTask(null)} />}
-      {showTemplates && <TemplateModal onClose={() => setShowTemplates(false)} />}
+      {drawerTask && <LogDrawer task={drawerTask} onClose={() => setDrawerTask(null)} text={text} lang={lang} />}
+      {showTemplates && <TemplateModal onClose={() => setShowTemplates(false)} text={text} />}
       {confirm.open && (
         <ConfirmModal
           title={confirm.title}
           description={confirm.description}
           onConfirm={confirm.onConfirm}
           onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
+          cancelLabel={text.cancel}
+          confirmLabel={text.confirm}
         />
       )}
     </div>
@@ -348,10 +500,11 @@ function SummaryCard({ label, value, emoji, color }: {
 
 // ─── Task Card Pro ────────────────────────────────────────────────────────────
 
-function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLogs }: {
+function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLogs, text, lang }: {
   task: ScheduledTask; isBusy: boolean;
   onRunNow: () => void; onTogglePause: () => void;
   onDelete: () => void; onViewLogs: () => void;
+  text: ScheduledTasksCopy; lang: "th" | "en";
 }) {
   const emoji = TYPE_EMOJI[task.type] ?? "⚙️";
   const scheduleLabel = SCHEDULE_LABEL[task.scheduleType] ?? task.scheduleType;
@@ -390,7 +543,7 @@ function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLo
 
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-xs space-y-1.5">
         <div className="flex justify-between">
-          <span className="text-slate-500">ตาราง</span>
+          <span className="text-slate-500">{text.schedule}</span>
           <span className="font-semibold text-slate-300">{scheduleLabel}</span>
         </div>
         {task.cronExpression && (
@@ -400,20 +553,20 @@ function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLo
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-slate-500">Timezone</span>
+          <span className="text-slate-500">{text.timezone}</span>
           <span className="text-slate-400">{task.timezone}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5">
-          <p className="text-slate-500">รันล่าสุด</p>
-          <p className="mt-0.5 font-semibold text-slate-300">{task.lastRunAt ? formatDateTime(task.lastRunAt) : "—"}</p>
+          <p className="text-slate-500">{text.lastRun}</p>
+          <p className="mt-0.5 font-semibold text-slate-300">{task.lastRunAt ? formatDateTime(task.lastRunAt, lang) : "—"}</p>
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5">
-          <p className="text-slate-500">รันถัดไป</p>
+          <p className="text-slate-500">{text.nextRun}</p>
           <p className={`mt-0.5 font-semibold ${task.isActive && task.nextRunAt ? "text-cyan-300" : "text-slate-500"}`}>
-            {task.nextRunAt && task.isActive ? formatDateTime(task.nextRunAt) : "—"}
+            {task.nextRunAt && task.isActive ? formatDateTime(task.nextRunAt, lang) : "—"}
           </p>
         </div>
       </div>
@@ -427,13 +580,13 @@ function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLo
       </div>
 
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-500">Min Priority</span>
+        <span className="text-slate-500">{text.minPriority}</span>
         <span className="font-bold text-slate-300">{task.minPriorityScore}/100</span>
       </div>
 
       {isFailed && (
         <div className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] px-3 py-2 text-xs text-rose-300">
-          ❌ Task ล้มเหลวในการรันครั้งล่าสุด กด <strong>Retry</strong> หรือ <strong>View Logs</strong>
+          ❌ {text.failedHint}
         </div>
       )}
 
@@ -444,19 +597,19 @@ function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLo
           type="button"
           className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 py-2.5 text-sm font-black text-white shadow-md shadow-cyan-500/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isBusy && isRunning ? <><span className="animate-spin">⚙️</span> กำลังรัน...</> : isFailed ? "🔄 Retry" : "⚡ Run Now"}
+          {isBusy && isRunning ? <><span className="animate-spin">⚙️</span> {text.runningAction}</> : isFailed ? `🔄 ${text.retryAction}` : `⚡ ${text.runNow}`}
         </button>
         <button disabled={isBusy} onClick={onTogglePause} type="button" className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 disabled:opacity-50">
-          {isPaused ? "▶️ Resume" : "⏸ Pause"}
+          {isPaused ? `▶️ ${text.resume}` : `⏸ ${text.pause}`}
         </button>
         <button onClick={onViewLogs} type="button" className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10">
-          📋 View Logs
+          📋 {text.viewLogs}
         </button>
         <Link href={`/task-results?task_id=${task.id}`} className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10">
-          📊 Results
+          📊 {text.results}
         </Link>
         <button disabled={isBusy} onClick={onDelete} type="button" className="inline-flex items-center justify-center gap-1 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] py-2 text-xs font-bold text-rose-300 transition hover:bg-rose-300/10 disabled:opacity-50">
-          🗑️ Delete
+          🗑️ {text.delete}
         </button>
       </div>
     </Card>
@@ -465,7 +618,7 @@ function TaskCardPro({ task, isBusy, onRunNow, onTogglePause, onDelete, onViewLo
 
 // ─── Log Drawer ───────────────────────────────────────────────────────────────
 
-function LogDrawer({ task, onClose }: { task: ScheduledTask; onClose: () => void }) {
+function LogDrawer({ task, onClose, text, lang }: { task: ScheduledTask; onClose: () => void; text: ScheduledTasksCopy; lang: "th" | "en" }) {
   const [runs, setRuns] = useState<TaskRun[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -495,10 +648,10 @@ function LogDrawer({ task, onClose }: { task: ScheduledTask; onClose: () => void
       <div className="flex h-full w-full max-w-lg flex-col overflow-hidden border-l border-white/10 bg-slate-950 shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 p-5">
           <div>
-            <p className="text-xs text-slate-500">Task Logs</p>
+            <p className="text-xs text-slate-500">{text.taskLogs}</p>
             <p className="font-black text-white">{TYPE_EMOJI[task.type] ?? "⚙️"} {task.name}</p>
           </div>
-          <button onClick={onClose} type="button" className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/10 hover:text-white">✕ ปิด</button>
+          <button onClick={onClose} type="button" className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/10 hover:text-white">✕ {text.close}</button>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
@@ -508,7 +661,7 @@ function LogDrawer({ task, onClose }: { task: ScheduledTask; onClose: () => void
           ) : runs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <span className="text-4xl">📭</span>
-              <p className="text-slate-400">ยังไม่มี log สำหรับ task นี้</p>
+              <p className="text-slate-400">{text.noLogs}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -525,9 +678,9 @@ function LogDrawer({ task, onClose }: { task: ScheduledTask; onClose: () => void
                       <span className="text-xs text-slate-500 font-mono">{run.id.slice(-8)}</span>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs text-slate-500">
-                      <span>Started: <span className="text-slate-300">{formatDateTime(run.startedAt)}</span></span>
-                      <span>Duration: <span className="text-slate-300">{duration}</span></span>
-                      <span>Priority: <span className="text-slate-300">{run.priorityScore}/100</span></span>
+                      <span>{text.started}: <span className="text-slate-300">{formatDateTime(run.startedAt, lang)}</span></span>
+                      <span>{text.duration}: <span className="text-slate-300">{duration}</span></span>
+                      <span>{text.priority}: <span className="text-slate-300">{run.priorityScore}/100</span></span>
                       <span>Telegram: <span className={run.telegramStatus === "sent" ? "text-emerald-300" : "text-slate-400"}>{run.telegramStatus}</span></span>
                     </div>
                     {run.gptOutput?.summary && (
@@ -549,7 +702,7 @@ function LogDrawer({ task, onClose }: { task: ScheduledTask; onClose: () => void
 
 // ─── Template Modal ───────────────────────────────────────────────────────────
 
-function TemplateModal({ onClose }: { onClose: () => void }) {
+function TemplateModal({ onClose, text }: { onClose: () => void; text: ScheduledTasksCopy }) {
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", fn);
@@ -562,8 +715,8 @@ function TemplateModal({ onClose }: { onClose: () => void }) {
       <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 p-5">
           <div>
-            <p className="text-xs text-slate-500">เลือก Template</p>
-            <p className="font-black text-white text-lg">สร้าง Task ใหม่</p>
+            <p className="text-xs text-slate-500">{text.chooseTemplate}</p>
+            <p className="font-black text-white text-lg">{text.createNewTask}</p>
           </div>
           <button onClick={onClose} type="button" className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/10">✕</button>
         </div>
@@ -591,8 +744,8 @@ function TemplateModal({ onClose }: { onClose: () => void }) {
             >
               <span className="text-2xl">⚙️</span>
               <div>
-                <p className="font-bold">Custom Task</p>
-                <p className="text-xs">กำหนดทุกอย่างเอง</p>
+                <p className="font-bold">{text.customTask}</p>
+                <p className="text-xs">{text.customTaskDesc}</p>
               </div>
             </Link>
           </div>
@@ -604,8 +757,8 @@ function TemplateModal({ onClose }: { onClose: () => void }) {
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
 
-function ConfirmModal({ title, description, onConfirm, onCancel }: {
-  title: string; description: string; onConfirm: () => void; onCancel: () => void;
+function ConfirmModal({ title, description, onConfirm, onCancel, cancelLabel, confirmLabel }: {
+  title: string; description: string; onConfirm: () => void; onCancel: () => void; cancelLabel: string; confirmLabel: string;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -614,8 +767,8 @@ function ConfirmModal({ title, description, onConfirm, onCancel }: {
         <p className="font-black text-white">{title}</p>
         <p className="mt-2 text-sm text-slate-400 leading-6">{description}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onCancel} type="button" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10">ยกเลิก</button>
-          <button onClick={onConfirm} type="button" className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-4 py-2 text-sm font-bold text-rose-100 hover:bg-rose-300/15">ยืนยัน</button>
+          <button onClick={onCancel} type="button" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10">{cancelLabel}</button>
+          <button onClick={onConfirm} type="button" className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-4 py-2 text-sm font-bold text-rose-100 hover:bg-rose-300/15">{confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -624,16 +777,16 @@ function ConfirmModal({ title, description, onConfirm, onCancel }: {
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function EmptyState({ onCreate, title, description, buttonLabel }: { onCreate: () => void; title: string; description: string; buttonLabel: string }) {
   return (
     <div className="flex flex-col items-center gap-5 py-20 text-center">
       <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04] text-4xl">⏱</div>
       <div>
-        <p className="text-lg font-black text-white">ยังไม่มี Scheduled Tasks</p>
-        <p className="mt-2 text-sm text-slate-400 max-w-xs">สร้าง automation task แรกของคุณ เช่น Daily Brief, Email Monitor หรือ Telegram Alert</p>
+        <p className="text-lg font-black text-white">{title}</p>
+        <p className="mt-2 text-sm text-slate-400 max-w-xs">{description}</p>
       </div>
       <button onClick={onCreate} type="button" className="rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-2.5 text-sm font-black text-white shadow-lg hover:opacity-90">
-        + Create Task
+        + {buttonLabel}
       </button>
     </div>
   );

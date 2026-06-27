@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageToggle } from "./LanguageToggle";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -10,7 +11,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const [now, setNow] = useState<string | null>(null);
-  const { lang, setLang, t } = useLanguage();
+  const { t } = useLanguage();
 
   useEffect(() => {
     setNow(new Date().toISOString());
@@ -35,13 +36,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <button
-            onClick={() => setLang(lang === "th" ? "en" : "th")}
-            type="button"
-            className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/10"
-          >
-            {lang === "th" ? "TH" : "EN"}
-          </button>
+          <LanguageToggle />
           <div className="hidden rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-slate-400 md:block">
             {now ? formatDateTime(now) : "-"}
           </div>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
 const prompt = Prompt({
@@ -20,7 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={prompt.variable}>
-      <body className="nimbus-depth-space">{children}</body>
+      <body className="nimbus-depth-space">
+        <LanguageProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </LanguageProvider>
+      </body>
     </html>
   );
 }
