@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
-import { clampScore, formatDateTime } from "@/lib/utils";
+import { clampScore, cn, formatDateTime } from "@/lib/utils";
 import type { Lang } from "@/lib/translations";
 import type { DailyBriefApiResponse, DailyBriefCategoryKey, DailyBriefItem } from "@/types/daily-brief";
 import type { WebNotification } from "@/types/notification";
@@ -350,16 +350,6 @@ function dailyCategoryLabel(key: DailyBriefCategoryKey, lang: Lang) {
   return lang === "th" ? detail.labelTh : detail.labelEn;
 }
 
-function dailyCategoryDescription(key: DailyBriefCategoryKey, lang: Lang) {
-  const detail = getDailyBriefTopicDetail(key);
-  return lang === "th" ? detail.descriptionTh : detail.descriptionEn;
-}
-
-function dailyCategorySubtopics(key: DailyBriefCategoryKey, lang: Lang) {
-  const detail = getDailyBriefTopicDetail(key);
-  return lang === "th" ? detail.subtopicsTh : detail.subtopicsEn;
-}
-
 function dailyItemTitle(item: DailyBriefItem, lang: Lang) {
   return lang === "th" ? item.titleTh : item.title || item.titleTh;
 }
@@ -386,10 +376,6 @@ function dailyNewsStatusTone(item: DailyBriefItem): BadgeTone {
   if (item.isSaved) return "blue";
   if (item.telegramStatus === "queued") return "purple";
   return "gray";
-}
-
-function newsProgressStyle(score: number) {
-  return { width: `${clampScore(score)}%` };
 }
 
 function sourceEntries(run: TaskRun) {
@@ -495,6 +481,308 @@ function nextTask(tasks: ScheduledTask[]) {
   return tasks.filter((task) => task.nextRunAt).sort((a, b) => new Date(a.nextRunAt ?? 0).getTime() - new Date(b.nextRunAt ?? 0).getTime())[0] ?? null;
 }
 
+type NewsSnapshotCard = {
+  label: string;
+  value: string | number;
+  hint: string;
+  tone: BadgeTone;
+  icon: string;
+};
+
+function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefItem; lang: Lang; large?: boolean }) {
+  const detail = getDailyBriefTopicDetail(item.category);
+  return (
+    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36")}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.45),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(168,85,247,0.36),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgba(2,6,23,0.96)_100%)]" />
+      <div className="absolute left-5 top-5 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryLabel(item.category, lang)}</div>
+      <div className="relative flex h-full min-h-full flex-col justify-end p-5">
+        <span className={cn("drop-shadow-[0_0_26px_rgba(96,165,250,0.75)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-lg border border-white/10 bg-white/[0.08] px-2.5 py-1 text-xs font-black text-white">#{item.tags[0] ?? item.category}</span>
+          <span className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs font-black text-emerald-100">{item.priorityScore}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, onHide }: {
+  item: DailyBriefItem;
+  lang: Lang;
+  variant: "featured" | "wide" | "compact";
+  isSending: boolean;
+  onSend: (item: DailyBriefItem) => void;
+  onSave: (item: DailyBriefItem) => void;
+  onHide: (item: DailyBriefItem) => void;
+}) {
+  const detail = getDailyBriefTopicDetail(item.category);
+  const statusLabel = item.isSaved ? dailyText(lang, "saved") : item.telegramStatus === "idle" ? (lang === "th" ? "พร้อมส่ง" : "ready") : item.telegramStatus;
+  const isFeatured = variant === "featured";
+  const isCompact = variant === "compact";
+  const layoutClass = isFeatured
+    ? "grid h-full grid-rows-[minmax(18rem,auto)_1fr]"
+    : isCompact
+      ? "grid h-full grid-rows-[minmax(9rem,auto)_1fr]"
+      : "grid gap-0 sm:grid-cols-[11rem_minmax(0,1fr)]";
+
+  return (
+    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "")}>
+      <div className={layoutClass}>
+        <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />
+        <div className="flex min-w-0 flex-col p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={isFeatured ? "red" : detail.key === "cybersecurity" ? "purple" : "blue"}>{isFeatured ? (lang === "th" ? "Priority สูง" : "High Priority") : dailyCategoryLabel(item.category, lang)}</Badge>
+            <Badge tone={dailyNewsStatusTone(item)}>{statusLabel}</Badge>
+            <span className="ml-auto rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-sm font-black text-emerald-100">{item.priorityScore}</span>
+          </div>
+          <h3 className={cn("mt-3 font-black text-white", isFeatured ? "text-2xl leading-9" : "line-clamp-2 text-base leading-6")}>{dailyItemTitle(item, lang)}</h3>
+          <p className="mt-2 text-xs font-semibold text-slate-500">{item.sourceName} · {formatNewsTime(item.publishedAt, lang)}</p>
+          <p className={cn("mt-3 text-sm leading-6 text-slate-300", isFeatured ? "line-clamp-3" : "line-clamp-2")}>{dailyItemSummary(item, lang)}</p>
+          {isFeatured && (
+            <div className="mt-4 space-y-1 text-sm leading-6 text-slate-300">
+              {dailyItemBullets(item, lang).slice(0, 2).map((point) => <p key={point}>• {point}</p>)}
+            </div>
+          )}
+          <div className="mt-auto flex flex-wrap gap-2 pt-4">
+            <Button asChild size="sm">
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">{dailyText(lang, "readFull")}</a>
+            </Button>
+            <Button size="sm" variant="secondary" disabled={isSending} onClick={() => onSend(item)}>{isSending ? dailyText(lang, "sendingTelegram") : dailyText(lang, "sendTelegram")}</Button>
+            <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? dailyText(lang, "saved") : dailyText(lang, "save")}</Button>
+            {isFeatured && <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{dailyText(lang, "hide")}</Button>}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DailyBriefDashboardSection({
+  lang,
+  dailyBrief,
+  dailyBriefError,
+  dailyNewsItems,
+  newsSnapshotCards,
+  dailyCategoryCounts,
+  dashboardSearch,
+  newsActionLoading,
+  message,
+  runs,
+  tasks,
+  onSearchChange,
+  onRefresh,
+  onSendAll,
+  onSendNews,
+  onSaveNews,
+  onHideNews,
+}: {
+  lang: Lang;
+  dailyBrief: DailyBriefApiResponse | null;
+  dailyBriefError: string | null;
+  dailyNewsItems: DailyBriefItem[];
+  newsSnapshotCards: NewsSnapshotCard[];
+  dailyCategoryCounts: Record<string, number>;
+  dashboardSearch: string;
+  newsActionLoading: string | null;
+  message: string;
+  runs: TaskRun[];
+  tasks: ScheduledTask[];
+  onSearchChange: (value: string) => void;
+  onRefresh: () => void;
+  onSendAll: () => void;
+  onSendNews: (item: DailyBriefItem) => void;
+  onSaveNews: (item: DailyBriefItem) => void;
+  onHideNews: (item: DailyBriefItem) => void;
+}) {
+  const featured = dailyNewsItems[0] ?? null;
+  const sideStories = dailyNewsItems.slice(1, 3);
+  const lowerStories = dailyNewsItems.slice(3, 6);
+  const topStories = (dailyBrief?.summary.topStories.length ? dailyBrief.summary.topStories : dailyNewsItems).slice(0, 5);
+  const latestRuns = runs.slice(0, 5);
+  const dateLabel = dailyBrief?.summary.date ?? new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date());
+  const activeDailyTasks = tasks.filter((task) => task.type === "Daily Brief" && task.isActive).length;
+  const failedRuns = latestRuns.filter((run) => run.status === "failed" || run.telegramStatus === "failed").length;
+
+  return (
+    <section className="space-y-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="space-y-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/55 px-4 shadow-inner shadow-black/20">
+              <span className="text-slate-400">⌕</span>
+              <input
+                value={dashboardSearch}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder={lang === "th" ? "ค้นหาข่าว, หมวดหมู่, แหล่งข่าว..." : "Search news, categories, sources..."}
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500"
+              />
+              <span className="hidden rounded-lg border border-white/10 px-2 py-1 text-xs font-black text-slate-500 sm:inline">⌘K</span>
+            </label>
+            <div className="flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/55 px-4 text-sm font-black text-slate-200">📅 {dateLabel}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button disabled={newsActionLoading === "refreshNews"} onClick={onRefresh} type="button" variant="secondary">{newsActionLoading === "refreshNews" ? label(lang, "running") : `✦ ${lang === "th" ? "สรุปวันนี้" : "Today"}`}</Button>
+              <Button disabled={!dailyNewsItems.length || newsActionLoading === "sendAllNews"} onClick={onSendAll} type="button" variant="secondary">{newsActionLoading === "sendAllNews" ? dailyText(lang, "sendingTelegram") : `📨 ${dailyText(lang, "sendAll")}`}</Button>
+            </div>
+          </div>
+
+          <Card className="relative overflow-hidden border-violet-300/25 bg-violet-400/[0.055] p-6 sm:p-8">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_16%,rgba(99,102,241,0.42),transparent_28%),radial-gradient(circle_at_88%_20%,rgba(34,211,238,0.22),transparent_26%),linear-gradient(135deg,rgba(15,23,42,0.14),rgba(88,28,135,0.20))]" />
+            <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-center">
+              <div>
+                <h1 className="max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl">{dailyText(lang, "title")}</h1>
+                <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-200 sm:text-base">{dailyText(lang, "desc")}</p>
+                <div className="mt-5 grid gap-3 text-sm font-semibold text-slate-200 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">⚡ {lang === "th" ? "อัปเดตสดวันนี้" : "Live daily refresh"}</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">🛡 {lang === "th" ? "คัดกรองอัจฉริยะ" : "Smart priority filter"}</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">✈ {lang === "th" ? "ส่งตรง Telegram" : "Telegram ready"}</div>
+                </div>
+              </div>
+              <div className="relative min-h-56 overflow-hidden rounded-3xl border border-cyan-300/20 bg-slate-950/45 p-6 shadow-[0_0_50px_rgba(59,130,246,0.20)]">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(96,165,250,0.42),transparent_28%),linear-gradient(135deg,rgba(99,102,241,0.22),rgba(2,6,23,0.10))]" />
+                <div className="relative grid min-h-44 place-items-center text-center">
+                  <div className="rotate-[-10deg] rounded-[2rem] border border-cyan-200/30 bg-cyan-300/10 p-8 text-7xl shadow-[0_0_48px_rgba(34,211,238,0.28)]">✈</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+            {newsSnapshotCards.map((card) => (
+              <Card key={card.label} className={cn("p-4", card.tone === "red" && "border-orange-300/30 bg-orange-400/[0.075]", card.tone === "purple" && "border-fuchsia-300/25 bg-fuchsia-400/[0.065]", card.tone === "green" && "border-emerald-300/25 bg-emerald-400/[0.055]", card.tone === "blue" && "border-blue-300/25 bg-blue-400/[0.055]")}>
+                <div className="flex items-start gap-3">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.08] text-xl">{card.icon}</span>
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-sm font-bold text-slate-300">{card.label}</p>
+                    <p className="mt-1 truncate text-2xl font-black text-white">{card.value}</p>
+                    <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-400">{card.hint}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="p-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-xl font-black text-white">⚡ {dailyText(lang, "latest")}</h2>
+              <Button asChild size="sm" variant="ghost"><Link href="/daily">{lang === "th" ? "ดูข่าวทั้งหมด" : "View all"} →</Link></Button>
+            </div>
+            {dailyBriefError && <ErrorState title={lang === "th" ? "โหลดข่าวไม่สำเร็จ" : "News failed to load"} description={dailyBriefError} onRetry={onRefresh} />}
+            {!dailyBriefError && !dailyNewsItems.length && <EmptyState title={dailyText(lang, "emptyTitle")} description={dailyText(lang, "emptyDesc")} />}
+            {!dailyBriefError && dailyNewsItems.length > 0 && (
+              <div className="grid gap-4 xl:grid-cols-[1.1fr_1.45fr]">
+                {featured && (
+                  <DashboardStoryCard
+                    item={featured}
+                    lang={lang}
+                    variant="featured"
+                    isSending={newsActionLoading === `news:${featured.id}`}
+                    onSend={onSendNews}
+                    onSave={onSaveNews}
+                    onHide={onHideNews}
+                  />
+                )}
+                <div className="grid gap-4">
+                  {sideStories.map((item) => (
+                    <DashboardStoryCard
+                      key={item.id}
+                      item={item}
+                      lang={lang}
+                      variant="wide"
+                      isSending={newsActionLoading === `news:${item.id}`}
+                      onSend={onSendNews}
+                      onSave={onSaveNews}
+                      onHide={onHideNews}
+                    />
+                  ))}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {lowerStories.map((item) => (
+                      <DashboardStoryCard
+                        key={item.id}
+                        item={item}
+                        lang={lang}
+                        variant="compact"
+                        isSending={newsActionLoading === `news:${item.id}`}
+                        onSend={onSendNews}
+                        onSave={onSaveNews}
+                        onHide={onHideNews}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <Card className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-black text-white">Top 5 {lang === "th" ? "ข่าวสำคัญวันนี้" : "important stories"}</h2>
+              <Button asChild size="sm" variant="ghost"><Link href="/daily">{lang === "th" ? "ดูทั้งหมด" : "All"}</Link></Button>
+            </div>
+            <div className="mt-4 space-y-2">
+              {topStories.map((item, index) => (
+                <div key={item.id} className="grid grid-cols-[2rem_minmax(0,1fr)_3.25rem] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] p-2.5">
+                  <span className={cn("grid h-8 w-8 place-items-center rounded-lg text-sm font-black text-white", index === 0 ? "bg-rose-500/80" : index === 1 ? "bg-amber-500/80" : index === 2 ? "bg-cyan-500/75" : "bg-violet-500/75")}>{index + 1}</span>
+                  <p className="line-clamp-2 text-sm font-bold leading-5 text-white">{dailyItemTitle(item, lang)}</p>
+                  <span className="justify-self-end rounded-xl bg-emerald-300/10 px-2 py-1 text-center text-xs font-black text-emerald-100">{item.priorityScore}<br />{label(lang, "score")}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-xs font-semibold text-slate-500">{lang === "th" ? "อัปเดตล่าสุด" : "Updated"} {formatNewsTime(dailyBrief?.summary.generatedAt, lang)}</p>
+          </Card>
+
+          <Card className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-black text-white">📨 {lang === "th" ? "งานส่งล่าสุด" : "Latest sends"}</h2>
+              <Button asChild size="sm" variant="ghost"><Link href="/task-results">{lang === "th" ? "ดูทั้งหมด" : "All"}</Link></Button>
+            </div>
+            <div className="mt-4 divide-y divide-white/10">
+              {latestRuns.map((run) => {
+                const task = tasks.find((candidate) => candidate.id === run.taskId);
+                return (
+                  <div key={run.id} className="grid grid-cols-[4rem_minmax(0,1fr)_5rem] items-center gap-3 py-3 text-sm">
+                    <span className="font-semibold text-slate-500">{formatDateTime(run.startedAt).split(" ").slice(-1)[0] ?? "-"}</span>
+                    <p className="line-clamp-1 font-bold text-slate-200">{task ? displayTaskName(task, lang) : displayRunTitle(run, task, lang)}</p>
+                    <Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="text-lg font-black text-white">{lang === "th" ? "สถานะระบบ" : "System status"}</h2>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-slate-200">🛡 {lang === "th" ? "ระบบคัดกรองข่าว" : "News filtering"}</span>
+                  <span className="text-sm font-black text-emerald-200">{lang === "th" ? "ทำงานปกติ" : "Healthy"}</span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-slate-200">📨 Telegram API</span>
+                  <span className={cn("text-sm font-black", failedRuns ? "text-amber-200" : "text-emerald-200")}>{failedRuns ? (lang === "th" ? "มีงานต้องตรวจ" : "Review") : (lang === "th" ? "เชื่อมต่อปกติ" : "Connected")}</span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-slate-200">🗂 {lang === "th" ? "หมวด Daily Brief" : "Daily categories"}</span>
+                  <span className="text-sm font-black text-cyan-100">{Object.keys(dailyCategoryCounts).length}</span>
+                </div>
+              </div>
+            </div>
+            <p className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-3 text-xs leading-6 text-cyan-50">{message}</p>
+            <p className="mt-3 text-xs text-slate-500">{activeDailyTasks} {lang === "th" ? "Daily Brief task เปิดใช้งานอยู่" : "active Daily Brief task(s)"}</p>
+          </Card>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 export function DashboardControlView() {
   const { lang, t } = useLanguage();
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
@@ -508,6 +796,7 @@ export function DashboardControlView() {
   const [savedNewsIds, setSavedNewsIds] = useState<Set<string>>(() => new Set());
   const [newsStatuses, setNewsStatuses] = useState<Record<string, DailyBriefItem["telegramStatus"]>>({});
   const [newsActionLoading, setNewsActionLoading] = useState<string | null>(null);
+  const [dashboardSearch, setDashboardSearch] = useState("");
   const [message, setMessage] = useState(t("dashboard_command_initial_message"));
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [actionLoading, setActionLoading] = useState<"runAll" | "task" | null>(null);
@@ -575,8 +864,14 @@ export function DashboardControlView() {
   ];
 
   const dailyNewsItems = useMemo(() => {
+    const query = dashboardSearch.trim().toLowerCase();
     return (dailyBrief?.items ?? [])
       .filter((item) => !hiddenNewsIds.has(item.id) && !item.isHidden)
+      .filter((item) => {
+        if (!query) return true;
+        const haystack = [item.title, item.titleTh, item.summaryTh, item.sourceName, item.category, ...item.tags].join(" ").toLowerCase();
+        return haystack.includes(query);
+      })
       .map((item) => ({
         ...item,
         isSaved: savedNewsIds.has(item.id) || item.isSaved,
@@ -584,7 +879,7 @@ export function DashboardControlView() {
       }))
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
       .slice(0, 8);
-  }, [dailyBrief, hiddenNewsIds, newsStatuses, savedNewsIds]);
+  }, [dailyBrief, dashboardSearch, hiddenNewsIds, newsStatuses, savedNewsIds]);
 
   const dailyCategoryCounts = useMemo(() => {
     return (dailyBrief?.items ?? []).reduce<Record<string, number>>((acc, item) => {
@@ -593,9 +888,13 @@ export function DashboardControlView() {
     }, {});
   }, [dailyBrief]);
 
+  const topDailyCategory = useMemo(() => {
+    const [key, count] = Object.entries(dailyCategoryCounts).sort((a, b) => b[1] - a[1])[0] ?? ["all", 0];
+    return { key: key as DailyBriefCategoryKey, count };
+  }, [dailyCategoryCounts]);
+
   const highPriorityNews = (dailyBrief?.items ?? []).filter((item) => item.priorityScore >= 80).length;
   const sentNewsCount = (dailyBrief?.items ?? []).filter((item) => isDailyNewsSent(newsStatuses[item.id] ?? item.telegramStatus)).length;
-  const pendingReadCount = dailyNewsItems.filter((item) => !savedNewsIds.has(item.id)).length;
   const cyberNewsCount = (dailyBrief?.items ?? []).filter((item) => item.category === "cybersecurity").length;
   const pmTrafficCount = (dailyBrief?.items ?? []).filter((item) => item.category === "weatherPm25" || item.category === "traffic").length;
   const newsSnapshotCards = [
@@ -603,9 +902,8 @@ export function DashboardControlView() {
     { label: dailyText(lang, "highPriority"), value: highPriorityNews, hint: "Priority ≥ 80", tone: "purple" as const, icon: "⭐" },
     { label: dailyText(lang, "telegramSent"), value: sentNewsCount, hint: "sent / mock_sent", tone: "green" as const, icon: "📨" },
     { label: dailyText(lang, "failedTasks"), value: failedCount, hint: failedCount > 0 ? label(lang, "needsReview") : label(lang, "healthy"), tone: failedCount > 0 ? "red" as const : "green" as const, icon: "⚠️" },
-    { label: dailyText(lang, "pendingRead"), value: pendingReadCount, hint: dailyText(lang, "latest"), tone: "gray" as const, icon: "🔎" },
-    { label: dailyText(lang, "cyberAlert"), value: cyberNewsCount, hint: dailyCategoryLabel("cybersecurity", lang), tone: cyberNewsCount ? "red" as const : "gray" as const, icon: "🛡️" },
-    { label: dailyText(lang, "pmTraffic"), value: pmTrafficCount, hint: `${dailyCategoryLabel("weatherPm25", lang)} / ${dailyCategoryLabel("traffic", lang)}`, tone: "green" as const, icon: "🌦️" },
+    { label: lang === "th" ? "หมวดเด่นวันนี้" : "Top Category", value: dailyCategoryLabel(topDailyCategory.key, lang), hint: `${topDailyCategory.count} ${t("common_items")}`, tone: "green" as const, icon: "🎯" },
+    { label: dailyText(lang, "cyberAlert"), value: cyberNewsCount + pmTrafficCount, hint: `${dailyCategoryLabel("cybersecurity", lang)} / ${dailyCategoryLabel("weatherPm25", lang)}`, tone: cyberNewsCount || pmTrafficCount ? "blue" as const : "gray" as const, icon: "🛡️" },
   ];
 
   async function runTask(task: ScheduledTask) {
@@ -725,135 +1023,25 @@ export function DashboardControlView() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-5">
-        <Card className="relative overflow-hidden border-cyan-300/25 bg-cyan-300/[0.055] p-6 sm:p-8">
-          <div className="absolute -right-28 -top-28 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="absolute -bottom-32 left-16 h-72 w-72 rounded-full bg-violet-500/18 blur-3xl" />
-          <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
-            <div>
-              <div className="flex flex-wrap gap-2">
-                <Badge tone="blue">{dailyText(lang, "badge")}</Badge>
-                <Badge tone="green">{dailyBrief?.summary.mode ?? dailyText(lang, "fallbackMode")}</Badge>
-                <Badge tone="purple">Thai summary + Telegram</Badge>
-              </div>
-              <h1 className="mt-5 max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl">{dailyText(lang, "title")}</h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">{dailyText(lang, "desc")}</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button asChild><Link href="/daily">📰 {dailyText(lang, "openDaily")}</Link></Button>
-              <Button disabled={newsActionLoading === "refreshNews"} onClick={() => void refreshDailyBrief()} type="button" variant="secondary">{newsActionLoading === "refreshNews" ? label(lang, "running") : `🔄 ${dailyText(lang, "fetchLatest")}`}</Button>
-              <Button disabled={!dailyNewsItems.length || newsActionLoading === "sendAllNews"} onClick={() => void sendAllNewsToTelegram()} type="button" variant="secondary">{newsActionLoading === "sendAllNews" ? dailyText(lang, "sendingTelegram") : `📨 ${dailyText(lang, "sendAll")}`}</Button>
-              <Button asChild variant="outline"><Link href="/daily#daily-brief-scheduler">⏱ {dailyText(lang, "schedule")}</Link></Button>
-              <Button asChild variant="outline"><Link href="/task-results">📋 {dailyText(lang, "latestResults")}</Link></Button>
-              <Button asChild variant="outline"><Link href="/task-results?status=failed">⚠️ {dailyText(lang, "failedJobs")}</Link></Button>
-            </div>
-          </div>
-        </Card>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
-          {newsSnapshotCards.map((card) => (
-            <Card key={card.label} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{card.label}</p>
-                  <p className="mt-2 truncate text-2xl font-black text-white">{card.value}</p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{card.hint}</p>
-                </div>
-                <Badge tone={card.tone}>{card.icon}</Badge>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
-            <div>
-              <p className="text-sm font-semibold text-cyan-200">{dailyText(lang, "latest")}</p>
-              <h2 className="mt-1 text-2xl font-black text-white">{dailyText(lang, "latestDesc")}</h2>
-            </div>
-            <p className="text-sm font-semibold text-slate-400">{dailyBrief?.summary.date ?? "-"}</p>
-          </div>
-
-          {dailyBriefError && <ErrorState title={t("dashboard_loading_failed")} description={dailyBriefError} onRetry={() => void refreshDailyBrief()} />}
-
-          {!dailyBriefError && dailyNewsItems.length === 0 && (
-            <EmptyState title={dailyText(lang, "emptyTitle")} description={dailyText(lang, "emptyDesc")} />
-          )}
-
-          {!dailyBriefError && dailyNewsItems.length > 0 && (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {dailyNewsItems.map((item) => {
-                const detail = getDailyBriefTopicDetail(item.category);
-                const isSending = newsActionLoading === `news:${item.id}`;
-                const statusLabel = item.isSaved ? dailyText(lang, "saved") : item.telegramStatus === "idle" ? "ready" : item.telegramStatus;
-                return (
-                  <Card key={item.id} className="flex min-h-[25rem] flex-col p-5 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone="blue">{detail.icon} {dailyCategoryLabel(item.category, lang)}</Badge>
-                      <Badge tone={dailyNewsStatusTone(item)}>{statusLabel}</Badge>
-                      <Badge tone="gray">{item.sourceName}</Badge>
-                    </div>
-                    <div className="mt-4 flex items-start justify-between gap-4">
-                      <h3 className="line-clamp-3 text-xl font-black leading-8 text-white">{dailyItemTitle(item, lang)}</h3>
-                      <span className="shrink-0 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100">{item.priorityScore}/100</span>
-                    </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={newsProgressStyle(item.priorityScore)} />
-                    </div>
-                    <p className="mt-3 text-xs font-semibold text-slate-500">{dailyText(lang, "source")}: {item.sourceName} · {dailyText(lang, "published")}: {formatNewsTime(item.publishedAt, lang)}</p>
-                    <p className="mt-4 line-clamp-3 text-sm leading-7 text-slate-300">{dailyItemSummary(item, lang)}</p>
-                    <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
-                      {dailyItemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>• {point}</p>)}
-                    </div>
-                    <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs leading-6 text-slate-400">
-                      <span className="font-bold text-cyan-200">{dailyText(lang, "why")}:</span> {lang === "th" ? item.whyItMatters : item.impact || item.whyItMatters}
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {item.tags.slice(0, 5).map((tag) => <span key={tag} className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-bold text-slate-300">#{tag}</span>)}
-                    </div>
-                    <div className="mt-auto flex flex-wrap gap-2 pt-5">
-                      <Button asChild size="sm"><a href={item.sourceUrl} target="_blank" rel="noreferrer">{dailyText(lang, "readFull")}</a></Button>
-                      <Button size="sm" variant="secondary" disabled={isSending} onClick={() => void sendNewsToTelegram(item)}>{isSending ? dailyText(lang, "sendingTelegram") : dailyText(lang, "sendTelegram")}</Button>
-                      <Button size="sm" variant="outline" onClick={() => saveNews(item)}>{item.isSaved ? dailyText(lang, "saved") : dailyText(lang, "save")}</Button>
-                      <Button size="sm" variant="ghost" onClick={() => hideNews(item)}>{dailyText(lang, "hide")}</Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {dailyBrief && (
-          <section className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-cyan-200">{dailyText(lang, "subcategories")}</p>
-              <h2 className="mt-1 text-2xl font-black text-white">{dailyText(lang, "subcategoryDesc")}</h2>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {dailyBrief.categories.filter((category) => category.key !== "all").map((category) => {
-                const detail = getDailyBriefTopicDetail(category.key);
-                const note = lang === "th" ? detail.noteTh : detail.noteEn;
-                return (
-                  <Card key={category.key} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Badge tone="blue">{detail.icon} {dailyCategoryLabel(category.key, lang)}</Badge>
-                        <p className="mt-3 text-sm font-bold leading-6 text-white">{dailyCategoryDescription(category.key, lang)}</p>
-                      </div>
-                      <span className="shrink-0 rounded-xl border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryCounts[category.key] ?? 0}</span>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {dailyCategorySubtopics(category.key, lang).slice(0, 7).map((topic) => <span key={topic} className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-bold text-slate-300">{topic}</span>)}
-                    </div>
-                    {note && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3 text-xs leading-6 text-amber-100">{note}</p>}
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
-      </section>
+      <DailyBriefDashboardSection
+        lang={lang}
+        dailyBrief={dailyBrief}
+        dailyBriefError={dailyBriefError}
+        dailyNewsItems={dailyNewsItems}
+        newsSnapshotCards={newsSnapshotCards}
+        dailyCategoryCounts={dailyCategoryCounts}
+        dashboardSearch={dashboardSearch}
+        newsActionLoading={newsActionLoading}
+        message={message}
+        runs={runs}
+        tasks={tasks}
+        onSearchChange={setDashboardSearch}
+        onRefresh={() => void refreshDailyBrief()}
+        onSendAll={() => void sendAllNewsToTelegram()}
+        onSendNews={(item) => void sendNewsToTelegram(item)}
+        onSaveNews={saveNews}
+        onHideNews={hideNews}
+      />
 
       <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
         <Card className="relative overflow-hidden p-6 sm:p-8">
