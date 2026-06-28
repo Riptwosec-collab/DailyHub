@@ -570,6 +570,36 @@ const festivalMonths: FestivalMonth[] = [
   },
 ];
 
+const eventLinks: Partial<Record<string, string>> = {
+  "vol-72-volume-phase-7": "https://www.zipeventapp.com/e/volume-livehouse-vol72",
+  "colorists-music-festival-5": "https://www.eventpop.me/s/colorists-5",
+  "slot-machine-machinema": "https://www.zipeventapp.com/e/SLOT-MACHINE-at-VOLUME",
+  "diiv-live-bangkok": "https://www.ticketmelon.com/loudlypreferth/DIIVBKK2026",
+  "y-book-fair-11": "https://www.qsncc.com/th/whats-on/event-calendar/y-book-fair-11/?r=%2F",
+  "base-010-yungtarr-shogun": "https://www.zipeventapp.com/e/VOLUME-Base-010-Yungtarr-Shogun",
+  "howareyou-fest-summer-edition": "https://www.eventpop.me/e/150964/howareyoufest",
+  "impact-speed-fest-2": "https://www.zipeventapp.com/e/IMPACT-Speed-Fest-2026-D9BE5513",
+  "vol-73-volume-phase-7": "https://www.zipeventapp.com/e/Volume-Livehouse-Vol73",
+  "base-011-television-off": "https://www.zipeventapp.com/e/Volume-Base-011-TELEVISION-OFF-SPECIAL-SHOW",
+  "awakening-song-wat-2026": "https://www.eventpop.me/e/157832/awakening-song-wat-2026",
+  "halfmoon-festival-july-2026": "https://www.eventpop.me/e/150897",
+  "phi-ta-khon-bangkok-island": "https://www.eventpop.me/e/154264",
+  "vol-74-volume-phase-7": "https://www.zipeventapp.com/e/Volume-Livehouse-Vol74",
+  "franchise-expo-thailand-2026": "https://www.impact.co.th/en/visitors/event-calendar/exhibition-trade/franchise-expo-thailand-by-smart-sme-expo",
+  "vol-75-volume-phase-7": "https://www.zipeventapp.com/e/Volume-Livehouse-Vol75",
+  "foodism-health-wellness-2026": "https://www.impact.co.th/en/visitors/event-calendar/exhibition-trade/the-foodism-show-x-thailand-health-and-wellness-2026",
+  "vol-76-volume-phase-7": "https://www.zipeventapp.com/e/Volume-Livehouse-Vol76",
+  "gfest-marathon-concert-2026": "https://www.thaiticketmajor.com/concert/gfest-marathon-concert-2026.html",
+  "bangkok-festival-dance-music-28": "https://www.thaiticketmajor.com/bangkokfestivals/",
+  "great-gatsby-enrique-gasa-valga": "https://bangkokfestivals.com/program/the-great-gatsby-enrique-gasa-valga-2026/",
+  "bangkok-festival-dance-music-october": "https://www.thaiticketmajor.com/bangkokfestivals/",
+  "808-festival-2026": "https://www.instagram.com/p/DaAr5M5Dxx2/",
+  "red-earth-renegades-2026": "https://www.eventpop.me/e/156323",
+  "wonderfruit-2026": "https://wonderfruit.co/tickets",
+  "tomorrowland-thailand-2026": "https://thailand.tomorrowland.com/en/passes-packages/",
+  "edc-thailand-2026": "https://thailand.edc.com/en/tickets/",
+};
+
 const sectionMeta = {
   indoor: {
     icon: "🏛",
@@ -623,6 +653,7 @@ function DetailRow({ icon, label }: { icon: string; label: string }) {
 function EventCard({ event, index, isThai }: { event: FestivalEvent; index: number; isThai: boolean }) {
   const meta = sectionMeta[event.category];
   const highlightLabel = event.category === "indoor" ? "ศิลปิน / ไฮไลต์" : "ไฮไลต์ / รูปแบบงาน";
+  const detailUrl = eventLinks[event.id];
 
   return (
     <article
@@ -655,9 +686,17 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
         </div>
         <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <DetailRow icon="🔗" label={isThai ? event.sourceTh : event.sourceEn} />
-          <Button variant="outline" size="sm" className="concert-button w-full justify-center sm:w-auto" disabled={event.isPlaceholder}>
-            {event.isPlaceholder ? (isThai ? "กำลังติดตาม" : "Tracking") : (isThai ? "ดูรายละเอียด" : "Details")} →
-          </Button>
+          {detailUrl && !event.isPlaceholder ? (
+            <Button asChild variant="outline" size="sm" className="concert-button w-full justify-center sm:w-auto">
+              <a href={detailUrl} target="_blank" rel="noopener noreferrer">
+                {isThai ? "ซื้อบัตร / ดูรายละเอียด" : "Tickets / Details"} <span aria-hidden>↗</span>
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="concert-button w-full justify-center sm:w-auto" disabled>
+              {isThai ? "กำลังติดตาม" : "Tracking"} →
+            </Button>
+          )}
         </div>
       </div>
     </article>
