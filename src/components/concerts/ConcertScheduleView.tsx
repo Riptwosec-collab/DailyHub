@@ -601,6 +601,22 @@ const eventLinks: Partial<Record<string, string>> = {
   "edc-thailand-2026": "https://thailand.edc.com/en/tickets/",
 };
 
+const expoFairEventIds = new Set([
+  "y-book-fair-11",
+  "impact-speed-fest-2",
+  "awakening-song-wat-2026",
+  "phi-ta-khon-bangkok-island",
+  "franchise-expo-thailand-2026",
+  "foodism-health-wellness-2026",
+  "bangkok-festival-dance-music-28",
+  "bangkok-festival-dance-music-october",
+  "red-earth-renegades-2026",
+]);
+
+function isConcertVisible(event: FestivalEvent) {
+  return !expoFairEventIds.has(event.id);
+}
+
 const sectionMeta = {
   indoor: {
     icon: "🏛",
@@ -623,7 +639,7 @@ const sectionMeta = {
 } satisfies Record<EventCategory, { icon: string; title: string; th: string; en: string; border: string; bg: string; chip: string }>;
 
 function getRealEventCount(month: FestivalMonth) {
-  return month.events.filter((event) => !event.isPlaceholder).length;
+  return month.events.filter((event) => isConcertVisible(event) && !event.isPlaceholder).length;
 }
 
 function concertPosterSrc(event: FestivalEvent, detailUrl: string) {
@@ -765,8 +781,9 @@ export function ConcertScheduleView() {
   const activeMonth = festivalMonths.find((month) => month.id === activeMonthId) ?? festivalMonths[0];
   const totalEvents = useMemo(() => festivalMonths.reduce((total, month) => total + getRealEventCount(month), 0), []);
   const monthRealCount = getRealEventCount(activeMonth);
-  const indoorEvents = activeMonth.events.filter((event) => event.category === "indoor");
-  const outdoorEvents = activeMonth.events.filter((event) => event.category === "outdoor");
+  const visibleEvents = activeMonth.events.filter(isConcertVisible);
+  const indoorEvents = visibleEvents.filter((event) => event.category === "indoor");
+  const outdoorEvents = visibleEvents.filter((event) => event.category === "outdoor");
   const isThai = lang === "th";
 
   return (

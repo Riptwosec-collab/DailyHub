@@ -46,6 +46,7 @@ export interface DailyBriefItem {
   tags: string[];
   sourceName: string;
   sourceUrl: string;
+  imageUrl?: string;
   publishedAt: string;
   language: "th" | "en" | "unknown";
   priorityScore: number;

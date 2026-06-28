@@ -30,7 +30,7 @@ const FILTER_TABS = {
 const copy = {
   th: {
     title: "งานอัตโนมัติ",
-    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ, โปรเดินทาง และไลฟ์สไตล์",
+    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ และโปรเดินทาง",
     createTask: "สร้างงาน",
     refresh: "รีเฟรช",
     testTelegram: "ทดสอบ Telegram",
@@ -58,7 +58,7 @@ const copy = {
   },
   en: {
     title: "Scheduled Tasks",
-    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, travel deals, and lifestyle ideas.",
+    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, and travel deals.",
     createTask: "Create Task",
     refresh: "Refresh",
     testTelegram: "Test Telegram",

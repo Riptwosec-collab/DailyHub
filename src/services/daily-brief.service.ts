@@ -13,6 +13,7 @@ function parseCategory(value: string | null): DailyBriefCategoryKey | undefined 
 function filterItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, search?: string | null) {
   const query = (search || "").trim().toLowerCase();
   return items.filter((item) => {
+    if (item.category === "lifestyle") return false;
     const matchesCategory = !category || item.category === category;
     const matchesSearch = !query || [item.title, item.titleTh, item.summaryTh, item.sourceName, item.tags.join(" ")].join(" ").toLowerCase().includes(query);
     return matchesCategory && matchesSearch && !item.isHidden;

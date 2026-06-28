@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { clampScore, cn, formatDateTime } from "@/lib/utils";
@@ -19,7 +20,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type BadgeTone = "blue" | "green" | "purple" | "red" | "gray";
-type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "lifestyle" | "failed";
+type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "failed";
 type Localized = Record<Lang, string>;
 type NewsTelegramResult = { status: DailyBriefItem["telegramStatus"]; message: string; parts: number };
 
@@ -39,7 +40,6 @@ const TOPICS: Topic[] = [
   { key: "product", emoji: "🌍", label: { th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar" }, tone: "green", pattern: /sale|deal|price|shop|shopee|product|radar|gadget|สินค้า|โปร/i },
   { key: "concert", emoji: "🎤", label: { th: "แจ้งเตือนคอนเสิร์ต", en: "Concert Alerts" }, tone: "purple", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
   { key: "football", emoji: "⚽", label: { th: "สรุปฟุตบอล", en: "Football Recap" }, tone: "green", pattern: /football|soccer|world cup|match|score|บอล|ฟุตบอล/i },
-  { key: "lifestyle", emoji: "💡", label: { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" }, tone: "purple", pattern: /lifestyle|weekend|restaurant|cafe|buffet|article|reading|ร้านอาหาร|คาเฟ่|บุฟเฟ่ต์|ไลฟ์สไตล์|วันหยุด|ที่เที่ยว|พักผ่อน/i },
 ];
 
 const DEFAULT_TOPIC: Topic = {
@@ -236,7 +236,7 @@ const TYPE_LABELS: Record<string, Localized> = {
   "World Cup Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
   "Public Alerts": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ", en: "Public Alerts" },
   "Travel Deals": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals" },
-  "Weekend Long Read": { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" },
+  "Weekend Long Read": { th: "อีเวนต์ / ดีล / โปรเดินทาง", en: "Events / Deals / Travel" },
   Custom: { th: "กำหนดเอง", en: "Custom" },
 };
 
@@ -489,12 +489,47 @@ type NewsSnapshotCard = {
   icon: string;
 };
 
+function dashboardNewsImageSrc(item: DailyBriefItem) {
+  const params = new URLSearchParams({
+    url: item.imageUrl || item.sourceUrl,
+    title: dailyItemTitle(item, "en"),
+    kind: "news",
+  });
+  return `/api/poster-image?${params.toString()}`;
+}
+
 function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefItem; lang: Lang; large?: boolean }) {
   const detail = getDailyBriefTopicDetail(item.category);
+  const [failed, setFailed] = useState(false);
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36")}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.45),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(168,85,247,0.36),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgba(2,6,23,0.96)_100%)]" />
+      {!failed && (
+        <>
+          <Image
+            src={dashboardNewsImageSrc(item)}
+            alt={dailyItemTitle(item, "en")}
+            className="scale-105 object-cover blur-[2px]"
+            fill
+            sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
+            unoptimized
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+          <Image
+            src={dashboardNewsImageSrc(item)}
+            alt=""
+            aria-hidden
+            className="object-cover opacity-85"
+            fill
+            sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
+            unoptimized
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+        </>
+      )}
+      {failed && <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.45),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(168,85,247,0.36),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06)_10%,rgba(2,6,23,0.96)_100%)]" />
       <div className="absolute left-5 top-5 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryLabel(item.category, lang)}</div>
       <div className="relative flex h-full min-h-full flex-col justify-end p-5">
         <span className={cn("drop-shadow-[0_0_26px_rgba(96,165,250,0.75)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
@@ -597,7 +632,7 @@ function DailyBriefDashboardSection({
 }) {
   const featured = dailyNewsItems[0] ?? null;
   const sideStories = dailyNewsItems.slice(1, 3);
-  const lowerStories = dailyNewsItems.slice(3, 6);
+  const lowerStories = dailyNewsItems.slice(3, 9);
   const topStories = (dailyBrief?.summary.topStories.length ? dailyBrief.summary.topStories : dailyNewsItems).slice(0, 5);
   const latestRuns = runs.slice(0, 5);
   const dateLabel = dailyBrief?.summary.date ?? new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date());
@@ -736,7 +771,7 @@ function DailyBriefDashboardSection({
           <Card className="p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-black text-white">📨 {lang === "th" ? "งานส่งล่าสุด" : "Latest sends"}</h2>
-              <Button asChild size="sm" variant="ghost"><Link href="/task-results">{lang === "th" ? "ดูทั้งหมด" : "All"}</Link></Button>
+              <Button asChild size="sm" variant="ghost"><Link href="/notifications">{lang === "th" ? "ดูทั้งหมด" : "All"}</Link></Button>
             </div>
             <div className="mt-4 divide-y divide-white/10">
               {latestRuns.map((run) => {
@@ -878,7 +913,7 @@ export function DashboardControlView() {
         telegramStatus: newsStatuses[item.id] ?? item.telegramStatus,
       }))
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .slice(0, 8);
+      .slice(0, 12);
   }, [dailyBrief, dashboardSearch, hiddenNewsIds, newsStatuses, savedNewsIds]);
 
   const dailyCategoryCounts = useMemo(() => {
@@ -1092,8 +1127,8 @@ export function DashboardControlView() {
             <div className="flex flex-wrap gap-3">
               <Button disabled={actionLoading !== null} onClick={runAllTasks} type="button">{actionLoading === "runAll" ? label(lang, "running") : `🚀 ${label(lang, "runAll")}`}</Button>
               <Button disabled={actionLoading !== null} onClick={loadDashboard} type="button" variant="secondary">🔄 {label(lang, "refresh")}</Button>
-              <Button asChild variant="outline"><Link href="/scheduled-tasks">⏱ {label(lang, "scheduler")}</Link></Button>
-              <Button asChild variant="outline"><Link href="/task-results">📋 {label(lang, "logs")}</Link></Button>
+              <Button asChild variant="outline"><Link href="/daily">📰 {dailyText(lang, "openDaily")}</Link></Button>
+              <Button asChild variant="outline"><Link href="/notifications">🔔 {t("nav_notifications")}</Link></Button>
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm leading-6 text-slate-300">{message}</div>
           </div>
@@ -1107,7 +1142,7 @@ export function DashboardControlView() {
 
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end"><div><p className="text-sm font-semibold text-cyan-200">{t("dashboard_latest_results_label")}</p><h2 className="mt-1 text-2xl font-black text-white">{t("dashboard_latest_results_title")}</h2><p className="mt-2 text-sm text-slate-400">{label(lang, "resultsSubtitle")}</p></div><div className="flex flex-wrap gap-2">{FILTERS.map((filter) => <button key={filter.key} className={`rounded-full border px-3 py-2 text-xs font-bold transition ${activeFilter === filter.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`} onClick={() => setActiveFilter(filter.key)} type="button">{filter.emoji} {filter.label[lang]}</button>)}</div></div>
-        {filteredRuns.length === 0 ? <EmptyState title={t("dashboard_no_gpt_results")} description={t("dashboard_no_gpt_results_desc")} /> : <div className="grid gap-4 xl:grid-cols-3">{filteredRuns.slice(0, 6).map((run) => { const task = taskById.get(run.taskId); const topic = topicForRun(run, task); const score = clampScore(run.priorityScore); const highlights = runHighlights(run, lang); return <Card key={run.id} className="p-5"><div className="flex items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><Badge tone={topic.tone}>{topic.emoji} {topic.label[lang]}</Badge><Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge></div><span className="text-xs text-slate-500">{formatDateTime(run.startedAt)}</span></div><h3 className="mt-4 text-lg font-black text-white">{displayRunTitle(run, task, lang)}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">{displayRunSummary(run, task, lang)}</p><div className="mt-4 flex flex-wrap gap-2"><Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge><Badge tone="purple">🧠 {translationMode(run, lang)}</Badge>{sourceNames(run).map((source) => <Badge key={source} tone="gray">🗂 {source}</Badge>)}</div><div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={{ width: `${score}%` }} /></div><div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{label(lang, "highlights")}</p>{highlights.length ? <ul className="mt-3 space-y-2 text-xs leading-5 text-slate-300">{highlights.map((item) => <li key={item} className="line-clamp-2">{item}</li>)}</ul> : <p className="mt-3 text-xs text-slate-400">{label(lang, "noHighlights")}</p>}</div><div className="mt-5 flex flex-wrap items-center gap-3"><Link href={`/task-results/${run.id}`} className="inline-flex text-sm font-bold text-cyan-200 hover:text-cyan-100">{t("common_open_result")} →</Link>{run.translatedContent && <Badge tone="green">{label(lang, "thai")}</Badge>}{run.originalContent && <Badge tone="gray">{label(lang, "original")}</Badge>}</div></Card>; })}</div>}
+        {filteredRuns.length === 0 ? <EmptyState title={t("dashboard_no_gpt_results")} description={t("dashboard_no_gpt_results_desc")} /> : <div className="grid gap-4 xl:grid-cols-3">{filteredRuns.slice(0, 6).map((run) => { const task = taskById.get(run.taskId); const topic = topicForRun(run, task); const score = clampScore(run.priorityScore); const highlights = runHighlights(run, lang); return <Card key={run.id} className="p-5"><div className="flex items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><Badge tone={topic.tone}>{topic.emoji} {topic.label[lang]}</Badge><Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge></div><span className="text-xs text-slate-500">{formatDateTime(run.startedAt)}</span></div><h3 className="mt-4 text-lg font-black text-white">{displayRunTitle(run, task, lang)}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">{displayRunSummary(run, task, lang)}</p><div className="mt-4 flex flex-wrap gap-2"><Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge><Badge tone="purple">🧠 {translationMode(run, lang)}</Badge>{sourceNames(run).map((source) => <Badge key={source} tone="gray">🗂 {source}</Badge>)}</div><div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={{ width: `${score}%` }} /></div><div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{label(lang, "highlights")}</p>{highlights.length ? <ul className="mt-3 space-y-2 text-xs leading-5 text-slate-300">{highlights.map((item) => <li key={item} className="line-clamp-2">{item}</li>)}</ul> : <p className="mt-3 text-xs text-slate-400">{label(lang, "noHighlights")}</p>}</div><div className="mt-5 flex flex-wrap items-center gap-3"><Badge tone="blue">{lang === "th" ? "แสดงในหน้า Dashboard" : "Shown in Dashboard"}</Badge>{run.translatedContent && <Badge tone="green">{label(lang, "thai")}</Badge>}{run.originalContent && <Badge tone="gray">{label(lang, "original")}</Badge>}</div></Card>; })}</div>}
       </section>
 
       <section className="space-y-4">

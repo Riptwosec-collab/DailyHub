@@ -3,7 +3,7 @@ import type { DailyBriefCategory, DailyBriefItem, DailyBriefRunLog, DailyBriefSe
 const now = new Date();
 const isoMinutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
 
-export const dailyBriefCategories: DailyBriefCategory[] = [
+const dailyBriefCategoriesSeed: DailyBriefCategory[] = [
   { key: "all", labelTh: "ทั้งหมด", labelEn: "All", icon: "✨", color: "cyan", enabled: true },
   { key: "thai", labelTh: "ข่าวไทย", labelEn: "Thailand", icon: "📰", color: "blue", enabled: true },
   { key: "world", labelTh: "ข่าวโลก", labelEn: "World", icon: "🌍", color: "violet", enabled: true },
@@ -22,6 +22,8 @@ export const dailyBriefCategories: DailyBriefCategory[] = [
   { key: "travelDeals", labelTh: "โปรเดินทาง", labelEn: "Travel Deals", icon: "✈️", color: "cyan", enabled: true },
   { key: "lifestyle", labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์", labelEn: "Lifestyle Ideas", icon: "💡", color: "amber", enabled: true },
 ];
+
+export const dailyBriefCategories: DailyBriefCategory[] = dailyBriefCategoriesSeed.filter((category) => category.key !== "lifestyle");
 
 export const mockDailyBriefItems: DailyBriefItem[] = [
   {
@@ -370,7 +372,7 @@ export const defaultDailyBriefSettings: DailyBriefSettings = {
   enabledCategories: dailyBriefCategories.filter((category) => category.key !== "all" && category.enabled).map((category) => category.key),
   telegramTime: "08:00",
   autoSendTelegram: false,
-  maxItemsPerCategory: 5,
+  maxItemsPerCategory: 10,
 };
 
 export const mockDailyBriefLogs: DailyBriefRunLog[] = [

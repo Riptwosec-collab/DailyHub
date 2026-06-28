@@ -10,7 +10,7 @@ const navItems = [
   { href: "/daily", key: "nav_daily" },
   { href: "/concerts", key: "nav_concerts" },
   { href: "/movies", key: "nav_movies" },
-  { href: "/scheduled-tasks", key: "nav_scheduled_tasks" },
+  { href: "/events", key: "nav_events" },
 ] satisfies Array<{ href: string; key: TranslationKey }>;
 
 const shortLabels = {
@@ -20,7 +20,7 @@ const shortLabels = {
     nav_daily: "ข่าว",
     nav_concerts: "คอน",
     nav_movies: "หนัง",
-    nav_scheduled_tasks: "งาน",
+    nav_events: "อีเวนต์",
   },
   en: {
     nav_home: "Home",
@@ -28,7 +28,7 @@ const shortLabels = {
     nav_daily: "Daily",
     nav_concerts: "Live",
     nav_movies: "Films",
-    nav_scheduled_tasks: "Tasks",
+    nav_events: "Events",
   },
 } as const;
 

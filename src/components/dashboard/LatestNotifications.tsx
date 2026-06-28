@@ -47,12 +47,9 @@ export function LatestNotifications({ notifications }: { notifications: WebNotif
 
             <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
               <span className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</span>
-              <Link
-                href={`/task-results/${notification.taskRunId}`}
-                className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
-              >
-                Open Result
-              </Link>
+              <span className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold text-white">
+                Inbox Detail
+              </span>
             </div>
           </Card>
         ))}

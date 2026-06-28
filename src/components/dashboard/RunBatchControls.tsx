@@ -26,14 +26,13 @@ const DEFAULT_TASKS: TaskSeed[] = [
   { key: "events-products", labelTh: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", labelEn: "Events / Concerts / New Products", emoji: "🎤", name: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", type: "Concert Alerts" },
   { key: "deals-promos", labelTh: "ดีล / โปรโมชัน", labelEn: "Deals / Promotions", emoji: "🛒", name: "ดีล / โปรโมชัน", type: "Sale Monitor" },
   { key: "travel-deals", labelTh: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", labelEn: "Travel Deals / Flights / Hotels", emoji: "✈️", name: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", type: "Travel Deals" },
-  { key: "lifestyle-ideas", labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์", labelEn: "Lifestyle Ideas", emoji: "💡", name: "ไอเดียวันหยุด / ไลฟ์สไตล์", type: "Daily Brief" },
 ];
 
 const FIXED_BATCHES = [
   { id: "one" as const, titleTh: "ปุ่มแรก", titleEn: "First button", subtitleTh: "Daily Brief / ข่าวไทย / ประกาศสำคัญ / ข่าวต่างประเทศ / AI Tech", subtitleEn: "Daily Brief / Thailand / Public Notices / World / AI Tech", keys: ["daily-brief", "thai-news", "public-notices", "world-news", "ai-tech"] },
   { id: "two" as const, titleTh: "ปุ่มสอง", titleEn: "Second button", subtitleTh: "Cybersecurity / Network Cloud / หุ้น Crypto / อากาศ PM2.5", subtitleEn: "Cybersecurity / Network Cloud / Markets Crypto / Weather PM2.5", keys: ["cybersecurity", "network-cloud", "market-crypto", "weather-pm25"] },
   { id: "three" as const, titleTh: "ปุ่มสาม", titleEn: "Third button", subtitleTh: "จราจร / BTS MRT / งานวันนี้ / อีเมลสำคัญ / กีฬา", subtitleEn: "Traffic / BTS MRT / Today Tasks / Important Email / Sports", keys: ["traffic", "bts-mrt-alerts", "today-tasks", "important-email", "sports-football"] },
-  { id: "four" as const, titleTh: "ปุ่มสี่", titleEn: "Fourth button", subtitleTh: "อีเวนต์ คอนเสิร์ต สินค้าใหม่ / ดีล / โปรเดินทาง / ไลฟ์สไตล์", subtitleEn: "Events Concerts Products / Deals / Travel Deals / Lifestyle", keys: ["events-products", "deals-promos", "travel-deals", "lifestyle-ideas"] },
+  { id: "four" as const, titleTh: "ปุ่มสี่", titleEn: "Fourth button", subtitleTh: "อีเวนต์ คอนเสิร์ต สินค้าใหม่ / ดีล / โปรเดินทาง", subtitleEn: "Events Concerts Products / Deals / Travel Deals", keys: ["events-products", "deals-promos", "travel-deals"] },
 ];
 
 function getBatchSeeds(keys: string[]) { return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[]; }
@@ -47,7 +46,6 @@ function matchesTask(task: ScheduledTask, seed: TaskSeed) {
   if (seed.key === "events-products") return task.type === "Concert Alerts" || /concert|คอนเสิร์ต|อีเวนต์/i.test(task.name);
   if (seed.key === "deals-promos") return task.type === "Sale Monitor" && /deal|promo|โปร|สินค้า/i.test(task.name);
   if (seed.key === "travel-deals") return task.type === "Travel Deals" || /flight|hotel|travel|ตั๋วเครื่องบิน|โรงแรม|โปรเดินทาง|ท่องเที่ยว/i.test(task.name);
-  if (seed.key === "lifestyle-ideas") return /lifestyle|weekend|restaurant|cafe|buffet|ร้านอาหาร|คาเฟ่|บุฟเฟ่ต์|ไลฟ์สไตล์|วันหยุด|ที่เที่ยว|พักผ่อน/i.test(task.name);
   return false;
 }
 function displayLine(seed: TaskSeed, index: number, isTh: boolean) { return `${index + 1}. ${seed.emoji} ${isTh ? seed.labelTh : seed.labelEn}`; }

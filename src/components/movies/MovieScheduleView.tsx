@@ -150,12 +150,43 @@ const months: MovieMonth[] = [
   },
 ];
 
-function PlatformArt({ platform }: { platform: MoviePlatform }) {
+function PlatformArt({ platform, items }: { platform: MoviePlatform; items: WatchItem[] }) {
   const meta = platformMeta[platform];
+  const previewItems = items.slice(0, 3);
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
   return (
     <div className={cn("relative min-h-40 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)]", meta.border)}>
       <div className={cn("absolute inset-0 bg-gradient-to-br", meta.gradient)} />
+      {previewItems[0] && !failed[previewItems[0].id] && (
+        <Image
+          src={moviePosterSrc(previewItems[0])}
+          alt=""
+          aria-hidden
+          className="scale-110 object-cover opacity-45 blur-[6px]"
+          fill
+          sizes="320px"
+          unoptimized
+          loading="lazy"
+          onError={() => setFailed((current) => ({ ...current, [previewItems[0].id]: true }))}
+        />
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.28),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
+      <div className="absolute right-3 top-3 flex -space-x-5">
+        {previewItems.map((item, index) => !failed[item.id] && (
+          <div key={item.id} className={cn("relative aspect-[2/3] w-16 overflow-hidden rounded-xl border border-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.36)]", index === 1 && "mt-5", index === 2 && "mt-10")}>
+            <Image
+              src={moviePosterSrc(item)}
+              alt={item.title}
+              className="object-cover"
+              fill
+              sizes="64px"
+              unoptimized
+              loading="lazy"
+              onError={() => setFailed((current) => ({ ...current, [item.id]: true }))}
+            />
+          </div>
+        ))}
+      </div>
       <div className="relative flex h-full min-h-32 flex-col justify-end">
         <span className="text-5xl drop-shadow-[0_0_18px_rgba(217,70,239,0.75)]">{meta.icon}</span>
         <p className="mt-3 text-2xl font-black text-white">{meta.labelTh}</p>
@@ -233,7 +264,7 @@ function PlatformSection({ platform, items, isThai }: { platform: MoviePlatform;
   return (
     <section className={cn("rounded-3xl border bg-slate-950/52 p-3 shadow-[0_0_42px_rgba(37,99,235,0.18)] sm:p-4", meta.border)}>
       <div className="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
-        <PlatformArt platform={platform} />
+        <PlatformArt platform={platform} items={items} />
         {items.length ? (
           <div className="overflow-hidden rounded-2xl border border-white/12 bg-slate-950/42">
             {items.map((item, index) => <WatchRow key={item.id} item={item} index={index} isThai={isThai} />)}

@@ -8,6 +8,7 @@ export const translations = {
     nav_daily: "ข่าวประจำวัน",
     nav_concerts: "ตารางคอนเสิร์ต",
     nav_movies: "หนังโรงไทย + Netflix",
+    nav_events: "งานอีเวนต์ / Expo / Fair",
     nav_data_library: "อ่านข้อมูลเต็ม",
     nav_scheduled_tasks: "งานอัตโนมัติ",
     nav_create_task: "สร้างงาน",
@@ -22,7 +23,7 @@ export const translations = {
     topbar_search: "ค้นหาใน NimbusDaily...",
     // Sidebar
     sidebar_phase: "เฟส 27",
-    sidebar_desc: "ข่าวประจำวัน, ตารางคอนเสิร์ต, หนังโรงไทย + Netflix, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน",
+    sidebar_desc: "ข่าวประจำวัน, ตารางคอนเสิร์ต, หนังโรงไทย + Netflix, งานอีเวนต์ / Expo / Fair, API, Settings, Admin และ Deploy พร้อมใช้งาน",
     sidebar_build_label: "Production MVP",
     // Common
     common_refresh: "รีเฟรช",
@@ -119,6 +120,7 @@ export const translations = {
     nav_daily: "Daily Brief",
     nav_concerts: "Concerts",
     nav_movies: "Movies + Netflix",
+    nav_events: "Events / Expo / Fair",
     nav_data_library: "Data Library",
     nav_scheduled_tasks: "Scheduled Tasks",
     nav_create_task: "Create Task",
@@ -133,7 +135,7 @@ export const translations = {
     topbar_search: "Search NimbusDaily...",
     // Sidebar
     sidebar_phase: "Phase 27",
-    sidebar_desc: "Daily Brief, concerts, movies + Netflix, API, Scheduler, Templates, Settings, Admin & Deploy ready.",
+    sidebar_desc: "Daily Brief, concerts, movies + Netflix, events / expo / fair, API, Settings, Admin & Deploy ready.",
     sidebar_build_label: "Production MVP",
     // Common
     common_refresh: "Refresh",

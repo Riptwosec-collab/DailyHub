@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -371,6 +372,15 @@ function NewsStatusBadge({ item, lang }: { item: DailyBriefItem; lang: Lang }) {
   return <Badge tone="gray">{text.ready}</Badge>;
 }
 
+function newsImageSrc(item: DailyBriefItem) {
+  const params = new URLSearchParams({
+    url: item.imageUrl || item.sourceUrl,
+    title: itemTitle(item, "en"),
+    kind: "news",
+  });
+  return `/api/poster-image?${params.toString()}`;
+}
+
 function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem; onSent: (message: string) => void; lang: Lang }) {
   const [sending, setSending] = useState(false);
   const text = copy[lang];
@@ -390,10 +400,36 @@ function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem
 
 function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: boolean }) {
   const detail = getDailyBriefTopicDetail(item.category);
+  const [failed, setFailed] = useState(false);
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28")}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.36),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(124,58,237,0.32),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
+      {!failed && (
+        <>
+          <Image
+            src={newsImageSrc(item)}
+            alt={itemTitle(item, "en")}
+            className="scale-105 object-cover blur-[2px]"
+            fill
+            sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
+            unoptimized
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+          <Image
+            src={newsImageSrc(item)}
+            alt=""
+            aria-hidden
+            className="object-cover opacity-82"
+            fill
+            sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
+            unoptimized
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+        </>
+      )}
+      {failed && <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.36),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(124,58,237,0.32),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.10),rgba(2,6,23,0.96)_100%)]" />
       <div className="relative flex h-full flex-col justify-end p-5">
         <span className={cn("drop-shadow-[0_0_22px_rgba(34,211,238,0.65)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -442,7 +478,10 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
           <div className="mt-auto flex flex-wrap justify-end gap-2 pt-5">
             <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
             <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />
-            <Button size="sm" onClick={() => onRead(item)}>{text.readFull}</Button>
+            <Button size="sm" variant="ghost" onClick={() => onRead(item)}>{lang === "th" ? "สรุปในระบบ" : "Summary"}</Button>
+            <Button asChild size="sm">
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">{text.readFull}</a>
+            </Button>
           </div>
         </div>
       </div>
@@ -475,7 +514,10 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
           <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{text.hide}</Button>
           <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
           <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />
-          <Button size="sm" onClick={() => onRead(item)}>{text.readFull}</Button>
+          <Button size="sm" variant="ghost" onClick={() => onRead(item)}>{lang === "th" ? "สรุปในระบบ" : "Summary"}</Button>
+          <Button asChild size="sm">
+            <a href={item.sourceUrl} target="_blank" rel="noreferrer">{text.readFull}</a>
+          </Button>
         </div>
       </div>
     </Card>

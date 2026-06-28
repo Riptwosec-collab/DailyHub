@@ -11,13 +11,13 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "cream",
+  theme: "dark",
   setTheme: () => {},
   toggleTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<AppTheme>("cream");
+  const [theme, setThemeState] = useState<AppTheme>("dark");
 
   useEffect(() => {
     try {

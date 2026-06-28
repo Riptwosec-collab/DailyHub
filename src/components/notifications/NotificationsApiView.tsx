@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -19,7 +18,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 type ReadFilter = "All" | "Unread" | "Read";
 type ImportanceFilter = "All" | "Important" | "Normal";
 
-const categoryOptions: Array<"All" | NotificationCategory> = ["All", "Daily Brief", "Email", "Sale", "Football", "Lifestyle", "Concert", "Public Alerts", "Travel Deals", "Custom"];
+const categoryOptions: Array<"All" | NotificationCategory> = ["All", "Daily Brief", "Email", "Sale", "Football", "Concert", "Public Alerts", "Travel Deals", "Custom"];
 const readOptions: ReadFilter[] = ["All", "Unread", "Read"];
 const importanceOptions: ImportanceFilter[] = ["All", "Important", "Normal"];
 
@@ -103,7 +102,7 @@ function toCategory(type: string): NotificationCategory {
   if (type === "Email Monitor") return "Email";
   if (type === "Sale Monitor") return "Sale";
   if (type === "World Cup Recap") return "Football";
-  if (type === "Weekend Long Read") return "Lifestyle";
+  if (type === "Weekend Long Read") return "Custom";
   if (type === "Concert Alerts") return "Concert";
   if (type === "Public Alerts") return "Public Alerts";
   if (type === "Travel Deals") return "Travel Deals";
@@ -271,7 +270,7 @@ export function NotificationsApiView() {
                 <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row">
                   <Button variant="secondary" onClick={() => void handleToggleRead(notification)} type="button">{notification.isRead ? text.markUnread : text.markRead}</Button>
                   <Button variant="secondary" onClick={() => handleToggleImportant(notification)} type="button">{isImportant ? text.removeImportant : text.markImportant}</Button>
-                  <Link className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-sm font-bold text-white" href={run ? `/task-results/${run.id}` : "/task-results"}>{text.openResult}</Link>
+                  <span className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-sm font-bold text-cyan-100">{run ? text.openResult : text.taskNotFound}</span>
                 </div>
               </Card>
             );

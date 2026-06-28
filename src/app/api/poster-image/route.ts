@@ -2,28 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 
 const USER_AGENT = "NimbusDaily/1.0 poster preview (+local dashboard)";
 
-const OG_ALLOWED_HOSTS = [
-  "zipeventapp.com",
-  "eventpop.me",
-  "ticketmelon.com",
-  "qsncc.com",
-  "impact.co.th",
-  "thaiticketmajor.com",
-  "bangkokfestivals.com",
-  "instagram.com",
-  "wonderfruit.co",
-  "thailand.tomorrowland.com",
-  "thailand.edc.com",
-];
-
 const FALLBACK_COLORS: Record<string, { accent: string; bg: string }> = {
   cinema: { accent: "#d946ef", bg: "#050816" },
   streaming: { accent: "#ef4444", bg: "#050816" },
   concert: { accent: "#a855f7", bg: "#020617" },
+  event: { accent: "#22c55e", bg: "#052e16" },
+  news: { accent: "#38bdf8", bg: "#020617" },
 };
 
-function isAllowedHost(hostname: string) {
-  return OG_ALLOWED_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+function isPrivateIpLiteral(hostname: string) {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
+  if (host === "::1" || host.startsWith("fe80:") || host.startsWith("fc") || host.startsWith("fd")) return true;
+
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!ipv4) return false;
+
+  const [a, b] = ipv4.slice(1, 3).map(Number);
+  return a === 10
+    || a === 127
+    || a === 0
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168);
+}
+
+function isFetchablePublicUrl(url: URL) {
+  return ["http:", "https:"].includes(url.protocol) && !isPrivateIpLiteral(url.hostname);
+}
+
+function looksLikeImageUrl(url: string) {
+  return /\.(?:jpg|jpeg|png|webp|gif|avif)(?:[?#].*)?$/i.test(url);
 }
 
 function decodeHtml(value: string) {
@@ -181,7 +190,8 @@ async function resolveOpenGraphImage(rawUrl: string) {
     return null;
   }
 
-  if (!["http:", "https:"].includes(pageUrl.protocol) || !isAllowedHost(pageUrl.hostname)) return null;
+  if (!isFetchablePublicUrl(pageUrl)) return null;
+  if (looksLikeImageUrl(pageUrl.toString())) return pageUrl.toString();
 
   const html = await fetchHtml(pageUrl.toString());
   if (!html) return null;

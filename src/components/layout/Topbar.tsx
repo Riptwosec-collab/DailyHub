@@ -20,7 +20,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <header className="daily-topbar sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 px-4 py-3.5 backdrop-blur-2xl sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
+      <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             aria-label="Open navigation menu"

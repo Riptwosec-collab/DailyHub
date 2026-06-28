@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -94,12 +93,9 @@ export function NotificationCard({
             </Button>
           </div>
 
-          <Link
-            href={`/task-results/${notification.taskRunId}`}
-            className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-4 py-2 text-xs font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 sm:w-auto"
-          >
-            Open Result
-          </Link>
+          <span className="inline-flex w-full items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black text-cyan-100 sm:w-auto">
+            Inbox Detail
+          </span>
         </div>
       </div>
     </Card>

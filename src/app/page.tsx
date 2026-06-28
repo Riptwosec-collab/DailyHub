@@ -16,7 +16,7 @@ const copy = {
     description:
       "แดชบอร์ดงานอัตโนมัติสำหรับ Daily Brief, ข่าว, AI, Cybersecurity, หุ้น, อากาศ, อีเมล และ Telegram พร้อม UI โทนครีมอบอุ่นที่อ่านชัดทุกหน้าจอ",
     primaryCta: "เริ่มใช้งาน Dashboard",
-    secondaryCta: "สร้างงานอัตโนมัติ",
+    secondaryCta: "เปิดข่าวประจำวัน",
     trusted: "พร้อมใช้งานกับ AI, Telegram, Supabase และระบบงานรายวัน",
     heroStats: [
       { label: "หัวข้อข่าว/งาน", value: "48+", hint: "รองรับรายวัน" },
@@ -79,7 +79,7 @@ const copy = {
     description:
       "An automation dashboard for daily briefs, news, AI, cybersecurity, markets, weather, email, and Telegram with a warm premium cream interface.",
     primaryCta: "Launch Dashboard",
-    secondaryCta: "Create Automation",
+    secondaryCta: "Open Daily Brief",
     trusted: "Ready for AI, Telegram, Supabase, and daily operations",
     heroStats: [
       { label: "Topics", value: "48+", hint: "daily-ready" },
@@ -197,7 +197,7 @@ export default function HomePage() {
             <Link className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#8A633C]/25 bg-[#B88A5A] px-6 py-3 text-base font-extrabold text-[#FFF6EA] shadow-lg shadow-[#B88A5A]/25 transition hover:bg-[#9E7144]" href="/dashboard">
               {text.primaryCta}
             </Link>
-            <Link className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#B88A5A]/25 bg-[#FFF6EA] px-6 py-3 text-base font-extrabold text-[#2E2A26] shadow-sm shadow-[#6B5A4A]/8 transition hover:bg-[#E8DCCB]" href="/scheduled-tasks/create">
+            <Link className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#B88A5A]/25 bg-[#FFF6EA] px-6 py-3 text-base font-extrabold text-[#2E2A26] shadow-sm shadow-[#6B5A4A]/8 transition hover:bg-[#E8DCCB]" href="/daily">
               {text.secondaryCta}
             </Link>
           </div>
