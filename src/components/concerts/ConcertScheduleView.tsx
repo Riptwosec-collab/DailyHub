@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -625,17 +626,43 @@ function getRealEventCount(month: FestivalMonth) {
   return month.events.filter((event) => !event.isPlaceholder).length;
 }
 
+function concertPosterSrc(event: FestivalEvent, detailUrl: string) {
+  const params = new URLSearchParams({
+    url: detailUrl,
+    title: event.title,
+    kind: "concert",
+  });
+  return `/api/poster-image?${params.toString()}`;
+}
+
 function Poster({ event, index, category }: { event: FestivalEvent; index: number; category: EventCategory }) {
   const meta = sectionMeta[category];
+  const detailUrl = eventLinks[event.id];
+  const [failed, setFailed] = useState(false);
+  const showRemotePoster = Boolean(detailUrl && !event.isPlaceholder && !failed);
+
   return (
-    <div className={cn("concert-poster relative flex aspect-[4/5] min-h-36 w-full max-w-40 shrink-0 flex-col justify-end overflow-hidden rounded-xl border p-4 shadow-[0_18px_42px_rgba(126,34,206,0.24)]", meta.border, event.isPlaceholder && "opacity-80")}>
-      <div className={cn("absolute inset-0 bg-gradient-to-br", meta.bg)} />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.42),transparent_26%),linear-gradient(180deg,transparent,rgba(2,6,23,0.82))]" />
+    <div className={cn("concert-poster relative flex aspect-[4/5] min-h-36 w-full max-w-40 shrink-0 flex-col justify-end overflow-hidden rounded-xl border shadow-[0_18px_42px_rgba(126,34,206,0.24)]", meta.border, event.isPlaceholder && "opacity-80")}>
+      {showRemotePoster ? (
+        <Image
+          src={concertPosterSrc(event, detailUrl ?? "")}
+          alt={`${event.title} poster`}
+          className="object-cover"
+          fill
+          sizes="160px"
+          unoptimized
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className={cn("absolute inset-0 bg-gradient-to-br", meta.bg)} />
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.20),transparent_26%),linear-gradient(180deg,transparent_34%,rgba(2,6,23,0.94))]" />
       <div className="absolute left-0 top-0 rounded-br-lg bg-white/18 px-3 py-1 text-sm font-black text-white">{index + 1}</div>
-      <div className="relative text-center">
+      <div className="relative p-4 text-center">
         <p className="text-3xl" aria-hidden>{event.isPlaceholder ? "…" : meta.icon}</p>
-        <p className="concert-title mt-2 text-xl font-black leading-none tracking-wide text-white">{event.poster}</p>
-        <p className="concert-muted mt-1 text-xs font-bold uppercase tracking-[0.18em] text-white/72">{event.isPlaceholder ? "Watchlist" : meta.title}</p>
+        <p className="concert-title mt-2 text-xl font-black leading-none tracking-wide text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.65)]">{event.poster}</p>
+        <p className="concert-muted mt-1 text-xs font-bold uppercase tracking-[0.18em] text-white/78">{event.isPlaceholder ? "Watchlist" : showRemotePoster ? "Official cover" : meta.title}</p>
       </div>
     </div>
   );

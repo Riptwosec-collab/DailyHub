@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ interface WatchItem {
   genreEn: string;
   sourceLabel: string;
   sourceUrl: string;
+  posterQuery?: string;
   status?: "confirmed" | "watch";
 }
 
@@ -163,13 +165,59 @@ function PlatformArt({ platform }: { platform: MoviePlatform }) {
   );
 }
 
+function moviePosterSrc(item: WatchItem) {
+  const params = new URLSearchParams({
+    query: item.posterQuery ?? item.title,
+    title: item.title,
+    kind: item.platform,
+  });
+  return `/api/poster-image?${params.toString()}`;
+}
+
+function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const meta = platformMeta[item.platform];
+
+  if (failed) {
+    return (
+      <div className={cn("relative aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-950/70 shadow-[0_14px_34px_rgba(0,0,0,0.28)]", meta.border)}>
+        <div className={cn("absolute inset-0 bg-gradient-to-br", meta.gradient)} />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(255,255,255,0.32),transparent_28%),linear-gradient(180deg,transparent,rgba(2,6,23,0.88))]" />
+        <div className="relative flex h-full flex-col justify-end p-2">
+          <span className="text-2xl" aria-hidden>{meta.icon}</span>
+          <p className="mt-1 line-clamp-3 text-[11px] font-black leading-3 text-white">{item.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("relative aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-950/70 shadow-[0_14px_34px_rgba(0,0,0,0.28)]", meta.border)}>
+      <Image
+        src={moviePosterSrc(item)}
+        alt={`${item.title} ${isThai ? "โปสเตอร์" : "poster"}`}
+        className="object-cover"
+        fill
+        sizes="80px"
+        unoptimized
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/92 to-transparent p-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/80">{item.platform === "cinema" ? "TMDB / Cinema" : "TMDB / Series"}</p>
+      </div>
+    </div>
+  );
+}
+
 function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isThai: boolean }) {
   return (
-    <div className="grid gap-3 border-b border-white/10 px-3 py-3 last:border-b-0 sm:grid-cols-[4rem_minmax(0,1.35fr)_12rem_minmax(0,1fr)_auto] sm:items-center">
+    <div className="grid gap-3 border-b border-white/10 px-3 py-3 last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center">
       <span className="grid h-10 w-10 place-items-center rounded-xl border border-fuchsia-300/35 bg-fuchsia-400/10 text-lg font-black text-white shadow-[0_0_18px_rgba(217,70,239,0.28)]">{index + 1}</span>
+      <MoviePoster item={item} isThai={isThai} />
       <div className="min-w-0">
-        <p className="truncate text-base font-black text-white sm:text-lg">{item.title}</p>
-        <p className="text-xs font-bold text-slate-400">{item.sourceLabel}</p>
+        <p className="line-clamp-2 text-base font-black leading-snug text-white sm:text-lg">{item.title}</p>
+        <p className="mt-1 text-xs font-bold text-slate-400">{item.sourceLabel} · {isThai ? "โปสเตอร์จาก TMDB" : "Poster via TMDB"}</p>
       </div>
       <p className="text-sm font-black text-fuchsia-100">📅 {isThai ? item.dateTh : item.dateEn}</p>
       <p className="text-sm font-semibold leading-6 text-slate-200">☆ {isThai ? item.genreTh : item.genreEn}</p>
