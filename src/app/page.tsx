@@ -10,7 +10,7 @@ const copy = {
     nav: ["ฟีเจอร์", "จุดเด่น", "แพ็กเกจ", "รีวิว", "FAQ"],
     login: "เข้าสู่ระบบ",
     openApp: "เปิด Dashboard",
-    eyebrow: "Premium Cream SaaS Dashboard",
+    eyebrow: "Premium Dark SaaS Dashboard",
     headline: "NimbusDaily ช่วยสรุปงาน ข่าว และแจ้งเตือนทุกวัน",
     accent: "ให้อ่านง่าย ส่งต่อไว และดูเป็นระบบ",
     description:
@@ -73,7 +73,7 @@ const copy = {
     nav: ["Features", "Highlights", "Plans", "Reviews", "FAQ"],
     login: "Login",
     openApp: "Open Dashboard",
-    eyebrow: "Premium Cream SaaS Dashboard",
+    eyebrow: "Premium Dark SaaS Dashboard",
     headline: "NimbusDaily organizes daily briefs, news, and alerts",
     accent: "with clear reading, fast sharing, and calm structure",
     description:
@@ -141,9 +141,9 @@ export default function HomePage() {
   const text = copy[lang];
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F7F0E6] text-[#2E2A26]">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(184,138,90,0.20),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(126,92,54,0.14),transparent_26%),linear-gradient(135deg,rgba(255,246,234,0.90),rgba(232,220,203,0.88))]" />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(107,90,74,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(107,90,74,0.04)_1px,transparent_1px)] bg-[size:56px_56px]" />
+    <main className="landing-dark min-h-screen overflow-hidden bg-[#F7F0E6] text-[#2E2A26]">
+      <div className="landing-dark-aurora pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(184,138,90,0.20),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(126,92,54,0.14),transparent_26%),linear-gradient(135deg,rgba(255,246,234,0.90),rgba(232,220,203,0.88))]" />
+      <div className="landing-dark-grid pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(107,90,74,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(107,90,74,0.04)_1px,transparent_1px)] bg-[size:56px_56px]" />
 
       <header className="sticky top-0 z-30 border-b border-[#B88A5A]/20 bg-[#FFF6EA]/90 backdrop-blur-2xl">
         <nav className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
