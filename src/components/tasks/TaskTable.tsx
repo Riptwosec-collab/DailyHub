@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -25,7 +24,6 @@ export function TaskTable({ tasks, busyTaskIds, onRunNow, onTogglePause, onDelet
               <th className="px-5 py-4 font-bold">Task</th>
               <th className="px-5 py-4 font-bold">Status</th>
               <th className="px-5 py-4 font-bold">Schedule</th>
-              <th className="px-5 py-4 font-bold">Last Run</th>
               <th className="px-5 py-4 font-bold">Next Run</th>
               <th className="px-5 py-4 font-bold">Sources</th>
               <th className="px-5 py-4 font-bold">Priority</th>
@@ -51,7 +49,6 @@ export function TaskTable({ tasks, busyTaskIds, onRunNow, onTogglePause, onDelet
                     <Badge tone="blue">{task.scheduleType}</Badge>
                     <p className="mt-2 text-xs text-slate-500">{task.time ?? task.cronExpression ?? "Auto"}</p>
                   </td>
-                  <td className="px-5 py-5 align-top text-slate-300">{formatDateTime(task.lastRunAt)}</td>
                   <td className="px-5 py-5 align-top text-slate-300">{formatDateTime(task.nextRunAt)}</td>
                   <td className="px-5 py-5 align-top">
                     <div className="flex max-w-[220px] flex-wrap gap-2">
@@ -76,18 +73,6 @@ export function TaskTable({ tasks, busyTaskIds, onRunNow, onTogglePause, onDelet
                       >
                         {isBusy ? "Running" : "Run Now"}
                       </Button>
-                      <Link
-                        className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold text-white transition hover:bg-white/[0.1]"
-                        href={`/task-results?taskId=${task.id}`}
-                      >
-                        Results
-                      </Link>
-                      <Link
-                        className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold text-white transition hover:bg-white/[0.1]"
-                        href={`/scheduled-tasks/create?edit=${task.id}`}
-                      >
-                        Edit
-                      </Link>
                       <Button
                         className="px-3 py-2 text-xs"
                         variant="secondary"

@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { GptOutputCard } from "@/components/results/GptOutputCard";
-import { TaskRunTimeline } from "@/components/results/TaskRunTimeline";
 import { PriorityScoreBadge } from "@/components/tasks/PriorityScoreBadge";
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
 import { db } from "@/lib/db";
@@ -17,8 +15,6 @@ export default async function ScheduledTaskDetailPage({ params }: PageProps) {
   const { id } = await params;
   const task = db.scheduledTasks.find((item) => item.id === id);
   if (!task) notFound();
-
-  const runs = db.taskRuns.filter((run) => run.taskId === id);
 
   return (
     <div className="space-y-6">
@@ -38,11 +34,7 @@ export default async function ScheduledTaskDetailPage({ params }: PageProps) {
           <PriorityScoreBadge score={task.minPriorityScore} label="Min" />
         </div>
 
-        <div className="mt-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300 md:grid-cols-3">
-          <div>
-            <p className="text-slate-500">Last Run</p>
-            <p className="mt-1 font-semibold text-slate-200">{formatDateTime(task.lastRunAt)}</p>
-          </div>
+        <div className="mt-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300 md:grid-cols-2">
           <div>
             <p className="text-slate-500">Next Run</p>
             <p className="mt-1 font-semibold text-slate-200">{formatDateTime(task.nextRunAt)}</p>
@@ -93,17 +85,8 @@ export default async function ScheduledTaskDetailPage({ params }: PageProps) {
           >
             Back to Tasks
           </Link>
-          <Link
-            className="inline-flex items-center justify-center rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
-            href={`/task-results?taskId=${task.id}`}
-          >
-            View Results
-          </Link>
         </div>
       </Card>
-
-      {runs[0] && <GptOutputCard run={runs[0]} />}
-      <TaskRunTimeline runs={runs} />
     </div>
   );
 }

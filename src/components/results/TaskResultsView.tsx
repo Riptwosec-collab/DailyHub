@@ -106,15 +106,15 @@ export function TaskResultsView({ runs, tasks }: TaskResultsViewProps) {
             <Badge tone="purple">Phase 5 Task Results</Badge>
             <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">Task Results</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              ดูประวัติการรัน Scheduled Tasks ทั้งหมด พร้อม GPT output, raw input, prompt, priority score, telegram status, error log และ action สำหรับ Regenerate / Copy / Save as Content
+              รวมผลสรุป Scheduled Tasks พร้อม GPT output, raw input, prompt, priority score, telegram status, error log และ action สำหรับ Regenerate / Copy / Save as Content
             </p>
           </div>
         </Card>
 
         <Card className="p-6">
-          <p className="text-sm font-semibold text-slate-400">Run Overview</p>
+          <p className="text-sm font-semibold text-slate-400">Result Overview</p>
           <p className="mt-3 text-4xl font-black text-white">{runs.length}</p>
-          <p className="mt-1 text-sm text-slate-500">total task runs</p>
+          <p className="mt-1 text-sm text-slate-500">total summaries</p>
 
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-3">

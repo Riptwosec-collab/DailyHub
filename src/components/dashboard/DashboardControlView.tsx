@@ -90,7 +90,6 @@ const LABELS: Record<Lang, Record<string, string>> = {
     telegram: "Telegram",
     ai: "AI",
     priority: "Priority",
-    lastRun: "Last Run",
     nextRunCol: "Next Run",
     highlights: "รายละเอียดที่น่าสนใจ",
     noHighlights: "เปิดผลลัพธ์เต็มเพื่อดูรายละเอียด",
@@ -133,7 +132,6 @@ const LABELS: Record<Lang, Record<string, string>> = {
     telegram: "Telegram",
     ai: "AI",
     priority: "Priority",
-    lastRun: "Last Run",
     nextRunCol: "Next Run",
     highlights: "Highlights",
     noHighlights: "Open the full result for details.",
@@ -1106,7 +1104,7 @@ export function DashboardControlView() {
 
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><p className="text-sm font-semibold text-cyan-200">{t("dashboard_active_tasks_label")}</p><h2 className="mt-1 text-2xl font-black text-white">{t("dashboard_active_tasks_title")}</h2><p className="mt-2 text-sm text-slate-400">{label(lang, "activeSubtitle")}</p></div><Button variant="secondary" onClick={loadDashboard} type="button">{t("common_refresh")}</Button></div>
-        {activeTasks.length === 0 ? <EmptyState title={t("dashboard_no_active_tasks")} description={t("dashboard_no_active_tasks_desc")} /> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{activeTasks.map((task) => { const topic = topicForTask(task); return <Card key={task.id} className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><Badge tone={statusTone(task.status)}>{localize(STATUS_LABELS, task.status, lang)}</Badge><h3 className="mt-4 line-clamp-2 text-base font-black text-white">{displayTaskName(task, lang)}</h3><p className="mt-2 text-sm text-slate-400">{topic.label[lang]}</p></div><span className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-cyan-100">{task.scheduleType}</span></div><div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-slate-400"><p>{label(lang, "lastRun")}: {formatDateTime(task.lastRunAt)}</p><p>{label(lang, "nextRunCol")}: {formatDateTime(task.nextRunAt)}</p><p>{label(lang, "telegram")}: {task.outputChannels.includes("Send Telegram") ? "enabled" : "dashboard only"}</p></div><Button className="mt-4 w-full" disabled={actionLoading !== null} onClick={() => void runTask(task)} size="sm" type="button" variant="secondary">{actionLoading === "task" ? label(lang, "running") : `▶ ${label(lang, "runTask")}`}</Button></Card>; })}</div>}
+        {activeTasks.length === 0 ? <EmptyState title={t("dashboard_no_active_tasks")} description={t("dashboard_no_active_tasks_desc")} /> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{activeTasks.map((task) => { const topic = topicForTask(task); return <Card key={task.id} className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><Badge tone={statusTone(task.status)}>{localize(STATUS_LABELS, task.status, lang)}</Badge><h3 className="mt-4 line-clamp-2 text-base font-black text-white">{displayTaskName(task, lang)}</h3><p className="mt-2 text-sm text-slate-400">{topic.label[lang]}</p></div><span className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-cyan-100">{task.scheduleType}</span></div><div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-slate-400"><p>{label(lang, "nextRunCol")}: {formatDateTime(task.nextRunAt)}</p><p>{label(lang, "telegram")}: {task.outputChannels.includes("Send Telegram") ? "enabled" : "dashboard only"}</p></div><Button className="mt-4 w-full" disabled={actionLoading !== null} onClick={() => void runTask(task)} size="sm" type="button" variant="secondary">{actionLoading === "task" ? label(lang, "running") : `▶ ${label(lang, "runTask")}`}</Button></Card>; })}</div>}
       </section>
 
       <section className="space-y-4">

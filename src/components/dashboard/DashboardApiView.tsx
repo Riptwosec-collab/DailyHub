@@ -308,7 +308,6 @@ export function DashboardApiView() {
               <span className="text-slate-400">{t("common_priority")}</span>
               <span className="text-2xl font-black text-cyan-100">{latestRun?.priorityScore ?? 0}/100</span>
             </div>
-            <p className="mt-3 text-xs text-slate-500">{t("common_last_run")}: {latestRun ? formatDateTime(latestRun.startedAt) : "-"}</p>
           </div>
         </Card>
       </section>
@@ -375,7 +374,6 @@ export function DashboardApiView() {
                   </span>
                 </div>
                 <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-slate-400">
-                  <p>{t("common_last_run")}: {formatDateTime(task.lastRunAt)}</p>
                   <p>{t("common_next_run")}: {formatDateTime(task.nextRunAt)}</p>
                 </div>
               </Card>

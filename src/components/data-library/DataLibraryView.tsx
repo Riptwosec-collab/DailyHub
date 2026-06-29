@@ -255,7 +255,7 @@ function runToLibraryItem(run: TaskRun, task?: ScheduledTask): LibraryViewItem {
     sections: [
       { heading: "สรุป", body: summary },
       { heading: "ข้อมูลเต็มที่ระบบขยายให้อ่าน", body: fullText || run.originalContent || "ไม่มีข้อมูลดิบใน run นี้" },
-      { heading: "ควรทำต่อ", body: run.gptOutput.recommended_action || "เปิดดูรายละเอียดใน Task Results หรือรัน task ใหม่เพื่อเก็บข้อมูลล่าสุด" },
+      { heading: "ควรทำต่อ", body: run.gptOutput.recommended_action || "เปิดหน้า Daily Brief หรือแหล่งข้อมูลต้นทางเพื่อดูรายละเอียดล่าสุด" },
     ],
     updatedAt: run.startedAt,
     status: run.status,

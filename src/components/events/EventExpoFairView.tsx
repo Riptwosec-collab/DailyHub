@@ -310,7 +310,7 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
   const meta = kindMeta[event.kind];
 
   return (
-    <div className={cn("relative min-h-56 overflow-hidden rounded-2xl border bg-slate-950/70", meta.className)}>
+    <div className={cn("nimbus-card-3d relative min-h-56 overflow-hidden rounded-2xl border bg-slate-950/70", meta.className)}>
       {!failed && (
         <>
           <Image
@@ -403,7 +403,7 @@ export function EventExpoFairView() {
   const total = eventMonths.reduce((sum, month) => sum + month.events.length, 0);
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-slate-950/72 p-4 shadow-2xl shadow-emerald-950/20 sm:p-6">
+    <section className="nimbus-card-3d relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-slate-950/72 p-4 shadow-2xl shadow-emerald-950/20 sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_4%,rgba(34,197,94,0.22),transparent_28%),radial-gradient(circle_at_86%_2%,rgba(168,85,247,0.24),transparent_28%)]" />
       <div className="relative">
         <header className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">

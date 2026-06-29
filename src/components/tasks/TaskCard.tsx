@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -34,10 +33,6 @@ export function TaskCard({ task, isBusy = false, onRunNow, onTogglePause, onDele
 
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
         <div className="flex justify-between gap-3">
-          <span className="text-slate-500">Last Run</span>
-          <span className="text-right font-semibold text-slate-200">{formatDateTime(task.lastRunAt)}</span>
-        </div>
-        <div className="flex justify-between gap-3">
           <span className="text-slate-500">Next Run</span>
           <span className="text-right font-semibold text-slate-200">{formatDateTime(task.nextRunAt)}</span>
         </div>
@@ -60,18 +55,6 @@ export function TaskCard({ task, isBusy = false, onRunNow, onTogglePause, onDele
         <Button disabled={isBusy || isPaused} onClick={() => onRunNow(task.id)} type="button">
           {isBusy ? "Running..." : "Run Now"}
         </Button>
-        <Link
-          className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.1]"
-          href={`/task-results?taskId=${task.id}`}
-        >
-          View Results
-        </Link>
-        <Link
-          className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.1]"
-          href={`/scheduled-tasks/create?edit=${task.id}`}
-        >
-          Edit
-        </Link>
         <Button variant="secondary" onClick={() => onTogglePause(task.id)} type="button">
           {isPaused ? "Resume" : "Pause"}
         </Button>

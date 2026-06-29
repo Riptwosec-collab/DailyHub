@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/utils";
 import type { ScheduledTask, ScheduledTaskStatus, ScheduledTaskType } from "@/types/scheduled-task";
@@ -153,9 +152,6 @@ export function ScheduledTasksApiView() {
               <p className="mt-3 text-4xl font-black text-white">{tasks.length}</p>
               <p className="mt-1 text-sm text-slate-500">from API</p>
             </div>
-            <Link className="rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20" href="/scheduled-tasks/create">
-              + Create
-            </Link>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
@@ -207,7 +203,6 @@ export function ScheduledTasksApiView() {
                   </div>
 
                   <div className="space-y-2 text-sm text-slate-400">
-                    <p>Last Run: {formatDateTime(task.lastRunAt)}</p>
                     <p>Next Run: {formatDateTime(task.nextRunAt)}</p>
                   </div>
 
@@ -215,9 +210,6 @@ export function ScheduledTasksApiView() {
                     <Button disabled={isBusy} onClick={() => void handleRunNow(task)} type="button">
                       {isBusy && task.status === "Running" ? "Running..." : "Run Now"}
                     </Button>
-                    <Link className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white" href={`/task-results?task_id=${task.id}`}>
-                      View Results
-                    </Link>
                     <Button disabled={isBusy} variant="secondary" onClick={() => void handleTogglePause(task)} type="button">
                       {task.status === "Paused" ? "Resume" : "Pause"}
                     </Button>

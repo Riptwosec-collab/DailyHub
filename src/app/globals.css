@@ -1015,6 +1015,7 @@ th {
 .landing-dark {
   background: #050b18 !important;
   color: #eef6ff !important;
+  min-height: 100vh;
 }
 
 .landing-dark-aurora {
@@ -1109,6 +1110,23 @@ th {
 .landing-dark nav,
 .landing-dark footer {
   backdrop-filter: blur(18px);
+}
+
+.landing-dark article,
+.landing-dark figure,
+.landing-dark section > div[class*="rounded"],
+.landing-dark header nav > a,
+.landing-dark footer a {
+  transform-style: preserve-3d;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.landing-dark article:hover,
+.landing-dark figure:hover,
+.landing-dark section > div[class*="rounded"]:hover,
+.landing-dark footer a:hover {
+  transform: translateY(-3px) rotateX(1.2deg) rotateY(-0.8deg);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.32), 0 0 28px rgba(34, 211, 238, 0.08) !important;
 }
 
 .landing-dark a:focus-visible,

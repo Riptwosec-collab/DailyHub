@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { apiFetch, getFriendlyApiError } from "@/lib/api-client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatDateTime } from "@/lib/utils";
@@ -31,7 +30,6 @@ const copy = {
   th: {
     title: "งานอัตโนมัติ",
     desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ และโปรเดินทาง",
-    createTask: "สร้างงาน",
     refresh: "รีเฟรช",
     testTelegram: "ทดสอบ Telegram",
     total: "ทั้งหมด",
@@ -46,7 +44,6 @@ const copy = {
     resume: "Resume",
     results: "ผลลัพธ์",
     schedule: "ตารางเวลา",
-    lastRun: "รันล่าสุด",
     nextRun: "รันถัดไป",
     minPriority: "ความสำคัญขั้นต่ำ",
     output: "ช่องทางผลลัพธ์",
@@ -59,7 +56,6 @@ const copy = {
   en: {
     title: "Scheduled Tasks",
     desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, and travel deals.",
-    createTask: "Create Task",
     refresh: "Refresh",
     testTelegram: "Test Telegram",
     total: "Total",
@@ -74,7 +70,6 @@ const copy = {
     resume: "Resume",
     results: "Results",
     schedule: "Schedule",
-    lastRun: "Last run",
     nextRun: "Next run",
     minPriority: "Min Priority",
     output: "Outputs",
@@ -203,7 +198,6 @@ export function ScheduledTasksProView() {
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => void handleTelegramTest()}>✈ {text.testTelegram}</Button>
           <Button variant="secondary" onClick={() => void loadTasks()}>↻ {text.refresh}</Button>
-          <Button asChild><Link href="/scheduled-tasks/create">+ {text.createTask}</Link></Button>
         </div>
       </div>
 
@@ -235,7 +229,6 @@ export function ScheduledTasksProView() {
         <Card className="p-10 text-center">
           <p className="text-4xl">📭</p>
           <h2 className="mt-3 text-xl font-black text-white">{text.empty}</h2>
-          <Button className="mt-5" asChild><Link href="/scheduled-tasks/create">+ {text.createTask}</Link></Button>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -279,7 +272,6 @@ function TaskCard({ task, isBusy, onRunNow, onTogglePause, text, lang }: { task:
       </div>
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-xs text-slate-400">
         <p>{text.schedule}: <span className="text-slate-200">{task.scheduleType}</span></p>
-        <p>{text.lastRun}: <span className="text-slate-200">{task.lastRunAt ? formatDateTime(task.lastRunAt, lang) : "-"}</span></p>
         <p>{text.nextRun}: <span className="text-cyan-200">{task.nextRunAt ? formatDateTime(task.nextRunAt, lang) : "-"}</span></p>
         <p>{text.minPriority}: <span className="text-slate-200">{task.minPriorityScore}/100</span></p>
       </div>
@@ -289,7 +281,6 @@ function TaskCard({ task, isBusy, onRunNow, onTogglePause, text, lang }: { task:
       <div className="mt-auto grid grid-cols-2 gap-2">
         <Button className="col-span-2" disabled={isBusy} onClick={onRunNow}>{isBusy ? text.running : text.runNow}</Button>
         <Button variant="secondary" disabled={isBusy} onClick={onTogglePause}>{isPaused ? text.resume : text.pause}</Button>
-        <Button variant="secondary" asChild><Link href={`/task-results?task_id=${task.id}`}>{text.results}</Link></Button>
       </div>
     </Card>
   );

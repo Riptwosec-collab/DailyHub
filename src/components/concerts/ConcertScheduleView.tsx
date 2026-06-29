@@ -708,7 +708,7 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
   return (
     <article
       className={cn(
-        "concert-card rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,12,27,0.94))] p-4 shadow-[0_18px_46px_rgba(0,0,0,0.25)] transition hover:border-fuchsia-300/45 hover:bg-slate-900/90 sm:flex sm:gap-5",
+        "concert-card nimbus-card-3d rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,12,27,0.94))] p-4 shadow-[0_18px_46px_rgba(0,0,0,0.25)] transition hover:border-fuchsia-300/45 hover:bg-slate-900/90 sm:flex sm:gap-5",
         event.isPlaceholder && "border-dashed bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(2,12,27,0.72))]",
       )}
     >
@@ -759,7 +759,7 @@ function EventSection({ category, events, isThai }: { category: EventCategory; e
 
   return (
     <section className="space-y-4">
-      <div className={cn("overflow-hidden rounded-2xl border shadow-[0_20px_54px_rgba(0,0,0,0.22)]", meta.border)}>
+      <div className={cn("nimbus-card-3d overflow-hidden rounded-2xl border shadow-[0_20px_54px_rgba(0,0,0,0.22)]", meta.border)}>
         <div className={cn("flex flex-col gap-3 bg-gradient-to-r px-5 py-4 sm:flex-row sm:items-center sm:justify-between", meta.bg)}>
           <div className="flex items-center gap-3">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-2xl shadow-lg" aria-hidden>{meta.icon}</span>
@@ -794,7 +794,7 @@ export function ConcertScheduleView() {
   const isThai = lang === "th";
 
   return (
-    <section className="concert-page overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-slate-100 shadow-2xl shadow-black/30">
+    <section className="concert-page nimbus-card-3d overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-slate-100 shadow-2xl shadow-black/30">
       <div className="relative border-b border-white/10 bg-[radial-gradient(circle_at_82%_0%,rgba(147,51,234,0.48),transparent_28%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(2,12,27,0.94))] px-5 py-6 sm:px-8 lg:px-10">
         <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_70%_22%,rgba(217,70,239,0.52),transparent_18%),linear-gradient(90deg,transparent,rgba(34,197,94,0.12))] md:block" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

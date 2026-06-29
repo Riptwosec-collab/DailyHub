@@ -155,7 +155,7 @@ function PlatformArt({ platform, items }: { platform: MoviePlatform; items: Watc
   const previewItems = items.slice(0, 3);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
   return (
-    <div className={cn("relative h-full min-h-72 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)] lg:min-h-[28rem]", meta.border)}>
+    <div className={cn("nimbus-card-3d relative h-full min-h-72 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)] lg:min-h-[28rem]", meta.border)}>
       <div className={cn("absolute inset-0 bg-gradient-to-br", meta.gradient)} />
       {previewItems[0] && !failed[previewItems[0].id] && (
         <Image
@@ -206,6 +206,12 @@ function moviePosterSrc(item: WatchItem) {
   return `/api/poster-image?${params.toString()}`;
 }
 
+function movieDetailUrl(item: WatchItem) {
+  const query = encodeURIComponent(item.title);
+  if (item.platform === "cinema") return `https://www.majorcineplex.com/search?q=${query}`;
+  return `https://www.netflix.com/search?q=${query}`;
+}
+
 function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
   const [failed, setFailed] = useState(false);
   const meta = platformMeta[item.platform];
@@ -245,7 +251,7 @@ function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
 
 function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isThai: boolean }) {
   return (
-    <div className="grid gap-3 border-b border-white/10 px-3 py-3 last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center">
+    <div className="grid gap-3 border-b border-white/10 px-3 py-3 transition hover:bg-white/[0.045] last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center">
       <span className="grid h-10 w-10 place-items-center rounded-xl border border-fuchsia-300/35 bg-fuchsia-400/10 text-lg font-black text-white shadow-[0_0_18px_rgba(217,70,239,0.28)]">{index + 1}</span>
       <MoviePoster item={item} isThai={isThai} />
       <div className="min-w-0">
@@ -255,7 +261,7 @@ function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isT
       <p className="text-sm font-black text-fuchsia-100">📅 {isThai ? item.dateTh : item.dateEn}</p>
       <p className="text-sm font-semibold leading-6 text-slate-200">☆ {isThai ? item.genreTh : item.genreEn}</p>
       <Button asChild variant="outline" size="sm" className="justify-center">
-        <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{isThai ? "ดูแหล่งข้อมูล" : "Source"} ↗</a>
+        <a href={movieDetailUrl(item)} target="_blank" rel="noopener noreferrer">{isThai ? "ดูแหล่งข้อมูล" : "Source"} ↗</a>
       </Button>
     </div>
   );
@@ -264,7 +270,7 @@ function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isT
 function PlatformSection({ platform, items, isThai }: { platform: MoviePlatform; items: WatchItem[]; isThai: boolean }) {
   const meta = platformMeta[platform];
   return (
-    <section className={cn("rounded-3xl border bg-slate-950/52 p-3 shadow-[0_0_42px_rgba(37,99,235,0.18)] sm:p-4", meta.border)}>
+    <section className={cn("nimbus-card-3d rounded-3xl border bg-slate-950/52 p-3 shadow-[0_0_42px_rgba(37,99,235,0.18)] sm:p-4", meta.border)}>
       <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <PlatformArt platform={platform} items={items} />
         {items.length ? (
@@ -295,7 +301,7 @@ export function MovieScheduleView() {
   const platformKeys: PlatformKey[] = ["all", "cinema", "streaming"];
 
   return (
-    <div className="movie-page relative overflow-hidden rounded-3xl border border-fuchsia-300/20 bg-slate-950/65 p-4 shadow-2xl shadow-fuchsia-950/30 sm:p-6">
+    <div className="movie-page nimbus-card-3d relative overflow-hidden rounded-3xl border border-fuchsia-300/20 bg-slate-950/65 p-4 shadow-2xl shadow-fuchsia-950/30 sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_0%,rgba(168,85,247,0.30),transparent_30%),radial-gradient(circle_at_90%_8%,rgba(59,130,246,0.22),transparent_28%)]" />
       <div className="pointer-events-none absolute right-0 top-0 h-64 w-[38rem] bg-[linear-gradient(180deg,rgba(99,102,241,0.18),transparent)]" />
       <div className="relative">

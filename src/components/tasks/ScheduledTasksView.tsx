@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -212,12 +211,6 @@ export function ScheduledTasksView({ initialTasks }: ScheduledTasksViewProps) {
               <p className="mt-3 text-4xl font-black text-white">{tasks.length}</p>
               <p className="mt-1 text-sm text-slate-500">total scheduled tasks</p>
             </div>
-            <Link
-              href="/scheduled-tasks/create"
-              className="rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95"
-            >
-              + Create
-            </Link>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">

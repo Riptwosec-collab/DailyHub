@@ -21,7 +21,6 @@ const copy = {
     badge: "เฟส 27",
     title: "เทมเพลตงาน",
     desc: "เลือก workflow สำเร็จรูปแล้วสร้าง Scheduled Task ได้ทันที เหมาะสำหรับ Daily Brief, Email Monitor, Sale Monitor, ประกาศรัฐ และโปรเดินทาง",
-    custom: "สร้างงานเอง",
     createdTitle: "สร้าง Task สำเร็จแล้ว",
     createdDesc: "เปิดหน้า Scheduled Tasks เพื่อกด Run Now หรือแก้ไขเวลารันได้",
     viewTasks: "ดูงานอัตโนมัติ",
@@ -48,7 +47,6 @@ const copy = {
     badge: "Phase 27",
     title: "Task Templates",
     desc: "Pick a ready-made workflow and create a Scheduled Task instantly for Daily Brief, Email Monitor, Sale Monitor, public alerts, and travel deals.",
-    custom: "Create Custom Task",
     createdTitle: "Task created",
     createdDesc: "Open Scheduled Tasks to run now or edit the schedule.",
     viewTasks: "View Scheduled Tasks",
@@ -133,7 +131,6 @@ export function TaskTemplatesView() {
           <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{text.title}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{text.desc}</p>
         </div>
-        <Button asChild variant="secondary"><Link href="/scheduled-tasks/create">{text.custom}</Link></Button>
       </div>
 
       {createdTaskId && (

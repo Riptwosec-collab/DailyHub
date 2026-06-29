@@ -41,12 +41,13 @@ export async function getLatestDailyBrief(params?: { category?: string | null; s
     }
   }
 
-  if (!items.length) {
+  if (!items.length && !useRealNews) {
     items = mockDailyBriefItems;
-    mode = useRealNews ? "fallback" : "mock";
-    message = useRealNews
-      ? `${message}; real feeds returned no usable news, using NimbusDaily fallback data`
-      : "USE_REAL_NEWS=false; using mock data";
+    mode = "mock";
+    message = "USE_REAL_NEWS=false; using mock data";
+  } else if (!items.length) {
+    mode = "fallback";
+    message = `${message}; real feeds returned no usable news`;
   }
 
   const prepared = dedupeDailyBriefItems(filterItems(items, category, params?.search).map(summarizeSingleNews));

@@ -16,11 +16,20 @@ const ThemeContext = createContext<ThemeContextValue>({
   toggleTheme: () => {},
 });
 
+const DARK_DEFAULT_VERSION = "2026-06-29-dark-default";
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<AppTheme>("dark");
 
   useEffect(() => {
     try {
+      const defaultVersion = localStorage.getItem("nimbusdaily_theme_default_version");
+      if (defaultVersion !== DARK_DEFAULT_VERSION) {
+        localStorage.setItem("nimbusdaily_theme", "dark");
+        localStorage.setItem("nimbusdaily_theme_default_version", DARK_DEFAULT_VERSION);
+        setThemeState("dark");
+        return;
+      }
       const userSetTheme = localStorage.getItem("nimbusdaily_theme_user_set") === "true";
       if (!userSetTheme) {
         localStorage.setItem("nimbusdaily_theme", "dark");
