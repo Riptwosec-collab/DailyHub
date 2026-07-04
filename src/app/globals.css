@@ -23,21 +23,21 @@
 
 html[data-theme="cream"] {
   color-scheme: light;
-  --background: #F7F0E6;
-  --foreground: #2E2A26;
-  --app-bg-0: #F7F0E6;
-  --app-bg-1: #FFF6EA;
-  --app-bg-2: #E8DCCB;
-  --nimbus-cyan: 184, 138, 90;
-  --nimbus-violet: 126, 92, 54;
-  --nimbus-emerald: 92, 116, 67;
-  --nimbus-rose: 177, 72, 77;
-  --nimbus-depth-shadow: 0 16px 36px rgba(83, 61, 43, 0.11), 0 1px 0 rgba(255, 255, 255, 0.70) inset;
-  --panel-bg: rgba(250, 239, 224, 0.96);
-  --panel-border: rgba(160, 113, 70, 0.30);
-  --sidebar-bg: rgba(250, 239, 224, 0.97);
-  --topbar-bg: rgba(250, 239, 224, 0.94);
-  --muted-text: #6B5A4A;
+  --background: #efe4d2;
+  --foreground: #241f1a;
+  --app-bg-0: #efe4d2;
+  --app-bg-1: #f3e8d8;
+  --app-bg-2: #deceb7;
+  --nimbus-cyan: 160, 105, 55;
+  --nimbus-violet: 111, 76, 43;
+  --nimbus-emerald: 74, 96, 54;
+  --nimbus-rose: 152, 52, 58;
+  --nimbus-depth-shadow: 0 14px 30px rgba(64, 44, 27, 0.13), 0 1px 0 rgba(255, 255, 255, 0.46) inset;
+  --panel-bg: rgba(243, 232, 216, 0.95);
+  --panel-border: rgba(128, 84, 45, 0.38);
+  --sidebar-bg: rgba(239, 228, 210, 0.98);
+  --topbar-bg: rgba(239, 228, 210, 0.95);
+  --muted-text: #5c4a3a;
 }
 
 html[data-theme="sanook"] {
@@ -286,9 +286,9 @@ textarea {
 
 html[data-theme="cream"] body {
   background:
-    radial-gradient(circle at 12% 8%, rgba(184, 138, 90, 0.10), transparent 28%),
-    radial-gradient(circle at 84% 14%, rgba(126, 92, 54, 0.07), transparent 30%),
-    linear-gradient(180deg, #F3E8D8 0%, #FAEFDF 48%, #E4D5C0 100%);
+    radial-gradient(circle at 12% 8%, rgba(160, 105, 55, 0.075), transparent 28%),
+    radial-gradient(circle at 84% 14%, rgba(111, 76, 43, 0.052), transparent 30%),
+    linear-gradient(180deg, #eadcc8 0%, #f1e4d2 48%, #d8c5aa 100%);
   color: var(--foreground);
 }
 
@@ -304,10 +304,10 @@ html[data-theme="cream"] body::after {
 
 html[data-theme="cream"] .app-backdrop-glow {
   background:
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(184, 138, 90, 0.075), transparent 16rem),
-    radial-gradient(circle at 16% 12%, rgba(184, 138, 90, 0.10), transparent 30%),
-    radial-gradient(circle at 84% 18%, rgba(126, 92, 54, 0.07), transparent 34%),
-    linear-gradient(180deg, rgba(250, 239, 224, 0.70), rgba(228, 213, 192, 0.56));
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(160, 105, 55, 0.052), transparent 16rem),
+    radial-gradient(circle at 16% 12%, rgba(160, 105, 55, 0.075), transparent 30%),
+    radial-gradient(circle at 84% 18%, rgba(111, 76, 43, 0.052), transparent 34%),
+    linear-gradient(180deg, rgba(239, 228, 210, 0.76), rgba(216, 197, 170, 0.62));
 }
 
 html[data-theme="cream"] .app-backdrop-grid {
@@ -936,6 +936,110 @@ th {
 td,
 th {
   vertical-align: middle;
+}
+
+.stock-hub {
+  --stock-panel: rgba(8, 13, 30, 0.72);
+  --stock-line: rgba(148, 163, 184, 0.14);
+  --stock-glow: rgba(59, 130, 246, 0.10);
+}
+
+.stock-hub .nimbus-card-3d {
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.70)),
+    var(--stock-panel);
+  border-color: var(--stock-line);
+}
+
+.stock-hub .nimbus-card-3d:hover {
+  transform: perspective(1200px) translateY(-0.75px) rotateX(0.1deg) rotateY(-0.08deg);
+  box-shadow: 0 14px 36px rgba(2, 6, 23, 0.32), 0 0 22px var(--stock-glow);
+}
+
+.stock-hub table tbody tr {
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.018), transparent);
+}
+
+.stock-hub table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.075);
+}
+
+.stock-hub input {
+  outline-color: rgba(103, 232, 249, 0.48);
+}
+
+.stock-hub input:focus {
+  border-color: rgba(103, 232, 249, 0.42);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+}
+
+.stock-hub .stock-footer {
+  background: rgba(2, 6, 23, 0.55);
+}
+
+html[data-theme="cream"] .stock-hub {
+  --stock-panel: rgba(243, 232, 216, 0.94);
+  --stock-line: rgba(128, 84, 45, 0.30);
+  --stock-glow: rgba(128, 84, 45, 0.08);
+  color: #241f1a !important;
+}
+
+html[data-theme="cream"] .stock-hub .nimbus-card-3d,
+html[data-theme="cream"] .stock-hub article,
+html[data-theme="cream"] .stock-hub aside[class*="bg-slate"],
+html[data-theme="cream"] .stock-hub footer {
+  background:
+    linear-gradient(145deg, rgba(245, 235, 220, 0.96), rgba(226, 211, 190, 0.82)),
+    var(--stock-panel) !important;
+  border-color: var(--stock-line) !important;
+  box-shadow: 0 12px 26px rgba(64, 44, 27, 0.10), 0 1px 0 rgba(255, 255, 255, 0.42) inset !important;
+}
+
+html[data-theme="cream"] .stock-hub .nimbus-card-3d:hover {
+  background:
+    linear-gradient(145deg, rgba(242, 229, 210, 0.98), rgba(219, 201, 176, 0.86)),
+    var(--stock-panel) !important;
+  border-color: rgba(128, 84, 45, 0.42) !important;
+}
+
+html[data-theme="cream"] .stock-hub input,
+html[data-theme="cream"] .stock-hub select,
+html[data-theme="cream"] .stock-hub textarea {
+  background: rgba(232, 216, 195, 0.88) !important;
+  border-color: rgba(128, 84, 45, 0.30) !important;
+  color: #241f1a !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+html[data-theme="cream"] .stock-hub table tbody tr:hover {
+  background: rgba(160, 105, 55, 0.10) !important;
+}
+
+html[data-theme="cream"] .stock-hub th {
+  background: rgba(232, 216, 195, 0.96) !important;
+  color: #4c3828 !important;
+}
+
+html[data-theme="cream"] .stock-hub .text-emerald-300,
+html[data-theme="cream"] .stock-hub .text-emerald-200 {
+  color: #2f6c3d !important;
+}
+
+html[data-theme="cream"] .stock-hub .text-rose-300,
+html[data-theme="cream"] .stock-hub .text-rose-200 {
+  color: #9a3035 !important;
+}
+
+html[data-theme="cream"] .stock-hub .text-blue-200,
+html[data-theme="cream"] .stock-hub .text-cyan-100,
+html[data-theme="cream"] .stock-hub .text-cyan-200 {
+  color: #80542d !important;
+}
+
+html[data-theme="cream"] .daily-sidebar nav > div,
+html[data-theme="cream"] .daily-topbar,
+html[data-theme="cream"] .app-surface {
+  border-color: rgba(128, 84, 45, 0.26) !important;
 }
 
 .nimbus-orbit {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-type ViewId = "overview" | "market" | "filter" | "alerts" | "heatmap" | "watchlist" | "portfolio" | "category";
+type ViewId = "overview" | "market" | "alerts" | "heatmap" | "watchlist" | "portfolio" | "category";
 
 type Quote = {
   symbol: string;
@@ -47,11 +47,34 @@ type Category = {
 
 type QuoteApiItem = Partial<Quote> & { symbol?: string };
 
+type PortfolioHolding = {
+  ticker: string;
+  name: string;
+  type: string;
+  current: number;
+  target: number;
+  dayChange: string;
+  contribution: number;
+  value: number;
+};
+
+const portfolioStorageKey = "nimbusdaily-portfolio-holdings";
+
+const defaultPortfolioHoldings: PortfolioHolding[] = [
+  { ticker: "VOO", name: "Vanguard S&P 500 ETF", type: "Core ETF", current: 18, target: 18, dayChange: "+0.42%", contribution: 102.34, value: 441054 },
+  { ticker: "QQQ", name: "Invesco QQQ Trust", type: "Core ETF", current: 10, target: 10, dayChange: "+0.68%", contribution: 76.45, value: 245032 },
+  { ticker: "XLK", name: "Technology Select Sector", type: "Growth Tech", current: 12, target: 12, dayChange: "+0.75%", contribution: 88.21, value: 294008 },
+  { ticker: "NVDA", name: "NVIDIA Corporation", type: "Growth Tech", current: 8, target: 6, dayChange: "+1.15%", contribution: 61.77, value: 196025 },
+  { ticker: "GLD", name: "SPDR Gold Shares", type: "Gold", current: 10, target: 10, dayChange: "+0.21%", contribution: 21.45, value: 245032 },
+  { ticker: "BTC-USD", name: "Bitcoin", type: "Crypto", current: 8, target: 8, dayChange: "+2.34%", contribution: 58.93, value: 196025 },
+  { ticker: "BND", name: "Vanguard Bond Market ETF", type: "Bonds", current: 10, target: 12, dayChange: "+0.12%", contribution: 12.34, value: 245032 },
+  { ticker: "CASH", name: "USD Cash", type: "Cash", current: 7, target: 8, dayChange: "0.00%", contribution: 0, value: 171101 },
+];
+
 const navItems: { id: ViewId; title: string; icon: string }[] = [
   { id: "overview", title: "Stock Overview", icon: "↗" },
   { id: "market", title: "สถานะตลาด", icon: "●" },
-  { id: "filter", title: "ตัวกรองขั้นสูง", icon: "⌁" },
-  { id: "alerts", title: "แจ้งเตือนราคา", icon: "🔔" },
+  { id: "alerts", title: "แจ้งเตือนราคา", icon: "◔" },
   { id: "heatmap", title: "Heatmap", icon: "▦" },
   { id: "watchlist", title: "Watchlist", icon: "★" },
   { id: "portfolio", title: "Portfolio Allocation", icon: "◎" },
@@ -176,20 +199,19 @@ export function StocksHubView() {
   }, [hydratedStocks, query]);
 
   return (
-    <section className="w-full text-slate-100">
-      <div className="grid gap-5 2xl:grid-cols-[16rem_minmax(0,1fr)]">
+    <section className="stock-hub w-full text-slate-100">
+      <div className="grid gap-5 2xl:grid-cols-[15.5rem_minmax(0,1fr)]">
         <StockSidebar view={view} activeCategoryId={activeCategoryId} onView={setView} onCategory={(id) => { setActiveCategoryId(id); setView("category"); }} />
         <div className="min-w-0 space-y-5">
           <StockTopbar view={view} category={activeCategory} query={query} setQuery={setQuery} lastUpdated={lastUpdated} />
           {view === "overview" && <OverviewBoard stocks={filteredAll} setView={setView} setCategory={setActiveCategoryId} />}
           {view === "market" && <MarketStatus lastUpdated={lastUpdated} />}
-          {view === "filter" && <AdvancedFilter stocks={filteredAll} />}
           {view === "alerts" && <PriceAlerts stocks={hydratedStocks.slice(0, 8)} />}
           {view === "heatmap" && <Heatmap stocks={hydratedStocks} />}
           {view === "watchlist" && <WatchlistPage stocks={hydratedStocks.slice(0, 10)} />}
           {view === "portfolio" && <PortfolioAllocation />}
           {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} />}
-          <footer className="rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
+          <footer className="stock-footer rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
             ข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน ราคาจาก API อาจล่าช้าหรือใช้ fallback เมื่อแหล่งข้อมูลไม่ตอบสนอง
           </footer>
         </div>
@@ -232,7 +254,6 @@ function StockTopbar({ view, category, query, setQuery, lastUpdated }: { view: V
   const titleMap: Record<ViewId, string> = {
     overview: "หน้ารวมหุ้น",
     market: "สถานะตลาดและเวลาอัปเดต",
-    filter: "ตัวกรองขั้นสูง",
     alerts: "แจ้งเตือนราคา",
     heatmap: "Heatmap ตลาดหุ้น",
     watchlist: "รายการติดตามหลายชุด",
@@ -243,7 +264,7 @@ function StockTopbar({ view, category, query, setQuery, lastUpdated }: { view: V
     <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <div>
         <h1 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">{titleMap[view]}</h1>
-        <p className="mt-2 text-lg font-medium text-slate-300">{view === "category" ? category.subtitle : "ดูราคาหุ้นวันนี้ เทียบราคาปิดเมื่อวาน และราคาหลังตลาดปิดในหน้าเดียว"}</p>
+        <p className="mt-2 text-lg font-medium text-slate-300">{view === "category" ? category.subtitle : "ภาพรวมตลาด หุ้นเด่น Watchlist พอร์ต และราคาหลังตลาดปิดในหน้าเดียว"}</p>
         <label className="relative mt-4 block">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/55 pl-12 pr-4 text-base font-semibold text-white shadow-inner shadow-black/20 transition focus:border-cyan-300/45" placeholder="ค้นหาหุ้น, Ticker, หรือหมวดหมู่..." />
@@ -280,9 +301,10 @@ function OverviewBoard({ stocks, setView, setCategory }: { stocks: StockItem[]; 
         {categories.slice(0, 6).map((category) => (
           <button key={category.id} type="button" onClick={() => { setCategory(category.id); setView("category"); }} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">{category.title}</button>
         ))}
-        <button type="button" onClick={() => setView("filter")} className="ml-auto rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300">ตัวกรอง</button>
+        <button type="button" onClick={() => setView("heatmap")} className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15">Heatmap</button>
+        <button type="button" onClick={() => setView("watchlist")} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">Watchlist</button>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_21rem]">
         <PriceTable title="Stock Overview Board" stocks={stocks.slice(0, 18)} compact={false} />
         <aside className="space-y-5">
           <HowToRead />
@@ -413,32 +435,6 @@ function MarketStatus({ lastUpdated }: { lastUpdated: string }) {
   );
 }
 
-function AdvancedFilter({ stocks }: { stocks: StockItem[] }) {
-  return (
-    <div className="grid gap-5 xl:grid-cols-[20rem_minmax(0,1fr)]">
-      <aside className="space-y-4">
-        {["AI Momentum", "Safe Long-term", "After Hours Movers"].map((name, index) => (
-          <div key={name} className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
-            <p className="text-lg font-extrabold text-white">{name}</p>
-            <p className="text-sm font-semibold text-slate-400">พบ {28 + index * 9} รายการ</p>
-          </div>
-        ))}
-      </aside>
-      <main className="space-y-5">
-        <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
-          <h2 className="text-xl font-extrabold text-white">ตัวกรองขั้นสูง</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {["หมวดหมู่: Technology", "ความเสี่ยง: ปานกลาง", "Market Cap: > 10B", "วันนี้: ≥ +1%", "Volume: > 1M", "สถานะ: อยู่ใน Watchlist", "Theme: AI / Cloud", "View: ยังไม่ดู"].map((item) => (
-              <span key={item} className="rounded-xl border border-blue-300/20 bg-blue-500/10 px-4 py-3 text-sm font-bold text-blue-100">{item}</span>
-            ))}
-          </div>
-        </article>
-        <PriceTable title={`ผลลัพธ์ (พบ ${stocks.slice(0, 12).length} รายการ)`} stocks={stocks.slice(0, 12)} compact />
-      </main>
-    </div>
-  );
-}
-
 function PriceAlerts({ stocks }: { stocks: StockItem[] }) {
   const rows = stocks.slice(0, 4);
   return (
@@ -533,51 +529,177 @@ function WatchlistPage({ stocks }: { stocks: StockItem[] }) {
 }
 
 function PortfolioAllocation() {
-  const holdings = [
-    ["VOO", "Vanguard S&P 500 ETF", "Core ETF", 18, 18, "+0.42%", "+102.34", "441,054"],
-    ["QQQ", "Invesco QQQ Trust", "Core ETF", 10, 10, "+0.68%", "+76.45", "245,032"],
-    ["XLK", "Technology Select Sector", "Growth Tech", 12, 12, "+0.75%", "+88.21", "294,008"],
-    ["NVDA", "NVIDIA Corporation", "Growth Tech", 8, 6, "+1.15%", "+61.77", "196,025"],
-    ["GLD", "SPDR Gold Shares", "Gold", 10, 10, "+0.21%", "+21.45", "245,032"],
-    ["BTC-USD", "Bitcoin", "Crypto", 8, 8, "+2.34%", "+58.93", "196,025"],
-    ["BND", "Vanguard Bond Market ETF", "Bonds", 10, 12, "+0.12%", "+12.34", "245,032"],
-    ["CASH", "USD Cash", "Cash", 7, 8, "—", "0.00", "171,101"],
-  ];
+  const [holdings, setHoldings] = useState<PortfolioHolding[]>(defaultPortfolioHoldings);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(portfolioStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as PortfolioHolding[];
+        if (Array.isArray(parsed) && parsed.length > 0) setHoldings(parsed);
+      }
+    } catch {
+      setHoldings(defaultPortfolioHoldings);
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    window.localStorage.setItem(portfolioStorageKey, JSON.stringify(holdings));
+  }, [holdings, loaded]);
+
+  const totalValue = holdings.reduce((sum, item) => sum + item.value, 0);
+  const totalCurrent = holdings.reduce((sum, item) => sum + item.current, 0);
+  const totalTarget = holdings.reduce((sum, item) => sum + item.target, 0);
+  const drift = holdings.reduce((sum, item) => sum + Math.abs(item.current - item.target), 0) / Math.max(holdings.length, 1);
+  const riskScore = Math.min(9.9, Math.max(1, drift + holdings.filter((item) => ["Growth Tech", "Crypto"].includes(item.type)).length * 0.55 + 2.4));
+  const conicStops = holdings.reduce<{ start: number; stops: string[] }>(
+    (state, item, index) => {
+      const colors = ["#3b82f6", "#8b5cf6", "#06b6d4", "#f97316", "#fbbf24", "#22c55e", "#94a3b8", "#f43f5e", "#14b8a6"];
+      const end = state.start + Math.max(item.current, 0);
+      state.stops.push(`${colors[index % colors.length]} ${state.start}% ${end}%`);
+      state.start = end;
+      return state;
+    },
+    { start: 0, stops: [] },
+  ).stops.join(",");
+
+  const updateHolding = (ticker: string, field: keyof PortfolioHolding, value: string) => {
+    setHoldings((current) =>
+      current.map((item) => {
+        if (item.ticker !== ticker) return item;
+        if (field === "current" || field === "target" || field === "value") return { ...item, [field]: Math.max(0, Number(value) || 0) };
+        if (field === "contribution") return { ...item, contribution: Number(value) || 0 };
+        return { ...item, [field]: value };
+      }),
+    );
+  };
+
+  const addHolding = () => {
+    const id = `NEW-${holdings.length + 1}`;
+    setHoldings((current) => [
+      ...current,
+      { ticker: id, name: "New Holding", type: "Custom", current: 0, target: 0, dayChange: "0.00%", contribution: 0, value: 0 },
+    ]);
+  };
+
+  const removeHolding = (ticker: string) => setHoldings((current) => current.filter((item) => item.ticker !== ticker));
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_32rem]">
+    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_28rem]">
       <main className="space-y-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_1fr_1fr_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_repeat(3,minmax(0,.85fr))]">
           <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5 xl:row-span-2">
-            <h2 className="text-xl font-extrabold text-white">ภาพรวมพอร์ตปัจจุบัน</h2>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-white">ภาพรวมพอร์ตปัจจุบัน</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-400">แก้ไขน้ำหนักและมูลค่าได้เอง ระบบจะจำค่าไว้ในเครื่องนี้</p>
+              </div>
+              <button type="button" onClick={() => setHoldings(defaultPortfolioHoldings)} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-extrabold text-slate-300 transition hover:bg-white/[0.07]">
+                รีเซ็ต
+              </button>
+            </div>
             <div className="mt-6 grid place-items-center">
-              <div className="grid h-52 w-52 place-items-center rounded-full bg-[conic-gradient(#3b82f6_0_35%,#8b5cf6_35%_55%,#f97316_55%_65%,#fbbf24_65%_75%,#22c55e_75%_82%,#94a3b8_82%_100%)]">
+              <div className="grid h-52 w-52 place-items-center rounded-full" style={{ background: `conic-gradient(${conicStops || "#334155 0% 100%"})` }}>
                 <div className="grid h-32 w-32 place-items-center rounded-full bg-slate-950 text-center">
                   <span className="text-sm text-slate-400">มูลค่ารวม</span>
-                  <strong className="text-2xl text-white">2,450,320</strong>
+                  <strong className="text-2xl text-white">{Math.round(totalValue).toLocaleString("en-US")}</strong>
                   <span className="text-xs text-slate-400">USD</span>
                 </div>
               </div>
             </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 text-sm font-bold">
+              <span className="rounded-xl bg-white/[0.04] px-3 py-2 text-slate-300">ปัจจุบัน {totalCurrent.toFixed(1)}%</span>
+              <span className="rounded-xl bg-white/[0.04] px-3 py-2 text-slate-300">เป้าหมาย {totalTarget.toFixed(1)}%</span>
+            </div>
           </article>
-          <MetricCard title="Risk Score" value="4.1 / 10" sub="ปานกลาง" icon="↻" tone="blue" />
-          <MetricCard title="สถานะ Rebalance" value="ต้องปรับพอร์ต" sub="เบี่ยงเบน 5.8%" icon="↺" tone="green" />
-          <MetricCard title="ระดับกระจายความเสี่ยง" value="ดีมาก" sub="82 / 100" icon="🛡" tone="green" />
-          {["Conservative", "Growth", "Aggressive", "Custom Portfolio"].map((item) => <div key={item} className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><p className="font-extrabold text-white">{item}</p><p className="mt-2 text-sm text-slate-400">โมเดลพอร์ตพร้อมใช้งาน</p></div>)}
+          <MetricCard title="Risk Score" value={`${riskScore.toFixed(1)} / 10`} sub={riskScore > 6 ? "สูง" : "ปานกลาง"} icon="↻" tone="blue" />
+          <MetricCard title="สถานะ Rebalance" value={drift > 1.2 ? "ควรปรับ" : "สมดุล"} sub={`เบี่ยงเบน ${drift.toFixed(1)}%`} icon="↺" tone="green" />
+          <MetricCard title="จำนวนสินทรัพย์" value={holdings.length.toString()} sub="แก้ไขได้เอง" icon="◎" tone="violet" />
+          {["Conservative", "Growth", "Aggressive", "Custom Portfolio"].map((item) => (
+            <button key={item} type="button" className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5 text-left transition hover:border-cyan-300/25">
+              <p className="font-extrabold text-white">{item}</p>
+              <p className="mt-2 text-sm text-slate-400">โมเดลพอร์ตพร้อมใช้ ปรับน้ำหนักต่อได้เอง</p>
+            </button>
+          ))}
         </div>
         <article className="nimbus-card-3d overflow-hidden rounded-2xl border border-white/10 bg-slate-950/62">
-          <h2 className="border-b border-white/10 px-5 py-4 text-xl font-extrabold text-white">การถือครองตามพอร์ตปัจจุบัน</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+            <div>
+              <h2 className="text-xl font-extrabold text-white">การถือครองตามพอร์ตปัจจุบัน</h2>
+              <p className="text-sm font-semibold text-slate-400">แก้ไขช่อง current / target / value ได้ทันที</p>
+            </div>
+            <button type="button" onClick={addHolding} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-blue-500">
+              + เพิ่มสินทรัพย์
+            </button>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left">
-              <tbody>{holdings.map((row) => <tr key={row[0]} className="border-t border-white/8"><td className="px-4 py-3 font-extrabold text-white">{row[0]}</td><td className="px-4 py-3 text-slate-300">{row[1]}</td><td className="px-4 py-3 text-slate-400">{row[2]}</td><td className="px-4 py-3">{row[3]}%</td><td className="px-4 py-3">{row[4]}%</td><td className="px-4 py-3 text-emerald-300">{row[5]}</td><td className="px-4 py-3 text-emerald-300">{row[6]}</td><td className="px-4 py-3 text-white">{row[7]}</td></tr>)}</tbody>
+            <table className="w-full min-w-[1120px] text-left">
+              <thead className="text-xs font-bold uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Ticker</th>
+                  <th className="px-4 py-3">ชื่อ / สินทรัพย์</th>
+                  <th className="px-4 py-3">ประเภท</th>
+                  <th className="px-4 py-3">ปัจจุบัน %</th>
+                  <th className="px-4 py-3">เป้าหมาย %</th>
+                  <th className="px-4 py-3">เปลี่ยนวันนี้</th>
+                  <th className="px-4 py-3">Contribution</th>
+                  <th className="px-4 py-3">มูลค่า USD</th>
+                  <th className="px-4 py-3">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holdings.map((row) => (
+                  <tr key={row.ticker} className="border-t border-white/8 transition hover:bg-white/[0.04]">
+                    <td className="px-4 py-3">
+                      <input className="w-24 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-extrabold text-white" value={row.ticker} onChange={(event) => updateHolding(row.ticker, "ticker", event.target.value)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input className="w-60 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-200" value={row.name} onChange={(event) => updateHolding(row.ticker, "name", event.target.value)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input className="w-36 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300" value={row.type} onChange={(event) => updateHolding(row.ticker, "type", event.target.value)} />
+                    </td>
+                    <td className="px-4 py-3"><NumberInput value={row.current} onChange={(value) => updateHolding(row.ticker, "current", value)} /></td>
+                    <td className="px-4 py-3"><NumberInput value={row.target} onChange={(value) => updateHolding(row.ticker, "target", value)} /></td>
+                    <td className="px-4 py-3">
+                      <input className="w-28 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-bold text-emerald-300" value={row.dayChange} onChange={(event) => updateHolding(row.ticker, "dayChange", event.target.value)} />
+                    </td>
+                    <td className="px-4 py-3"><NumberInput value={row.contribution} onChange={(value) => updateHolding(row.ticker, "contribution", value)} /></td>
+                    <td className="px-4 py-3"><NumberInput value={row.value} onChange={(value) => updateHolding(row.ticker, "value", value)} wide /></td>
+                    <td className="px-4 py-3">
+                      <button type="button" onClick={() => removeHolding(row.ticker)} className="rounded-lg border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-xs font-extrabold text-rose-200">
+                        ลบ
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </article>
       </main>
       <aside className="space-y-5">
-        <RebalanceBox />
+        <RebalanceBox holdings={holdings} totalValue={totalValue} />
         <GoalBox />
       </aside>
     </div>
+  );
+}
+
+function NumberInput({ value, onChange, wide = false }: { value: number; onChange: (value: string) => void; wide?: boolean }) {
+  return (
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={cn("rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-bold text-white", wide ? "w-32" : "w-24")}
+    />
   );
 }
 
@@ -666,8 +788,38 @@ function HeatTile({ item, big }: { item: StockItem; big?: boolean }) {
   return <div className={cn("grid place-items-center rounded-lg border p-2 text-center", pct >= 0 ? "border-emerald-300/25 bg-emerald-500/20" : "border-rose-300/25 bg-rose-500/20", big && "md:col-span-2")}><div><p className="text-2xl font-extrabold text-white">{item.ticker}</p><p className={pct >= 0 ? "font-bold text-emerald-200" : "font-bold text-rose-200"}>{signedPct(pct)}</p></div></div>;
 }
 
-function RebalanceBox() {
-  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">ข้อเสนอแนะ Rebalance</h2><div className="mt-4 space-y-3">{[["ลดน้ำหนัก", "NVDA", "-49,006 USD"], ["เพิ่มน้ำหนัก", "BND", "+49,006 USD"], ["เพิ่มน้ำหนัก", "Cash", "+24,503 USD"]].map(([a, b, c], index) => <div key={b} className="grid grid-cols-[1fr_auto_auto] gap-3 rounded-xl bg-white/[0.035] px-3 py-2 text-sm font-bold"><span className={index === 0 ? "text-rose-300" : "text-emerald-300"}>{a}</span><span>{b}</span><span>{c}</span></div>)}</div><button className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 font-extrabold text-white" type="button">ปรับพอร์ตตามคำแนะนำ</button></article>;
+function RebalanceBox({ holdings, totalValue }: { holdings: PortfolioHolding[]; totalValue: number }) {
+  const suggestions = holdings
+    .map((item) => {
+      const diff = item.target - item.current;
+      return {
+        ticker: item.ticker,
+        action: diff >= 0 ? "เพิ่มน้ำหนัก" : "ลดน้ำหนัก",
+        amount: Math.round((Math.abs(diff) / 100) * totalValue),
+        diff,
+      };
+    })
+    .filter((item) => Math.abs(item.diff) >= 1)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+    .slice(0, 4);
+
+  return (
+    <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
+      <h2 className="text-xl font-extrabold text-white">ข้อเสนอแนะ Rebalance</h2>
+      <p className="mt-1 text-sm font-semibold text-slate-400">คำนวณจากน้ำหนักปัจจุบันและเป้าหมายที่แก้เอง</p>
+      <div className="mt-4 space-y-3">
+        {(suggestions.length > 0 ? suggestions : [{ ticker: "Portfolio", action: "สมดุลแล้ว", amount: 0, diff: 0 }]).map((item) => (
+          <div key={item.ticker} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl bg-white/[0.035] px-3 py-2 text-sm font-bold">
+            <span className={item.diff < 0 ? "text-rose-300" : "text-emerald-300"}>{item.action}</span>
+            <span className="text-white">{item.ticker} {item.amount > 0 ? `${item.amount.toLocaleString("en-US")} USD` : ""}</span>
+          </div>
+        ))}
+      </div>
+      <button className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 font-extrabold text-white transition hover:bg-blue-500" type="button">
+        ใช้เป็นแผนปรับพอร์ต
+      </button>
+    </article>
+  );
 }
 
 function GoalBox() {

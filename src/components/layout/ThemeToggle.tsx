@@ -10,15 +10,16 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const isTh = lang === "th";
 
   return (
-    <div className={cn("grid gap-1 rounded-xl border border-white/10 bg-white/[0.05] p-1", compact ? "grid-cols-3" : "grid-cols-3")}>
-      {(["dark", "cream", "sanook"] as const).map((item) => {
+    <div className={cn("grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.05] p-1", compact && "w-full")}>
+      {(["dark", "cream"] as const).map((item) => {
         const active = theme === item;
-        const label = item === "dark" ? (isTh ? "เข้ม" : "Dark") : item === "cream" ? (isTh ? "ครีม" : "Cream") : (isTh ? "อ่านง่าย" : "Hot");
-        const icon = item === "dark" ? "☾" : item === "cream" ? "☼" : "H";
+        const label = item === "dark" ? (isTh ? "เข้ม" : "Dark") : isTh ? "ครีม" : "Cream";
+        const icon = item === "dark" ? "◐" : "☼";
+
         return (
           <button
             key={item}
-            aria-label={item === "dark" ? (isTh ? "เปลี่ยนเป็นธีมเข้ม" : "Switch to dark theme") : item === "cream" ? (isTh ? "เปลี่ยนเป็นธีมครีม" : "Switch to cream theme") : (isTh ? "เปลี่ยนเป็นธีมอ่านง่าย" : "Switch to readable hot theme")}
+            aria-label={item === "dark" ? (isTh ? "เปลี่ยนเป็นธีมเข้ม" : "Switch to dark theme") : isTh ? "เปลี่ยนเป็นธีมครีม" : "Switch to cream theme"}
             aria-pressed={active}
             className={cn(
               "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black transition",
