@@ -553,6 +553,8 @@ function Heatmap({ stocks }: { stocks: StockItem[] }) {
     ["ETF / ดัชนี", stocks.filter((item) => item.category === "ETF").slice(0, 6)],
     ["สินทรัพย์ทางเลือก", stocks.filter((item) => item.category === "Alternative Assets").slice(0, 4)],
   ] as const;
+  const afterUp = [...stocks].filter((item) => afterChangePct(item.quote) > 0).sort((a, b) => afterChangePct(b.quote) - afterChangePct(a.quote)).slice(0, 6);
+  const afterDown = [...stocks].filter((item) => afterChangePct(item.quote) < 0).sort((a, b) => afterChangePct(a.quote) - afterChangePct(b.quote)).slice(0, 6);
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
@@ -569,12 +571,48 @@ function Heatmap({ stocks }: { stocks: StockItem[] }) {
             </section>
           ))}
         </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <AfterHoursPanel title="After Hours ขึ้น" stocks={afterUp} tone="up" />
+          <AfterHoursPanel title="After Hours ลง" stocks={afterDown} tone="down" />
+        </div>
       </main>
       <aside className="space-y-5">
         <TopMovers stocks={stocks} title="Top Positive Sectors" />
         <HowToRead title="How to Read Heatmap" />
       </aside>
     </div>
+  );
+}
+
+function AfterHoursPanel({ title, stocks, tone }: { title: string; stocks: StockItem[]; tone: "up" | "down" }) {
+  const positive = tone === "up";
+  return (
+    <section className={cn("rounded-2xl border p-4", positive ? "border-emerald-300/25 bg-emerald-400/[0.08]" : "border-rose-300/25 bg-rose-400/[0.08]")}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-base font-extrabold text-white">{positive ? "🌙" : "⚠"} {title}</h3>
+        <span className={cn("rounded-full px-3 py-1 text-xs font-black", positive ? "bg-emerald-300/15 text-emerald-100" : "bg-rose-300/15 text-rose-100")}>{stocks.length} tickers</span>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {stocks.map((item) => {
+          const pct = afterChangePct(item.quote);
+          return (
+            <div key={`${title}-${item.ticker}`} className="rounded-xl border border-white/10 bg-slate-950/45 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <LogoBadge item={item} small />
+                  <span className="font-extrabold text-white">{item.ticker}</span>
+                </div>
+                <span className={pct >= 0 ? "font-extrabold text-emerald-300" : "font-extrabold text-rose-300"}>{signedPct(pct)}</span>
+              </div>
+              <div className="mt-2 flex items-end justify-between gap-3 text-xs font-bold text-slate-400">
+                <span>After Hours</span>
+                <span className="text-white">{formatPrice(item.quote.afterHours)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

@@ -485,9 +485,31 @@ type NewsSnapshotCard = {
   icon: string;
 };
 
+const DASHBOARD_NEWS_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+const DASHBOARD_NEWS_FRESH_MS = 10 * 60 * 60 * 1000;
+
+function dashboardNewsTime(item: DailyBriefItem) {
+  const time = new Date(item.publishedAt).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function hasRealDashboardNewsImage(item: DailyBriefItem) {
+  return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
+}
+
+function isExpiredDashboardNewsItem(item: DailyBriefItem) {
+  const time = dashboardNewsTime(item);
+  return Boolean(time && Date.now() - time > DASHBOARD_NEWS_MAX_AGE_MS);
+}
+
+function isFreshDashboardNewsItem(item: DailyBriefItem) {
+  const time = dashboardNewsTime(item);
+  return Boolean(time && Date.now() - time <= DASHBOARD_NEWS_FRESH_MS);
+}
+
 function dashboardNewsImageSrc(item: DailyBriefItem) {
   const params = new URLSearchParams({
-    url: item.imageUrl || item.sourceUrl,
+    url: item.imageUrl || "",
     title: dailyItemTitle(item, "en"),
     kind: "news",
     strict: "1",
@@ -498,40 +520,30 @@ function dashboardNewsImageSrc(item: DailyBriefItem) {
 function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefItem; lang: Lang; large?: boolean }) {
   const detail = getDailyBriefTopicDetail(item.category);
   const [failed, setFailed] = useState(false);
+  if (!hasRealDashboardNewsImage(item) || failed) return null;
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36")}>
-      {!failed && (
-        <>
-          <Image
-            src={dashboardNewsImageSrc(item)}
-            alt={dailyItemTitle(item, "en")}
-            className="scale-105 object-cover blur-[2px]"
-            fill
-            sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-          <Image
-            src={dashboardNewsImageSrc(item)}
-            alt=""
-            aria-hidden
-            className="object-cover opacity-85"
-            fill
-            sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-        </>
-      )}
-      {failed && (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.22),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
-          <div className="absolute right-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
-            Source image unavailable
-          </div>
-        </div>
-      )}
+    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", isFreshDashboardNewsItem(item) && "ring-2 ring-emerald-300/85 ring-offset-2 ring-offset-slate-950")}>
+      <Image
+        src={dashboardNewsImageSrc(item)}
+        alt={dailyItemTitle(item, "en")}
+        className="scale-105 object-cover blur-[2px]"
+        fill
+        sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
+        unoptimized
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+      <Image
+        src={dashboardNewsImageSrc(item)}
+        alt=""
+        aria-hidden
+        className="object-cover opacity-85"
+        fill
+        sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
+        unoptimized
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06)_10%,rgba(2,6,23,0.96)_100%)]" />
       <div className="absolute left-5 top-5 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryLabel(item.category, lang)}</div>
       <div className="relative flex h-full min-h-full flex-col justify-end p-5">
@@ -558,7 +570,10 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
   const statusLabel = item.isSaved ? dailyText(lang, "saved") : item.telegramStatus === "idle" ? (lang === "th" ? "พร้อมส่ง" : "ready") : item.telegramStatus;
   const isFeatured = variant === "featured";
   const isCompact = variant === "compact";
-  const layoutClass = isFeatured
+  const hasImage = hasRealDashboardNewsImage(item);
+  const layoutClass = !hasImage
+    ? "h-full"
+    : isFeatured
     ? "grid h-full grid-rows-[minmax(18rem,auto)_1fr]"
     : isCompact
       ? "grid h-full grid-rows-[minmax(9rem,auto)_1fr]"
@@ -567,7 +582,7 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
   return (
     <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "")}>
       <div className={layoutClass}>
-        <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />
+        {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />}
         <div className="flex min-w-0 flex-col p-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={isFeatured ? "red" : detail.key === "cybersecurity" ? "purple" : "blue"}>{isFeatured ? (lang === "th" ? "Priority สูง" : "High Priority") : dailyCategoryLabel(item.category, lang)}</Badge>
@@ -635,14 +650,14 @@ function DailyBriefDashboardSection({
 }) {
   const featured = dailyNewsItems[0] ?? null;
   const sideStories = dailyNewsItems.slice(1, 3);
-  const lowerStories = dailyNewsItems.slice(3, 9);
+  const lowerStories = dailyNewsItems.slice(3, 6);
   const topStories = (dailyBrief?.summary.topStories.length ? dailyBrief.summary.topStories : dailyNewsItems).slice(0, 5);
   const dateLabel = dailyBrief?.summary.date ?? new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date());
   const activeDailyTasks = tasks.filter((task) => task.type === "Daily Brief" && task.isActive).length;
   const failedRuns = runs.slice(0, 5).filter((run) => run.status === "failed" || run.telegramStatus === "failed").length;
 
   return (
-    <section className="space-y-5">
+    <section className="dashboard-hud space-y-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div className="space-y-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
@@ -884,7 +899,7 @@ export function DashboardControlView() {
   const dailyNewsItems = useMemo(() => {
     const query = dashboardSearch.trim().toLowerCase();
     return (dailyBrief?.items ?? [])
-      .filter((item) => !hiddenNewsIds.has(item.id) && !item.isHidden)
+      .filter((item) => !hiddenNewsIds.has(item.id) && !item.isHidden && !isExpiredDashboardNewsItem(item))
       .filter((item) => {
         if (!query) return true;
         const haystack = [item.title, item.titleTh, item.summaryTh, item.sourceName, item.category, ...item.tags].join(" ").toLowerCase();
@@ -1040,7 +1055,7 @@ export function DashboardControlView() {
   if (error) return <ErrorState title={t("dashboard_loading_failed")} description={error} onRetry={loadDashboard} />;
 
   return (
-    <div className="space-y-8">
+    <div className="dashboard-one-screen space-y-0">
       <DailyBriefDashboardSection
         lang={lang}
         dailyBrief={dailyBrief}

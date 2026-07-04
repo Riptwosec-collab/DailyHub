@@ -370,9 +370,31 @@ function NewsStatusBadge({ item, lang }: { item: DailyBriefItem; lang: Lang }) {
   return <Badge tone="gray">{text.ready}</Badge>;
 }
 
+const DAILY_NEWS_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+const DAILY_NEWS_FRESH_MS = 10 * 60 * 60 * 1000;
+
+function newsTime(item: DailyBriefItem) {
+  const time = new Date(item.publishedAt).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function hasRealNewsImage(item: DailyBriefItem) {
+  return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
+}
+
+function isExpiredNewsItem(item: DailyBriefItem) {
+  const time = newsTime(item);
+  return Boolean(time && Date.now() - time > DAILY_NEWS_MAX_AGE_MS);
+}
+
+function isFreshNewsItem(item: DailyBriefItem) {
+  const time = newsTime(item);
+  return Boolean(time && Date.now() - time <= DAILY_NEWS_FRESH_MS);
+}
+
 function newsImageSrc(item: DailyBriefItem) {
   const params = new URLSearchParams({
-    url: item.imageUrl || item.sourceUrl,
+    url: item.imageUrl || "",
     title: itemTitle(item, "en"),
     kind: "news",
     strict: "1",
@@ -400,40 +422,30 @@ function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem
 function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: boolean }) {
   const detail = getDailyBriefTopicDetail(item.category);
   const [failed, setFailed] = useState(false);
+  if (!hasRealNewsImage(item) || failed) return null;
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28")}>
-      {!failed && (
-        <>
-          <Image
-            src={newsImageSrc(item)}
-            alt={itemTitle(item, "en")}
-            className="scale-105 object-cover blur-[2px]"
-            fill
-            sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-          <Image
-            src={newsImageSrc(item)}
-            alt=""
-            aria-hidden
-            className="object-cover opacity-82"
-            fill
-            sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-        </>
-      )}
-      {failed && (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.20),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
-          <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
-            Source image unavailable
-          </div>
-        </div>
-      )}
+    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", isFreshNewsItem(item) && "ring-2 ring-emerald-300/85 ring-offset-2 ring-offset-slate-950")}>
+      <Image
+        src={newsImageSrc(item)}
+        alt={itemTitle(item, "en")}
+        className="scale-105 object-cover blur-[2px]"
+        fill
+        sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
+        unoptimized
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+      <Image
+        src={newsImageSrc(item)}
+        alt=""
+        aria-hidden
+        className="object-cover opacity-82"
+        fill
+        sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
+        unoptimized
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.10),rgba(2,6,23,0.96)_100%)]" />
       <div className="relative flex h-full flex-col justify-end p-5">
         <span className={cn("drop-shadow-[0_0_22px_rgba(34,211,238,0.65)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
@@ -454,12 +466,13 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
   lang: Lang;
 }) {
   const text = copy[lang];
+  const hasImage = hasRealNewsImage(item);
   return (
     <Card className="overflow-hidden border-cyan-300/25 p-0">
-      <div className="grid gap-0 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <div className="p-4">
+      <div className={cn("grid gap-0", hasImage && "lg:grid-cols-[18rem_minmax(0,1fr)]")}>
+        {hasImage && <div className="p-4">
           <StoryVisual item={item} large />
-        </div>
+        </div>}
         <div className="flex min-w-0 flex-col p-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="purple">{categoryLabel(item.category, lang)}</Badge>
@@ -503,9 +516,10 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
   lang: Lang;
 }) {
   const text = copy[lang];
+  const hasImage = hasRealNewsImage(item);
   return (
-    <Card className="group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045] md:grid-cols-[10rem_minmax(0,1fr)]">
-      <StoryVisual item={item} />
+    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage && "md:grid-cols-[10rem_minmax(0,1fr)]")}>
+      {hasImage && <StoryVisual item={item} />}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
@@ -650,7 +664,7 @@ export function DailyBriefPage() {
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const visibleItems = data?.items.filter((item) => !item.isHidden) || [];
+  const visibleItems = data?.items.filter((item) => !item.isHidden && !isExpiredNewsItem(item)) || [];
   const featuredItem = selected && visibleItems.some((item) => item.id === selected.id) ? selected : visibleItems[0] || null;
   const feedItems = featuredItem ? visibleItems.filter((item) => item.id !== featuredItem.id) : visibleItems;
 
@@ -663,7 +677,7 @@ export function DailyBriefPage() {
       if (search.trim()) params.set("search", search.trim());
       const nextData = await apiRequest<DailyBriefApiResponse>(`/api/news/latest${params.toString() ? `?${params.toString()}` : ""}`);
       setData(nextData);
-      setSelected((current) => current && nextData.items.some((item) => item.id === current.id) ? current : nextData.items[0] || null);
+      setSelected((current) => current && nextData.items.some((item) => item.id === current.id && !isExpiredNewsItem(item) && !item.isHidden) ? current : nextData.items.find((item) => !isExpiredNewsItem(item) && !item.isHidden) || null);
     } catch (loadError) {
       setError(toErrorMessage(loadError));
     } finally {
@@ -723,13 +737,13 @@ export function DailyBriefPage() {
   }, [load, search]);
 
   return (
-    <div className="space-y-6">
+    <div className="daily-brief-hud space-y-6">
       <DailyBriefHeader
         search={search}
         setSearch={setSearch}
         onRefresh={load}
         onSummarize={() => void summarize()}
-        onSendAll={() => void sendItems(data?.items.filter((item) => !item.isHidden) || [])}
+        onSendAll={() => void sendItems(visibleItems)}
         onSendCategory={() => void sendItems(visibleItems)}
         loading={loading}
         sending={sending}

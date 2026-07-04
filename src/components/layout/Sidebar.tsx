@@ -300,7 +300,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-5 lg:flex",
       )}
     >
-      <Link href="/dashboard" className="flex items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
+      <Link href="/dashboard" className="flex min-h-14 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
         <div className="daily-logo relative grid h-12 w-12 grid-cols-2 gap-0.5 rounded-xl border border-cyan-200/20 bg-slate-950/40 p-1 shadow-[0_0_28px_rgba(34,211,238,0.22)]">
           <span className="rounded-sm bg-cyan-300" />
           <span className="rounded-sm bg-blue-400" />
@@ -350,7 +350,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-3 px-3.5 pb-2 pt-2.5 text-sm font-semibold transition-all",
+                  "flex min-h-12 items-center gap-3 px-3.5 pb-2 pt-2.5 text-sm font-semibold transition-all",
                   isActive ? "text-white" : "text-slate-400 group-hover:text-white",
                 )}
               >
@@ -381,7 +381,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                         event.stopPropagation();
                         void handleUpdateTopic(item.href);
                       }}
-                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label={`${lang === "th" ? "อัปเดต" : "Update"} ${label}`}
                     >
                       {updatingHref === item.href ? (lang === "th" ? "ดึง..." : "Live...") : (lang === "th" ? "อัปเดต" : "Update")}
