@@ -23,6 +23,7 @@ export function Button({
   size = "md",
   asChild = false,
   children,
+  type = "button",
   ...props
 }: ButtonProps) {
   const classes = cn(
@@ -50,7 +51,7 @@ export function Button({
   }
 
   return (
-    <button className={classes} {...props}>
+    <button className={classes} type={type} {...props}>
       {children}
     </button>
   );

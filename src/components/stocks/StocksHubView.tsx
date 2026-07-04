@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type ViewId = "overview" | "market" | "alerts" | "heatmap" | "watchlist" | "portfolio" | "category";
@@ -46,6 +46,15 @@ type Category = {
 };
 
 type QuoteApiItem = Partial<Quote> & { symbol?: string };
+
+type QuoteApiPayload = {
+  success?: boolean;
+  source?: string;
+  fallback?: boolean;
+  quotes?: QuoteApiItem[];
+  updatedAt?: string;
+  error?: string;
+};
 
 type PortfolioHolding = {
   ticker: string;
@@ -152,36 +161,57 @@ export function StocksHubView() {
   const [query, setQuery] = useState("");
   const [liveQuotes, setLiveQuotes] = useState<Record<string, Quote>>({});
   const [lastUpdated, setLastUpdated] = useState("ใช้ fallback sample");
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteSource, setQuoteSource] = useState("sample fallback");
+
+  const loadQuotes = useCallback(async (signal?: AbortSignal) => {
+    setQuoteLoading(true);
+    setQuoteError("");
+    const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
+
+    try {
+      const response = await fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(symbols)}&refresh=${Date.now()}`, {
+        cache: "no-store",
+        signal,
+      });
+      if (!response.ok) throw new Error(`quote api failed: ${response.status}`);
+
+      const payload = (await response.json()) as QuoteApiPayload;
+      const nextQuotes: Record<string, Quote> = {};
+      for (const item of payload.quotes ?? []) {
+        if (!item.symbol || typeof item.price !== "number") continue;
+        const localTicker = uniqueStocks.find((stockItem) => (stockItem.yahoo ?? stockItem.ticker) === item.symbol)?.ticker ?? item.symbol;
+        const fallback = seedQuotes[localTicker] ?? q(localTicker, item.price, item.prevClose ?? item.price, item.afterHours ?? item.price, "-", "-");
+        nextQuotes[localTicker] = {
+          ...fallback,
+          ...item,
+          symbol: localTicker,
+          prevClose: typeof item.prevClose === "number" ? item.prevClose : fallback.prevClose,
+          afterHours: typeof item.afterHours === "number" ? item.afterHours : fallback.afterHours,
+        };
+      }
+
+      if (Object.keys(nextQuotes).length === 0) throw new Error(payload.error || "No live quotes returned");
+
+      setLiveQuotes(nextQuotes);
+      setQuoteSource(payload.source ?? "Yahoo Finance");
+      setLastUpdated(payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("th-TH") : new Date().toLocaleString("th-TH"));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setQuoteError(error instanceof Error ? error.message : "Live quote refresh failed");
+      setQuoteSource("sample fallback");
+      setLastUpdated("ใช้ fallback sample");
+    } finally {
+      if (!signal?.aborted) setQuoteLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
-    fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(symbols)}`, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("quote api failed"))))
-      .then((payload: { quotes?: QuoteApiItem[]; updatedAt?: string }) => {
-        const nextQuotes: Record<string, Quote> = {};
-        for (const item of payload.quotes ?? []) {
-          if (!item.symbol || typeof item.price !== "number") continue;
-          const localTicker = uniqueStocks.find((stockItem) => (stockItem.yahoo ?? stockItem.ticker) === item.symbol)?.ticker ?? item.symbol;
-          const fallback = seedQuotes[localTicker] ?? q(localTicker, item.price, item.prevClose ?? item.price, item.afterHours ?? item.price, "-", "-");
-          nextQuotes[localTicker] = {
-            ...fallback,
-            ...item,
-            symbol: localTicker,
-            prevClose: typeof item.prevClose === "number" ? item.prevClose : fallback.prevClose,
-            afterHours: typeof item.afterHours === "number" ? item.afterHours : fallback.afterHours,
-          };
-        }
-        if (Object.keys(nextQuotes).length > 0) {
-          setLiveQuotes(nextQuotes);
-          setLastUpdated(payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("th-TH") : new Date().toLocaleString("th-TH"));
-        }
-      })
-      .catch(() => {
-        setLastUpdated("ใช้ fallback sample");
-      });
+    void loadQuotes(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [loadQuotes]);
 
   const hydratedStocks = useMemo(() => uniqueStocks.map((item) => ({ ...item, quote: liveQuotes[item.ticker] ?? item.quote })), [liveQuotes]);
   const activeCategory = categories.find((item) => item.id === activeCategoryId) ?? categories[0];
@@ -203,7 +233,18 @@ export function StocksHubView() {
       <div className="grid gap-5 2xl:grid-cols-[15.5rem_minmax(0,1fr)]">
         <StockSidebar view={view} activeCategoryId={activeCategoryId} onView={setView} onCategory={(id) => { setActiveCategoryId(id); setView("category"); }} />
         <div className="min-w-0 space-y-5">
-          <StockTopbar view={view} category={activeCategory} query={query} setQuery={setQuery} lastUpdated={lastUpdated} />
+          <StockTopbar
+            view={view}
+            category={activeCategory}
+            query={query}
+            setQuery={setQuery}
+            lastUpdated={lastUpdated}
+            liveCount={Object.keys(liveQuotes).length}
+            quoteError={quoteError}
+            quoteLoading={quoteLoading}
+            quoteSource={quoteSource}
+            onRefresh={() => void loadQuotes()}
+          />
           {view === "overview" && <OverviewBoard stocks={filteredAll} setView={setView} setCategory={setActiveCategoryId} />}
           {view === "market" && <MarketStatus lastUpdated={lastUpdated} />}
           {view === "alerts" && <PriceAlerts stocks={hydratedStocks.slice(0, 8)} />}
@@ -250,7 +291,29 @@ function StockSidebar({ view, activeCategoryId, onView, onCategory }: { view: Vi
   );
 }
 
-function StockTopbar({ view, category, query, setQuery, lastUpdated }: { view: ViewId; category: Category; query: string; setQuery: (value: string) => void; lastUpdated: string }) {
+function StockTopbar({
+  view,
+  category,
+  query,
+  setQuery,
+  lastUpdated,
+  liveCount,
+  quoteError,
+  quoteLoading,
+  quoteSource,
+  onRefresh,
+}: {
+  view: ViewId;
+  category: Category;
+  query: string;
+  setQuery: (value: string) => void;
+  lastUpdated: string;
+  liveCount: number;
+  quoteError: string;
+  quoteLoading: boolean;
+  quoteSource: string;
+  onRefresh: () => void;
+}) {
   const titleMap: Record<ViewId, string> = {
     overview: "หน้ารวมหุ้น",
     market: "สถานะตลาดและเวลาอัปเดต",
@@ -276,8 +339,22 @@ function StockTopbar({ view, category, query, setQuery, lastUpdated }: { view: V
             <p className="text-sm font-bold text-slate-400">ตลาดสหรัฐ</p>
             <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-extrabold text-emerald-200">เปิดทำการ</span>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-white">Real-time / Delayed</p>
-          <p className="text-sm font-semibold text-slate-400">อัปเดตล่าสุด: {lastUpdated}</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-2xl font-extrabold text-white">Live / Delayed</p>
+              <p className="text-sm font-semibold text-slate-400">อัปเดตล่าสุด: {lastUpdated}</p>
+              <p className="mt-1 text-xs font-bold text-cyan-100/80">{quoteSource} · {liveCount || "sample"} quotes</p>
+            </div>
+            <button
+              type="button"
+              disabled={quoteLoading}
+              onClick={onRefresh}
+              className="rounded-xl border border-cyan-300/30 bg-cyan-300/12 px-4 py-2 text-xs font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/18 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {quoteLoading ? "กำลังอัปเดต..." : "อัปเดตราคาสด"}
+            </button>
+          </div>
+          {quoteError ? <p className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-100">ใช้ sample ชั่วคราว: {quoteError}</p> : null}
         </div>
       </div>
     </header>

@@ -23,7 +23,15 @@ type NavItem = {
   update: UpdateCopy;
 };
 
-type ManualUpdateState = Record<string, { updatedAt: string; count: number }>;
+type ManualUpdateEntry = {
+  updatedAt: string;
+  count: number;
+  status?: "success" | "error";
+  th?: string;
+  en?: string;
+};
+
+type ManualUpdateState = Record<string, ManualUpdateEntry>;
 
 const UPDATE_STORAGE_KEY = "nimbusdaily-menu-updates";
 
@@ -150,11 +158,90 @@ function formatUpdateTime(value: string, lang: string) {
   }).format(date);
 }
 
+async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en">> {
+  const now = Date.now();
+
+  try {
+    if (href === "/stocks") {
+      const response = await fetch(`/api/stocks/quotes?symbols=NVDA,MSFT,GOOGL,AMZN,META,AVGO,AMD,TSM,CRWD,RKLB&refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`stocks ${response.status}`);
+      const payload = (await response.json()) as { quotes?: unknown[]; source?: string; error?: string };
+      const count = payload.quotes?.length ?? 0;
+      if (count === 0) throw new Error(payload.error || "no stock quotes");
+      return {
+        status: "success",
+        th: `ดึงราคาหุ้นสดได้ ${count} ตัว จาก ${payload.source || "Yahoo Finance"}`,
+        en: `Fetched ${count} live stock quotes from ${payload.source || "Yahoo Finance"}`,
+      };
+    }
+
+    if (href === "/daily" || href === "/dashboard") {
+      const response = await fetch(`/api/news/latest?refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`news ${response.status}`);
+      const payload = (await response.json()) as { items?: unknown[]; summary?: { totalItems?: number; mode?: string } };
+      const count = payload.summary?.totalItems ?? payload.items?.length ?? 0;
+      return {
+        status: "success",
+        th: `ดึงข่าวล่าสุดได้ ${count} รายการ โหมด ${payload.summary?.mode || "live"}`,
+        en: `Fetched ${count} latest news items in ${payload.summary?.mode || "live"} mode`,
+      };
+    }
+
+    if (href === "/notifications") {
+      const response = await fetch(`/api/notifications?refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`notifications ${response.status}`);
+      const payload = (await response.json()) as unknown[] | { notifications?: unknown[] };
+      const count = Array.isArray(payload) ? payload.length : payload.notifications?.length ?? 0;
+      return {
+        status: "success",
+        th: `รีเฟรชการแจ้งเตือนล่าสุด ${count} รายการ`,
+        en: `Refreshed ${count} notifications`,
+      };
+    }
+
+    if (href === "/settings") {
+      const response = await fetch(`/api/settings?refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`settings ${response.status}`);
+      return {
+        status: "success",
+        th: "ซิงก์ค่าระบบล่าสุดแล้ว",
+        en: "Synced latest settings",
+      };
+    }
+
+    if (href === "/admin") {
+      const response = await fetch(`/api/admin/metrics?refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`admin ${response.status}`);
+      return {
+        status: "success",
+        th: "รีเฟรชสถานะแอดมินและระบบล่าสุดแล้ว",
+        en: "Refreshed latest admin and system metrics",
+      };
+    }
+
+    const response = await fetch(`${href}?refresh=${now}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`page ${response.status}`);
+    return {
+      status: "success",
+      th: "ตรวจข้อมูลหน้าเว็บล่าสุดแล้ว",
+      en: "Checked the latest page data",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "refresh failed";
+    return {
+      status: "error",
+      th: `อัปเดตจริงไม่สำเร็จ: ${message}`,
+      en: `Live refresh failed: ${message}`,
+    };
+  }
+}
+
 export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { t, lang } = useLanguage();
   const [manualUpdates, setManualUpdates] = useState<ManualUpdateState>({});
   const [hydratedUpdates, setHydratedUpdates] = useState(false);
+  const [updatingHref, setUpdatingHref] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -174,27 +261,36 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     window.localStorage.setItem(UPDATE_STORAGE_KEY, JSON.stringify(manualUpdates));
   }, [hydratedUpdates, manualUpdates]);
 
-  const handleUpdateTopic = (href: string) => {
+  const handleUpdateTopic = async (href: string) => {
+    setUpdatingHref(href);
+    const result = await refreshMenuTopic(href);
     setManualUpdates((current) => ({
       ...current,
       [href]: {
         updatedAt: new Date().toISOString(),
         count: (current[href]?.count ?? 0) + 1,
+        ...result,
       },
     }));
+    setUpdatingHref(null);
   };
 
-  const handleUpdateAllTopics = () => {
+  const handleUpdateAllTopics = async () => {
     const now = new Date().toISOString();
-    setManualUpdates((current) =>
-      navItems.reduce<ManualUpdateState>((next, item) => {
-        next[item.href] = {
+    setUpdatingHref("__all__");
+    const results = await Promise.all(navItems.map(async (item) => [item.href, await refreshMenuTopic(item.href)] as const));
+    setManualUpdates((current) => {
+      const next = { ...current };
+      for (const [href, result] of results) {
+        next[href] = {
           updatedAt: now,
-          count: (current[item.href]?.count ?? 0) + 1,
+          count: (current[href]?.count ?? 0) + 1,
+          ...result,
         };
-        return next;
-      }, { ...current }),
-    );
+      }
+      return next;
+    });
+    setUpdatingHref(null);
   };
 
   return (
@@ -222,10 +318,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           <p className="text-xs font-bold uppercase text-cyan-200">{t("sidebar_phase")}</p>
           <button
             type="button"
-            onClick={handleUpdateAllTopics}
-            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15"
+            disabled={updatingHref !== null}
+            onClick={() => void handleUpdateAllTopics()}
+            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {lang === "th" ? "อัปเดตทั้งหมด" : "Update all"}
+            {updatingHref === "__all__" ? (lang === "th" ? "กำลังดึง..." : "Updating...") : (lang === "th" ? "อัปเดตทั้งหมด" : "Update all")}
           </button>
         </div>
         <p className="mt-2 text-sm leading-7 text-slate-300">{t("sidebar_desc")}</p>
@@ -278,17 +375,22 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                     </p>
                     <button
                       type="button"
-                      onClick={() => handleUpdateTopic(item.href)}
-                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0"
+                      disabled={updatingHref !== null}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void handleUpdateTopic(item.href);
+                      }}
+                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label={`${lang === "th" ? "อัปเดต" : "Update"} ${label}`}
                     >
-                      {lang === "th" ? "อัปเดต" : "Update"}
+                      {updatingHref === item.href ? (lang === "th" ? "ดึง..." : "Live...") : (lang === "th" ? "อัปเดต" : "Update")}
                     </button>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-300">
-                    {getUpdateText(item, lang)}
+                  <p className={cn("mt-1 line-clamp-2 text-[11px] leading-5", manualUpdate?.status === "error" ? "text-amber-100" : "text-slate-300")}>
+                    {(lang === "th" ? manualUpdate?.th : manualUpdate?.en) || getUpdateText(item, lang)}
                     {updateCount > 0 ? (
-                      <span className="font-bold text-cyan-200">
+                      <span className={cn("font-bold", manualUpdate?.status === "error" ? "text-amber-200" : "text-cyan-200")}>
                         {" "}
                         {lang === "th" ? `(กดอัปเดตเอง ${updateCount} ครั้ง)` : `(manual updates: ${updateCount})`}
                       </span>

@@ -33,6 +33,7 @@ type YahooChartResponse = {
         regularMarketPrice?: number;
         chartPreviousClose?: number;
         regularMarketPreviousClose?: number;
+        previousClose?: number;
         regularMarketVolume?: number;
         marketCap?: number;
         regularMarketTime?: number;
@@ -95,6 +96,10 @@ export async function GET(request: Request) {
       .filter((item) => item.symbol && typeof item.regularMarketPrice === "number")
       .map(normalizeQuoteResult);
 
+    if (quotes.length === 0) {
+      throw new Error("Yahoo quote endpoint returned no quotes");
+    }
+
     return NextResponse.json({
       success: true,
       source: "Yahoo Finance quote endpoint",
@@ -154,11 +159,13 @@ async function fetchChartQuote(symbol: string): Promise<NormalizedQuote | null> 
     const payload = (await response.json()) as YahooChartResponse;
     const result = payload.chart?.result?.[0];
     const meta = result?.meta;
-    if (!meta?.symbol || typeof meta.regularMarketPrice !== "number") return null;
+    if (!meta?.symbol) return null;
 
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose ?? meta.regularMarketPreviousClose ?? price;
-    const afterHours = getLastClose(result?.indicators?.quote?.[0]?.close) ?? price;
+    const lastClose = getLastClose(result?.indicators?.quote?.[0]?.close);
+    const price = meta.regularMarketPrice ?? lastClose;
+    if (typeof price !== "number" || !Number.isFinite(price)) return null;
+    const afterHours = lastClose ?? price;
+    const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? meta.regularMarketPreviousClose ?? price;
     return {
       symbol: meta.symbol,
       price,
