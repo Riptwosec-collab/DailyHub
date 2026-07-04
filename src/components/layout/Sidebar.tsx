@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -7,29 +8,202 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
 import { ThemeToggle } from "./ThemeToggle";
 
-type NavItem = { href: string; icon: string; key?: TranslationKey; th?: string; en?: string };
+type UpdateCopy = {
+  updatedAt: string;
+  th: string;
+  en: string;
+};
+
+type NavItem = {
+  href: string;
+  icon: string;
+  key?: TranslationKey;
+  th?: string;
+  en?: string;
+  update: UpdateCopy;
+};
+
+type ManualUpdateState = Record<string, { updatedAt: string; count: number }>;
+
+const UPDATE_STORAGE_KEY = "nimbusdaily-menu-updates";
 
 const navItems: NavItem[] = [
-  { href: "/", key: "nav_home", icon: "H" },
-  { href: "/dashboard", key: "nav_dashboard", icon: "D" },
-  { href: "/daily", key: "nav_daily", icon: "DY" },
-  { href: "/stocks", key: "nav_stocks", icon: "ST" },
-  { href: "/concerts", key: "nav_concerts", icon: "🎤" },
-  { href: "/movies", key: "nav_movies", icon: "🎬" },
-  { href: "/events", key: "nav_events", icon: "EV" },
-  { href: "/notifications", key: "nav_notifications", icon: "N" },
-  { href: "/settings", key: "nav_settings", icon: "S" },
-  { href: "/admin", key: "nav_admin", icon: "A" },
+  {
+    href: "/",
+    key: "nav_home",
+    icon: "HM",
+    update: {
+      updatedAt: "2026-07-04T01:00:00.000Z",
+      th: "ตั้งค่าเริ่มต้นเป็นธีมมืดและปรับหน้าแรกให้อ่านสบายขึ้น",
+      en: "Default dark theme and refined landing readability",
+    },
+  },
+  {
+    href: "/dashboard",
+    key: "nav_dashboard",
+    icon: "DB",
+    update: {
+      updatedAt: "2026-07-04T01:15:00.000Z",
+      th: "เพิ่มภาพรวม Daily Brief, API, Telegram และสถานะระบบ",
+      en: "Daily Brief, API, Telegram, and system status overview updated",
+    },
+  },
+  {
+    href: "/daily",
+    key: "nav_daily",
+    icon: "DY",
+    update: {
+      updatedAt: "2026-07-04T01:30:00.000Z",
+      th: "ข่าวทุกหมวดมีรูปจริง ลิงก์ต้นทาง และข้อมูลพร้อมส่ง Telegram",
+      en: "Every news topic includes real images, source links, and Telegram-ready briefs",
+    },
+  },
+  {
+    href: "/stocks",
+    key: "nav_stocks",
+    icon: "ST",
+    update: {
+      updatedAt: "2026-07-04T01:45:00.000Z",
+      th: "เพิ่มราคาวันนี้ ปิดเมื่อวาน After Hours, Heatmap และ Watchlist",
+      en: "Added today, previous close, after-hours, heatmap, and watchlists",
+    },
+  },
+  {
+    href: "/concerts",
+    key: "nav_concerts",
+    icon: "CN",
+    update: {
+      updatedAt: "2026-07-04T02:00:00.000Z",
+      th: "ตารางคอนเสิร์ตแยกเดือน พร้อมรูปจริงและลิงก์ซื้อบัตร",
+      en: "Monthly concert schedule with real posters and ticket links",
+    },
+  },
+  {
+    href: "/movies",
+    key: "nav_movies",
+    icon: "MV",
+    update: {
+      updatedAt: "2026-07-04T02:15:00.000Z",
+      th: "หนังโรงไทยและ Netflix / ซีรีส์มีโปสเตอร์เต็มกรอบและแยกแพลตฟอร์ม",
+      en: "Thai cinema and Netflix/series now show full posters by platform",
+    },
+  },
+  {
+    href: "/events",
+    key: "nav_events",
+    icon: "EV",
+    update: {
+      updatedAt: "2026-07-04T02:30:00.000Z",
+      th: "เพิ่มงานอีเวนต์ / Expo / Fair พร้อมแยกหมวดและตัดข้อมูลซ้ำ",
+      en: "Added Event / Expo / Fair categories with duplicate cleanup",
+    },
+  },
+  {
+    href: "/notifications",
+    key: "nav_notifications",
+    icon: "NT",
+    update: {
+      updatedAt: "2026-07-04T02:45:00.000Z",
+      th: "อัปเดตแจ้งเตือนสำคัญและสถานะอ่านแล้ว",
+      en: "Important alerts and read states refreshed",
+    },
+  },
+  {
+    href: "/settings",
+    key: "nav_settings",
+    icon: "SE",
+    update: {
+      updatedAt: "2026-07-04T03:00:00.000Z",
+      th: "ปรับภาษา ธีม และค่าการส่ง Telegram ให้ชัดขึ้น",
+      en: "Language, theme, and Telegram preferences refined",
+    },
+  },
+  {
+    href: "/admin",
+    key: "nav_admin",
+    icon: "AD",
+    update: {
+      updatedAt: "2026-07-04T03:15:00.000Z",
+      th: "เพิ่มภาพรวมผู้ใช้ สถานะระบบ และข้อมูลตรวจสอบ",
+      en: "User overview, system health, and audit details updated",
+    },
+  },
 ];
 
-interface SidebarProps { mobile?: boolean; onNavigate?: () => void; }
+interface SidebarProps {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}
+
+function getUpdateText(item: NavItem, lang: string) {
+  return lang === "th" ? item.update.th : item.update.en;
+}
+
+function formatUpdateTime(value: string, lang: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return lang === "th" ? "ยังไม่เคยอัปเดต" : "Never updated";
+
+  return new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Bangkok",
+  }).format(date);
+}
 
 export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { t, lang } = useLanguage();
+  const [manualUpdates, setManualUpdates] = useState<ManualUpdateState>({});
+  const [hydratedUpdates, setHydratedUpdates] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(UPDATE_STORAGE_KEY);
+      if (stored) {
+        setManualUpdates(JSON.parse(stored) as ManualUpdateState);
+      }
+    } catch {
+      setManualUpdates({});
+    } finally {
+      setHydratedUpdates(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydratedUpdates) return;
+    window.localStorage.setItem(UPDATE_STORAGE_KEY, JSON.stringify(manualUpdates));
+  }, [hydratedUpdates, manualUpdates]);
+
+  const handleUpdateTopic = (href: string) => {
+    setManualUpdates((current) => ({
+      ...current,
+      [href]: {
+        updatedAt: new Date().toISOString(),
+        count: (current[href]?.count ?? 0) + 1,
+      },
+    }));
+  };
+
+  const handleUpdateAllTopics = () => {
+    const now = new Date().toISOString();
+    setManualUpdates((current) =>
+      navItems.reduce<ManualUpdateState>((next, item) => {
+        next[item.href] = {
+          updatedAt: now,
+          count: (current[item.href]?.count ?? 0) + 1,
+        };
+        return next;
+      }, { ...current }),
+    );
+  };
 
   return (
-    <aside className={cn("daily-sidebar border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl", mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-5 lg:flex")}>
+    <aside
+      className={cn(
+        "daily-sidebar border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl",
+        mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-5 lg:flex",
+      )}
+    >
       <Link href="/dashboard" className="flex items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
         <div className="daily-logo relative grid h-12 w-12 grid-cols-2 gap-0.5 rounded-xl border border-cyan-200/20 bg-slate-950/40 p-1 shadow-[0_0_28px_rgba(34,211,238,0.22)]">
           <span className="rounded-sm bg-cyan-300" />
@@ -37,26 +211,96 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           <span className="rounded-sm bg-emerald-300" />
           <span className="rounded-sm bg-violet-500" />
         </div>
-        <div><p className="text-2xl font-extrabold text-white">NimbusDaily</p><p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p></div>
+        <div>
+          <p className="text-2xl font-extrabold text-white">NimbusDaily</p>
+          <p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p>
+        </div>
       </Link>
 
       <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.065] p-4">
-        <p className="text-xs font-bold uppercase text-cyan-200">{t("sidebar_phase")}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-bold uppercase text-cyan-200">{t("sidebar_phase")}</p>
+          <button
+            type="button"
+            onClick={handleUpdateAllTopics}
+            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15"
+          >
+            {lang === "th" ? "อัปเดตทั้งหมด" : "Update all"}
+          </button>
+        </div>
         <p className="mt-2 text-sm leading-7 text-slate-300">{t("sidebar_desc")}</p>
       </div>
 
-      <nav className="mt-7 flex-1 space-y-1.5 overflow-y-auto pr-1">
+      <nav className="mt-7 flex-1 space-y-2 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const label = item.key ? t(item.key) : (lang === "th" ? item.th : item.en);
+          const label = item.key ? t(item.key) : lang === "th" ? item.th : item.en;
+          const manualUpdate = manualUpdates[item.href];
+          const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt;
+          const updateCount = manualUpdate?.count ?? 0;
+
           return (
-            <Link key={item.href} href={item.href} onClick={onNavigate} className={cn("group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all", isActive ? "border border-cyan-300/25 bg-cyan-300/[0.10] text-white shadow-[0_0_26px_rgba(34,211,238,0.10)]" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}>
-              <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg border text-[11px] font-extrabold transition", isActive ? "border-cyan-300/25 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.035] text-slate-400 group-hover:text-white")}>{item.icon}</span>
-              <span className="truncate">{label}</span>
-            </Link>
+            <div
+              key={item.href}
+              className={cn(
+                "group rounded-xl border transition-all duration-200",
+                isActive
+                  ? "border-cyan-300/25 bg-cyan-300/[0.10] shadow-[0_0_26px_rgba(34,211,238,0.10)]"
+                  : "border-white/0 bg-transparent hover:border-white/10 hover:bg-white/[0.045]",
+              )}
+            >
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-3 px-3.5 pb-2 pt-2.5 text-sm font-semibold transition-all",
+                  isActive ? "text-white" : "text-slate-400 group-hover:text-white",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-[11px] font-extrabold transition",
+                    isActive
+                      ? "border-cyan-300/25 bg-cyan-300/15 text-cyan-100"
+                      : "border-white/10 bg-white/[0.035] text-slate-400 group-hover:text-white",
+                  )}
+                >
+                  {item.icon}
+                </span>
+                <span className="truncate">{label}</span>
+              </Link>
+
+              <div className="px-3.5 pb-3">
+                <div className="rounded-lg border border-white/10 bg-slate-950/35 p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-[11px] font-bold text-cyan-100/80">
+                      {lang === "th" ? "อัปเดตล่าสุด" : "Last updated"}: {formatUpdateTime(updatedAt, lang)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateTopic(item.href)}
+                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0"
+                      aria-label={`${lang === "th" ? "อัปเดต" : "Update"} ${label}`}
+                    >
+                      {lang === "th" ? "อัปเดต" : "Update"}
+                    </button>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-300">
+                    {getUpdateText(item, lang)}
+                    {updateCount > 0 ? (
+                      <span className="font-bold text-cyan-200">
+                        {" "}
+                        {lang === "th" ? `(กดอัปเดตเอง ${updateCount} ครั้ง)` : `(manual updates: ${updateCount})`}
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+              </div>
+            </div>
           );
         })}
       </nav>
+
       <div className="mt-5 border-t border-white/10 pt-5">
         <p className="text-xs font-bold text-white">Design System</p>
         <div className="mt-3 flex gap-2">
