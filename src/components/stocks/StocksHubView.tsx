@@ -222,7 +222,11 @@ export function StocksHubView() {
 
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
-    return () => window.removeEventListener("hashchange", syncFromHash);
+    window.addEventListener("popstate", syncFromHash);
+    return () => {
+      window.removeEventListener("hashchange", syncFromHash);
+      window.removeEventListener("popstate", syncFromHash);
+    };
   }, []);
 
   useEffect(() => () => {
@@ -234,7 +238,7 @@ export function StocksHubView() {
     if (typeof window === "undefined") return;
     const nextHash = stockHashFor(nextView, nextCategoryId);
     if (window.location.hash === `#${nextHash}`) return;
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${nextHash}`);
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}#${nextHash}`);
   }, [activeCategoryId]);
 
   const selectView = useCallback((nextView: ViewId) => {
@@ -251,6 +255,7 @@ export function StocksHubView() {
   const loadQuotes = useCallback(async (signal?: AbortSignal, manualRefresh = false) => {
     setQuoteLoading(true);
     setQuoteError("");
+    if (manualRefresh) setLastUpdated(new Date().toLocaleString("th-TH"));
     const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
 
     try {
@@ -306,7 +311,7 @@ export function StocksHubView() {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setQuoteError(error instanceof Error ? error.message : "Live quote refresh failed");
       setQuoteSource("sample fallback");
-      setLastUpdated("ใช้ fallback sample");
+      setLastUpdated(new Date().toLocaleString("th-TH"));
     } finally {
       if (!signal?.aborted) setQuoteLoading(false);
     }
@@ -381,7 +386,7 @@ function StockSidebar({ view, activeCategoryId, onView, onCategory }: { view: Vi
         {navItems.map((item) => {
           const active = view === item.id;
           return (
-            <button key={item.id} type="button" aria-current={active ? "page" : undefined} onClick={() => onView(item.id)} className={navButton(active)}>
+            <button key={item.id} type="button" aria-current={active ? "page" : undefined} onPointerDown={() => onView(item.id)} onClick={() => onView(item.id)} className={navButton(active)}>
               <span className="w-7 text-center text-base">{item.icon}</span>
               <span>{item.title}</span>
             </button>
@@ -391,7 +396,7 @@ function StockSidebar({ view, activeCategoryId, onView, onCategory }: { view: Vi
         {categories.map((category) => {
           const active = view === "category" && activeCategoryId === category.id;
           return (
-            <button key={category.id} type="button" aria-current={active ? "page" : undefined} onClick={() => onCategory(category.id)} className={navButton(active)}>
+            <button key={category.id} type="button" aria-current={active ? "page" : undefined} onPointerDown={() => onCategory(category.id)} onClick={() => onCategory(category.id)} className={navButton(active)}>
               <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-[10px]">{category.icon}</span>
               <span>{category.title}</span>
             </button>
@@ -414,6 +419,7 @@ function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: V
               key={item.id}
               type="button"
               aria-current={active ? "page" : undefined}
+              onPointerDown={() => onView(item.id)}
               onClick={() => onView(item.id)}
               className={cn("shrink-0 rounded-xl border px-4 py-2.5 text-sm font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-blue-300/45 bg-blue-600/55 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]" : "border-white/10 bg-white/[0.045] text-slate-300 hover:border-cyan-300/30 hover:text-white")}
             >
@@ -431,6 +437,7 @@ function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: V
               key={category.id}
               type="button"
               aria-current={active ? "page" : undefined}
+              onPointerDown={() => onCategory(category.id)}
               onClick={() => onCategory(category.id)}
               className={cn("shrink-0 rounded-xl border px-4 py-2 text-xs font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-cyan-300/45 bg-cyan-300/16 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.18)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}
             >
@@ -538,12 +545,12 @@ function OverviewBoard({
         <MetricCard title="After Hours เด่น" value={afterMovers.toString()} sub="มีราคาเปลี่ยนแปลง" icon="☾" tone="violet" />
       </div>
       <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
-        <button type="button" onClick={() => setView("overview")} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white">All</button>
+        <button type="button" onPointerDown={() => setView("overview")} onClick={() => setView("overview")} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white">All</button>
         {categories.slice(0, 6).map((category) => (
-          <button key={category.id} type="button" onClick={() => onCategory(category.id)} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">{category.title}</button>
+          <button key={category.id} type="button" onPointerDown={() => onCategory(category.id)} onClick={() => onCategory(category.id)} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">{category.title}</button>
         ))}
-        <button type="button" onClick={() => setView("heatmap")} className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15">Heatmap</button>
-        <button type="button" onClick={() => setView("watchlist")} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">Watchlist</button>
+        <button type="button" onPointerDown={() => setView("heatmap")} onClick={() => setView("heatmap")} className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15">Heatmap</button>
+        <button type="button" onPointerDown={() => setView("watchlist")} onClick={() => setView("watchlist")} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">Watchlist</button>
       </div>
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_21rem]">
         <PriceTable title="Stock Overview Board" stocks={stocks.slice(0, 18)} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
