@@ -158,6 +158,18 @@ function formatUpdateTime(value: string, lang: string) {
   }).format(date);
 }
 
+function updateEntryIsNewer(entry: ManualUpdateEntry | undefined, fallback: UpdateCopy) {
+  if (!entry?.updatedAt) return false;
+  return new Date(entry.updatedAt).getTime() >= new Date(fallback.updatedAt).getTime();
+}
+
+function isSameBangkokDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" });
+  return formatter.format(date) === formatter.format(new Date());
+}
+
 async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en">> {
   const now = Date.now();
 
@@ -355,10 +367,12 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           const pathIsActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isActive = pendingHref ? item.href === pendingHref : pathIsActive;
           const label = item.key ? t(item.key) : lang === "th" ? item.th : item.en;
-          const manualUpdate = manualUpdates[item.href];
+          const storedUpdate = manualUpdates[item.href];
+          const manualUpdate = updateEntryIsNewer(storedUpdate, item.update) ? storedUpdate : undefined;
           const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt;
           const updateCount = manualUpdate?.count ?? 0;
-          const isFreshUpdate = manualUpdate?.status === "success" && updateCount > 0;
+          const isFreshUpdate = manualUpdate?.status === "success" && updateCount > 0 && isSameBangkokDay(updatedAt);
+          const isStaleUpdate = manualUpdate?.status === "error" || !isSameBangkokDay(updatedAt);
 
           return (
             <div
@@ -366,6 +380,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
               className={cn(
                 "group rounded-xl border transition-all duration-200",
                 isFreshUpdate && "nimbus-live-new",
+                isStaleUpdate && !isFreshUpdate && "nimbus-live-stale",
                 isActive
                   ? "border-cyan-300/25 bg-cyan-300/[0.10] shadow-[0_0_26px_rgba(34,211,238,0.10)]"
                   : "border-white/0 bg-transparent hover:border-white/10 hover:bg-white/[0.045]",
@@ -373,7 +388,9 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             >
               <Link
                 href={item.href}
+                prefetch
                 aria-current={isActive ? "page" : undefined}
+                onPointerDown={() => setPendingHref(item.href)}
                 onClick={() => {
                   setPendingHref(item.href);
                   onNavigate?.();

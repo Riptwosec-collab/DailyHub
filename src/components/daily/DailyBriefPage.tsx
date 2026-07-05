@@ -424,22 +424,11 @@ function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: bo
   const [failed, setFailed] = useState(false);
   if (!hasRealNewsImage(item) || failed) return null;
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", isFreshNewsItem(item) && "ring-2 ring-emerald-300/85 ring-offset-2 ring-offset-slate-950")}>
+    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale")}>
       <Image
         src={newsImageSrc(item)}
         alt={itemTitle(item, "en")}
-        className="scale-105 object-cover blur-[2px]"
-        fill
-        sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
-        unoptimized
-        loading="lazy"
-        onError={() => setFailed(true)}
-      />
-      <Image
-        src={newsImageSrc(item)}
-        alt=""
-        aria-hidden
-        className="object-cover opacity-82"
+        className="object-cover opacity-95"
         fill
         sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
         unoptimized
@@ -468,7 +457,7 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
   const text = copy[lang];
   const hasImage = hasRealNewsImage(item);
   return (
-    <Card className="overflow-hidden border-cyan-300/25 p-0">
+    <Card className={cn("overflow-hidden border-cyan-300/25 p-0", !hasImage && (isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
       <div className={cn("grid gap-0", hasImage && "lg:grid-cols-[18rem_minmax(0,1fr)]")}>
         {hasImage && <div className="p-4">
           <StoryVisual item={item} large />
@@ -518,7 +507,7 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
   const text = copy[lang];
   const hasImage = hasRealNewsImage(item);
   return (
-    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "md:grid-cols-[10rem_minmax(0,1fr)]" : "p-5 sm:p-6")}>
+    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "md:grid-cols-[10rem_minmax(0,1fr)]" : "p-5 sm:p-6", !hasImage && (isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
       {hasImage && <StoryVisual item={item} />}
       <div className={cn("min-w-0", !hasImage && "w-full")}>
         <div className="flex flex-wrap items-center gap-2">

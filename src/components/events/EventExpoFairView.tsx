@@ -312,29 +312,16 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
   return (
     <div className={cn("nimbus-card-3d relative min-h-56 overflow-hidden rounded-2xl border bg-slate-950/70", meta.className)}>
       {!failed && (
-        <>
-          <Image
-            src={eventImageSrc(event)}
-            alt=""
-            aria-hidden
-            className="scale-110 object-cover opacity-55 blur-[6px]"
-            fill
-            sizes="(min-width: 1280px) 380px, 100vw"
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-          <Image
-            src={eventImageSrc(event)}
-            alt={`${event.title} poster`}
-            className="object-cover opacity-95"
-            fill
-            sizes="(min-width: 1280px) 380px, 100vw"
-            unoptimized
-            loading="lazy"
-            onError={() => setFailed(true)}
-          />
-        </>
+        <Image
+          src={eventImageSrc(event)}
+          alt={`${event.title} poster`}
+          className="object-cover opacity-95"
+          fill
+          sizes="(min-width: 1280px) 380px, 100vw"
+          unoptimized
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       )}
       {failed && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_38%_12%,rgba(34,197,94,0.20),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.95))]">

@@ -157,19 +157,6 @@ function PlatformArt({ platform, items }: { platform: MoviePlatform; items: Watc
   return (
     <div className={cn("nimbus-card-3d relative h-full min-h-72 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)] lg:min-h-[28rem]", meta.border)}>
       <div className={cn("absolute inset-0 bg-gradient-to-br", meta.gradient)} />
-      {previewItems[0] && !failed[previewItems[0].id] && (
-        <Image
-          src={moviePosterSrc(previewItems[0])}
-          alt=""
-          aria-hidden
-          className="scale-110 object-cover opacity-45 blur-[6px]"
-          fill
-          sizes="320px"
-          unoptimized
-          loading="lazy"
-          onError={() => setFailed((current) => ({ ...current, [previewItems[0].id]: true }))}
-        />
-      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.28),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
       <div className="absolute right-3 top-3 flex -space-x-6">
         {previewItems.map((item, index) => !failed[item.id] && (

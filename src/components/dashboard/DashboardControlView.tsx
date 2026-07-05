@@ -522,22 +522,11 @@ function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefIt
   const [failed, setFailed] = useState(false);
   if (!hasRealDashboardNewsImage(item) || failed) return null;
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", isFreshDashboardNewsItem(item) && "ring-2 ring-emerald-300/85 ring-offset-2 ring-offset-slate-950")}>
+    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", isFreshDashboardNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale")}>
       <Image
         src={dashboardNewsImageSrc(item)}
         alt={dailyItemTitle(item, "en")}
-        className="scale-105 object-cover blur-[2px]"
-        fill
-        sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
-        unoptimized
-        loading="lazy"
-        onError={() => setFailed(true)}
-      />
-      <Image
-        src={dashboardNewsImageSrc(item)}
-        alt=""
-        aria-hidden
-        className="object-cover opacity-85"
+        className="object-cover opacity-95"
         fill
         sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
         unoptimized
@@ -580,7 +569,7 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
       : "grid gap-0 sm:grid-cols-[11rem_minmax(0,1fr)]";
 
   return (
-    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3")}>
+    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3", !hasImage && (isFreshDashboardNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
       <div className={layoutClass}>
         {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />}
         <div className={cn("flex min-w-0 flex-col p-4", !hasImage && "h-full w-full p-5 sm:p-6")}>

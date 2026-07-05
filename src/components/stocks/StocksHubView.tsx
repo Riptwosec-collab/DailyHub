@@ -68,6 +68,7 @@ type PortfolioHolding = {
 };
 
 const portfolioStorageKey = "nimbusdaily-portfolio-holdings";
+const stockQuoteSnapshotStorageKey = "nimbusdaily-stock-quote-snapshot";
 
 const defaultPortfolioHoldings: PortfolioHolding[] = [
   { ticker: "VOO", name: "Vanguard S&P 500 ETF", type: "Core ETF", current: 18, target: 18, dayChange: "+0.42%", contribution: 102.34, value: 441054 },
@@ -175,18 +176,41 @@ function quoteValuesChanged(previous: Quote | undefined, next: Quote) {
   return ["price", "prevClose", "afterHours"].some((key) => Math.abs((previous[key as keyof Quote] as number) - (next[key as keyof Quote] as number)) > 0.001);
 }
 
+function getStoredQuoteSnapshot(): Record<string, Quote> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(stockQuoteSnapshotStorageKey);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, Quote>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredQuoteSnapshot(snapshot: Record<string, Quote>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(stockQuoteSnapshotStorageKey, JSON.stringify(snapshot));
+  } catch {
+    // Best-effort only; the UI still works without local persistence.
+  }
+}
+
 export function StocksHubView() {
   const [view, setView] = useState<ViewId>("overview");
   const [activeCategoryId, setActiveCategoryId] = useState(categories[0].id);
   const [query, setQuery] = useState("");
   const [liveQuotes, setLiveQuotes] = useState<Record<string, Quote>>({});
   const [freshSymbols, setFreshSymbols] = useState<Set<string>>(new Set());
+  const [staleSymbols, setStaleSymbols] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState("ใช้ fallback sample");
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [quoteSource, setQuoteSource] = useState("sample fallback");
   const quoteSnapshotRef = useRef<Record<string, Quote>>({});
   const freshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const syncFromHash = () => {
@@ -203,6 +227,7 @@ export function StocksHubView() {
 
   useEffect(() => () => {
     if (freshTimerRef.current) clearTimeout(freshTimerRef.current);
+    if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
   }, []);
 
   const pushStockHash = useCallback((nextView: ViewId, nextCategoryId = activeCategoryId) => {
@@ -223,7 +248,7 @@ export function StocksHubView() {
     pushStockHash("category", categoryId);
   }, [pushStockHash]);
 
-  const loadQuotes = useCallback(async (signal?: AbortSignal) => {
+  const loadQuotes = useCallback(async (signal?: AbortSignal, manualRefresh = false) => {
     setQuoteLoading(true);
     setQuoteError("");
     const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
@@ -256,17 +281,25 @@ export function StocksHubView() {
 
       if (Object.keys(nextQuotes).length === 0) throw new Error(payload.error || "No live quotes returned");
 
+      const previousStoredQuotes = getStoredQuoteSnapshot();
       const changedSymbols = new Set<string>();
+      const unchangedSymbols = new Set<string>();
       for (const [ticker, nextQuote] of Object.entries(nextQuotes)) {
-        const previous = quoteSnapshotRef.current[ticker] ?? seedQuotes[ticker];
-        if (quoteValuesChanged(previous, nextQuote)) changedSymbols.add(ticker);
+        const previous = previousStoredQuotes[ticker] ?? quoteSnapshotRef.current[ticker] ?? seedQuotes[ticker];
+        const changed = quoteValuesChanged(previous, nextQuote);
+        if (changed) changedSymbols.add(ticker);
+        if (manualRefresh && !changed && previousStoredQuotes[ticker]) unchangedSymbols.add(ticker);
       }
       quoteSnapshotRef.current = { ...quoteSnapshotRef.current, ...nextQuotes };
+      saveStoredQuoteSnapshot(quoteSnapshotRef.current);
 
       setLiveQuotes(nextQuotes);
       setFreshSymbols(changedSymbols);
+      setStaleSymbols(unchangedSymbols);
       if (freshTimerRef.current) clearTimeout(freshTimerRef.current);
+      if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
       freshTimerRef.current = setTimeout(() => setFreshSymbols(new Set()), 18000);
+      staleTimerRef.current = setTimeout(() => setStaleSymbols(new Set()), 18000);
       setQuoteSource(payload.source ?? "Yahoo Finance");
       setLastUpdated(payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("th-TH") : new Date().toLocaleString("th-TH"));
     } catch (error) {
@@ -315,15 +348,16 @@ export function StocksHubView() {
             quoteError={quoteError}
             quoteLoading={quoteLoading}
             quoteSource={quoteSource}
-            onRefresh={() => void loadQuotes()}
+            onRefresh={() => void loadQuotes(undefined, true)}
           />
-          {view === "overview" && <OverviewBoard stocks={filteredAll} setView={selectView} onCategory={selectCategory} freshSymbols={freshSymbols} />}
+          <StockQuickNav view={view} activeCategoryId={activeCategoryId} onView={selectView} onCategory={selectCategory} />
+          {view === "overview" && <OverviewBoard stocks={filteredAll} setView={selectView} onCategory={selectCategory} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "market" && <MarketStatus lastUpdated={lastUpdated} />}
-          {view === "alerts" && <PriceAlerts stocks={hydratedStocks.slice(0, 8)} freshSymbols={freshSymbols} />}
-          {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} />}
-          {view === "watchlist" && <WatchlistPage stocks={hydratedStocks.slice(0, 10)} freshSymbols={freshSymbols} />}
+          {view === "alerts" && <PriceAlerts stocks={hydratedStocks.slice(0, 8)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
+          {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
+          {view === "watchlist" && <WatchlistPage stocks={hydratedStocks.slice(0, 10)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "portfolio" && <PortfolioAllocation />}
-          {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} freshSymbols={freshSymbols} />}
+          {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           <footer className="stock-footer rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
             ข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน ราคาจาก API อาจล่าช้าหรือใช้ fallback เมื่อแหล่งข้อมูลไม่ตอบสนอง
           </footer>
@@ -366,6 +400,46 @@ function StockSidebar({ view, activeCategoryId, onView, onCategory }: { view: Vi
       </nav>
       <MarketMiniCard />
     </aside>
+  );
+}
+
+function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: ViewId; activeCategoryId: string; onView: (id: ViewId) => void; onCategory: (id: string) => void }) {
+  return (
+    <nav className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-3">
+      <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+        {navItems.map((item) => {
+          const active = view === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-current={active ? "page" : undefined}
+              onClick={() => onView(item.id)}
+              className={cn("shrink-0 rounded-xl border px-4 py-2.5 text-sm font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-blue-300/45 bg-blue-600/55 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]" : "border-white/10 bg-white/[0.045] text-slate-300 hover:border-cyan-300/30 hover:text-white")}
+            >
+              <span className="mr-2">{item.icon}</span>
+              {item.title}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
+        {categories.map((category) => {
+          const active = view === "category" && activeCategoryId === category.id;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              aria-current={active ? "page" : undefined}
+              onClick={() => onCategory(category.id)}
+              className={cn("shrink-0 rounded-xl border px-4 py-2 text-xs font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-cyan-300/45 bg-cyan-300/16 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.18)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}
+            >
+              {category.icon} {category.title}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -444,11 +518,13 @@ function OverviewBoard({
   setView,
   onCategory,
   freshSymbols,
+  staleSymbols,
 }: {
   stocks: StockItem[];
   setView: (view: ViewId) => void;
   onCategory: (id: string) => void;
   freshSymbols?: Set<string>;
+  staleSymbols?: Set<string>;
 }) {
   const gainers = stocks.filter((item) => change(item.quote) >= 0);
   const losers = stocks.length - gainers.length;
@@ -470,34 +546,34 @@ function OverviewBoard({
         <button type="button" onClick={() => setView("watchlist")} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">Watchlist</button>
       </div>
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <PriceTable title="Stock Overview Board" stocks={stocks.slice(0, 18)} compact={false} freshSymbols={freshSymbols} />
+        <PriceTable title="Stock Overview Board" stocks={stocks.slice(0, 18)} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <aside className="space-y-5">
           <HowToRead />
           <TopMovers stocks={stocks} />
-          <MiniWatchlist stocks={stocks.slice(0, 6)} freshSymbols={freshSymbols} />
+          <MiniWatchlist stocks={stocks.slice(0, 6)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         </aside>
       </div>
     </div>
   );
 }
 
-function CategoryResearch({ category, stocks, freshSymbols }: { category: Category; stocks: StockItem[]; freshSymbols?: Set<string> }) {
+function CategoryResearch({ category, stocks, freshSymbols, staleSymbols }: { category: Category; stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="min-w-0 space-y-5">
         <OverviewPanel category={category} />
-        <PriceTable title={`หุ้นในหมวด ${category.title}`} stocks={stocks} compact={false} freshSymbols={freshSymbols} />
+        <PriceTable title={`หุ้นในหมวด ${category.title}`} stocks={stocks} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
       <aside className="space-y-5">
         <WhyWatch items={category.why} />
-        <MiniWatchlist stocks={stocks.slice(0, 8)} freshSymbols={freshSymbols} />
+        <MiniWatchlist stocks={stocks.slice(0, 8)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <MarketSummary />
       </aside>
     </div>
   );
 }
 
-function PriceTable({ title, stocks, compact, freshSymbols }: { title: string; stocks: StockItem[]; compact: boolean; freshSymbols?: Set<string> }) {
+function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { title: string; stocks: StockItem[]; compact: boolean; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   return (
     <article className="nimbus-card-3d overflow-hidden rounded-2xl border border-white/10 bg-slate-950/62">
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
@@ -524,7 +600,7 @@ function PriceTable({ title, stocks, compact, freshSymbols }: { title: string; s
               const dailyPct = changePct(item.quote);
               const after = afterChangePct(item.quote);
               return (
-                <tr key={`${item.ticker}-${title}`} className={cn("border-t border-white/8 transition hover:bg-white/[0.04]", freshSymbols?.has(item.ticker) && "nimbus-live-new-row")}>
+                <tr key={`${item.ticker}-${title}`} className={cn("border-t border-white/8 transition hover:bg-white/[0.04]", freshSymbols?.has(item.ticker) && "nimbus-live-new-row", staleSymbols?.has(item.ticker) && "nimbus-live-stale")}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-xl text-slate-500">☆</span>
@@ -600,10 +676,11 @@ function MarketStatus({ lastUpdated }: { lastUpdated: string }) {
   );
 }
 
-function PriceAlerts({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string> }) {
+function PriceAlerts({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   const rows = stocks.slice(0, 4);
+  const hasStaleRows = rows.some((item) => staleSymbols?.has(item.ticker));
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_28rem]">
+    <div className={cn("grid gap-5 xl:grid-cols-[minmax(0,1fr)_28rem]", hasStaleRows && "nimbus-live-stale")}>
       <main className="space-y-5">
         <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
           <h2 className="text-xl font-extrabold text-white">สร้างการแจ้งเตือนใหม่</h2>
@@ -616,7 +693,7 @@ function PriceAlerts({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbo
             {["Telegram", "Email", "In-app", "Push"].map((item, index) => <button key={item} type="button" className={cn("rounded-xl border px-5 py-2.5 text-sm font-extrabold", index === 0 ? "border-blue-300/40 bg-blue-600 text-white" : "border-white/10 bg-white/[0.04] text-slate-300")}>{item}</button>)}
           </div>
         </article>
-        <PriceTable title="รายการแจ้งเตือนของฉัน" stocks={rows} compact freshSymbols={freshSymbols} />
+        <PriceTable title="รายการแจ้งเตือนของฉัน" stocks={rows} compact freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
       <aside className="space-y-5">
         <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
@@ -627,13 +704,13 @@ function PriceAlerts({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbo
           </div>
           <button type="button" className="mt-5 w-full rounded-xl border border-sky-300/30 bg-sky-500/10 px-4 py-3 font-extrabold text-sky-200">ทดสอบการแจ้งเตือน</button>
         </article>
-        <MiniWatchlist stocks={rows} title="กิจกรรมแจ้งเตือนล่าสุด" freshSymbols={freshSymbols} />
+        <MiniWatchlist stocks={rows} title="กิจกรรมแจ้งเตือนล่าสุด" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </aside>
     </div>
   );
 }
 
-function Heatmap({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string> }) {
+function Heatmap({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   const [mode, setMode] = useState("Heatmap");
   const groups = [
     ["เทคโนโลยี", stocks.filter((item) => ["AI / Mega Cap", "Semiconductor", "Cloud / Cybersecurity"].includes(item.category)).slice(0, 12)],
@@ -665,14 +742,14 @@ function Heatmap({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbols?:
             <section key={title} className="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
               <h3 className="mb-2 font-extrabold text-white">{title}</h3>
               <div className="grid auto-rows-[5.5rem] grid-cols-2 gap-2 md:grid-cols-3">
-                {items.map((item, index) => <HeatTile key={item.ticker} item={item} big={index < 2} fresh={freshSymbols?.has(item.ticker)} />)}
+                {items.map((item, index) => <HeatTile key={item.ticker} item={item} big={index < 2} fresh={freshSymbols?.has(item.ticker)} stale={staleSymbols?.has(item.ticker)} />)}
               </div>
             </section>
           ))}
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <AfterHoursPanel title="After Hours ขึ้น" stocks={afterUp} tone="up" freshSymbols={freshSymbols} />
-          <AfterHoursPanel title="After Hours ลง" stocks={afterDown} tone="down" freshSymbols={freshSymbols} />
+          <AfterHoursPanel title="After Hours ขึ้น" stocks={afterUp} tone="up" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+          <AfterHoursPanel title="After Hours ลง" stocks={afterDown} tone="down" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         </div>
       </main>
       <aside className="space-y-5">
@@ -683,7 +760,7 @@ function Heatmap({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbols?:
   );
 }
 
-function AfterHoursPanel({ title, stocks, tone, freshSymbols }: { title: string; stocks: StockItem[]; tone: "up" | "down"; freshSymbols?: Set<string> }) {
+function AfterHoursPanel({ title, stocks, tone, freshSymbols, staleSymbols }: { title: string; stocks: StockItem[]; tone: "up" | "down"; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   const positive = tone === "up";
   return (
     <section className={cn("rounded-2xl border p-4", positive ? "border-emerald-300/25 bg-emerald-400/[0.08]" : "border-rose-300/25 bg-rose-400/[0.08]")}>
@@ -695,7 +772,7 @@ function AfterHoursPanel({ title, stocks, tone, freshSymbols }: { title: string;
         {stocks.map((item) => {
           const pct = afterChangePct(item.quote);
           return (
-            <div key={`${title}-${item.ticker}`} className={cn("rounded-xl border border-white/10 bg-slate-950/45 p-3", freshSymbols?.has(item.ticker) && "nimbus-live-new")}>
+            <div key={`${title}-${item.ticker}`} className={cn("rounded-xl border border-white/10 bg-slate-950/45 p-3", freshSymbols?.has(item.ticker) && "nimbus-live-new", staleSymbols?.has(item.ticker) && "nimbus-live-stale")}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <LogoBadge item={item} small />
@@ -715,7 +792,7 @@ function AfterHoursPanel({ title, stocks, tone, freshSymbols }: { title: string;
   );
 }
 
-function WatchlistPage({ stocks, freshSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string> }) {
+function WatchlistPage({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="space-y-5">
@@ -727,10 +804,10 @@ function WatchlistPage({ stocks, freshSymbols }: { stocks: StockItem[]; freshSym
             </button>
           ))}
         </div>
-        <PriceTable title="AI Watchlist" stocks={stocks} compact freshSymbols={freshSymbols} />
+        <PriceTable title="AI Watchlist" stocks={stocks} compact freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
       <aside className="space-y-5">
-        <MiniWatchlist stocks={stocks.slice(0, 6)} title="รายการโปรด" freshSymbols={freshSymbols} />
+        <MiniWatchlist stocks={stocks.slice(0, 6)} title="รายการโปรด" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
           <h2 className="text-xl font-extrabold text-white">การดำเนินการด่วน</h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -964,11 +1041,11 @@ function TopMovers({ stocks, title = "Top Movers" }: { stocks: StockItem[]; titl
   );
 }
 
-function MiniWatchlist({ stocks, title = "รายการที่ติดตาม", freshSymbols }: { stocks: StockItem[]; title?: string; freshSymbols?: Set<string> }) {
+function MiniWatchlist({ stocks, title = "รายการที่ติดตาม", freshSymbols, staleSymbols }: { stocks: StockItem[]; title?: string; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   return (
     <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
       <h2 className="text-xl font-extrabold text-white">{title}</h2>
-      <div className="mt-4 space-y-3">{stocks.map((item) => <div key={`${title}-${item.ticker}`} className={cn("flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2", freshSymbols?.has(item.ticker) && "nimbus-live-new")}><div className="flex items-center gap-2"><LogoBadge item={item} small /><span className="font-bold text-white">{item.ticker}</span></div><span className={change(item.quote) >= 0 ? "font-bold text-emerald-300" : "font-bold text-rose-300"}>{formatPrice(item.quote.price)}</span></div>)}</div>
+      <div className="mt-4 space-y-3">{stocks.map((item) => <div key={`${title}-${item.ticker}`} className={cn("flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2", freshSymbols?.has(item.ticker) && "nimbus-live-new", staleSymbols?.has(item.ticker) && "nimbus-live-stale")}><div className="flex items-center gap-2"><LogoBadge item={item} small /><span className="font-bold text-white">{item.ticker}</span></div><span className={change(item.quote) >= 0 ? "font-bold text-emerald-300" : "font-bold text-rose-300"}>{formatPrice(item.quote.price)}</span></div>)}</div>
     </article>
   );
 }
@@ -997,9 +1074,9 @@ function TradingSession() {
   return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">ช่วงเวลาการซื้อขายของตลาดสหรัฐฯ</h2><div className="mt-5 grid gap-3 md:grid-cols-3">{[["Pre-market", "04:00 - 09:30 ET"], ["Regular Hours", "09:30 - 16:00 ET"], ["After Hours", "16:00 - 20:00 ET"]].map(([name, time], index) => <div key={name} className={cn("rounded-2xl border p-5 text-center", index === 1 ? "border-emerald-300/45 bg-emerald-400/10" : "border-white/10 bg-white/[0.04]")}><p className="text-lg font-extrabold text-white">{name}</p><p className="mt-1 text-slate-300">{time}</p></div>)}</div></article>;
 }
 
-function HeatTile({ item, big, fresh }: { item: StockItem; big?: boolean; fresh?: boolean }) {
+function HeatTile({ item, big, fresh, stale }: { item: StockItem; big?: boolean; fresh?: boolean; stale?: boolean }) {
   const pct = changePct(item.quote);
-  return <div className={cn("grid place-items-center rounded-lg border p-2 text-center", pct >= 0 ? "border-emerald-300/25 bg-emerald-500/20" : "border-rose-300/25 bg-rose-500/20", big && "md:col-span-2", fresh && "nimbus-live-new")}><div><p className="text-2xl font-extrabold text-white">{item.ticker}</p><p className={pct >= 0 ? "font-bold text-emerald-200" : "font-bold text-rose-200"}>{signedPct(pct)}</p></div></div>;
+  return <div className={cn("grid place-items-center rounded-lg border p-2 text-center", pct >= 0 ? "border-emerald-300/25 bg-emerald-500/20" : "border-rose-300/25 bg-rose-500/20", big && "md:col-span-2", fresh && "nimbus-live-new", stale && "nimbus-live-stale")}><div><p className="text-2xl font-extrabold text-white">{item.ticker}</p><p className={pct >= 0 ? "font-bold text-emerald-200" : "font-bold text-rose-200"}>{signedPct(pct)}</p></div></div>;
 }
 
 function RebalanceBox({ holdings, totalValue }: { holdings: PortfolioHolding[]; totalValue: number }) {
