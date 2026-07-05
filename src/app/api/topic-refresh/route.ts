@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { summarizeTopicCatalog, topicRefreshCatalog } from "@/data/topic-refresh-catalog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -48,18 +49,27 @@ export async function GET(request: Request) {
   const sources = topicSources[topic];
   const results = await Promise.all(sources.map(checkSource));
   const reachable = results.filter((result) => result.ok).length;
+  const catalog = topicRefreshCatalog[topic];
+  const summary = summarizeTopicCatalog(topic);
+  const success = reachable > 0 || summary.totalItems > 0;
 
   return NextResponse.json(
     {
-      success: reachable > 0,
+      success,
       topic,
       updatedAt: new Date().toISOString(),
       checked: sources.length,
       reachable,
+      labelTh: catalog.labelTh,
+      labelEn: catalog.labelEn,
+      noteTh: catalog.noteTh,
+      noteEn: catalog.noteEn,
+      summary,
+      items: catalog.items,
       sources: results,
-      error: reachable > 0 ? undefined : "No live source responded",
+      error: success ? undefined : "No live source responded and no catalog items available",
     },
-    { status: reachable > 0 ? 200 : 502 },
+    { status: success ? 200 : 502 },
   );
 }
 

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { topicRefreshCatalog } from "@/data/topic-refresh-catalog";
 import { cn } from "@/lib/utils";
 
 type PlatformKey = "all" | "cinema" | "streaming";
@@ -53,6 +54,19 @@ const platformMeta = {
   },
 } satisfies Record<MoviePlatform, { labelTh: string; labelEn: string; icon: string; gradient: string; border: string; source: string }>;
 
+const julyMovieItems: WatchItem[] = topicRefreshCatalog.movies.items.map((item) => ({
+  id: item.id,
+  platform: item.group === "cinema" ? "cinema" : "streaming",
+  title: item.title,
+  dateTh: item.dateTh,
+  dateEn: item.dateEn,
+  genreTh: item.detailTh,
+  genreEn: item.detailEn,
+  sourceLabel: item.sourceLabel,
+  sourceUrl: item.sourceUrl,
+  status: "confirmed",
+}));
+
 const months: MovieMonth[] = [
   {
     id: "july-2026",
@@ -62,15 +76,7 @@ const months: MovieMonth[] = [
     shortEn: "Jul",
     noteTh: "รวมเรื่องเด่นที่เข้าโรงไทยหรือเริ่มสตรีมในเดือนนี้ ควรตรวจสอบวันฉายจริงอีกครั้งก่อนจอง",
     noteEn: "Highlighted theatrical and streaming titles for the month. Check official dates before booking.",
-    items: [
-      { id: "moana-live-action", platform: "cinema", title: "Moana Live Action", dateTh: "9 ก.ค. 2026", dateEn: "Jul 9, 2026", genreTh: "แฟนตาซี / ผจญภัย / หนังครอบครัว", genreEn: "Fantasy / Adventure / Family", sourceLabel: "Major Cineplex", sourceUrl: "https://www.majorcineplex.com/movie", status: "watch" },
-      { id: "the-odyssey", platform: "cinema", title: "The Odyssey", dateTh: "16 ก.ค. 2026", dateEn: "Jul 16, 2026", genreTh: "มหากาพย์ / ผจญภัย / งานใหญ่ภาพสวย", genreEn: "Epic / Adventure / Large-scale spectacle", sourceLabel: "Major Cineplex", sourceUrl: "https://www.majorcineplex.com/movie", status: "watch" },
-      { id: "spider-man-brand-new-day", platform: "cinema", title: "Spider-Man: Brand New Day", dateTh: "31 ก.ค. 2026", dateEn: "Jul 31, 2026", genreTh: "Marvel / แอ็กชัน / ภาคใหม่ของ Spider-Man", genreEn: "Marvel / Action / New Spider-Man chapter", sourceLabel: "Major Cineplex", sourceUrl: "https://www.majorcineplex.com/movie", status: "watch" },
-      { id: "enola-holmes-3", platform: "streaming", title: "Enola Holmes 3", dateTh: "1 ก.ค. 2026", dateEn: "Jul 1, 2026", genreTh: "Netflix Film / สืบสวนดูง่าย", genreEn: "Netflix Film / Mystery", sourceLabel: "Netflix Tudum", sourceUrl: "https://www.netflix.com/tudum", status: "watch" },
-      { id: "little-house-prairie", platform: "streaming", title: "Little House on the Prairie", dateTh: "9 ก.ค. 2026", dateEn: "Jul 9, 2026", genreTh: "Netflix Series / ดราม่าครอบครัว", genreEn: "Netflix Series / Family drama", sourceLabel: "Netflix Tudum", sourceUrl: "https://www.netflix.com/tudum", status: "watch" },
-      { id: "heartstopper-forever", platform: "streaming", title: "Heartstopper Forever", dateTh: "17 ก.ค. 2026", dateEn: "Jul 17, 2026", genreTh: "Netflix Film / โรแมนติก / ตอนปิดเรื่อง", genreEn: "Netflix Film / Romance / Finale", sourceLabel: "Netflix Tudum", sourceUrl: "https://www.netflix.com/tudum", status: "watch" },
-      { id: "72-hours", platform: "streaming", title: "72 Hours", dateTh: "24 ก.ค. 2026", dateEn: "Jul 24, 2026", genreTh: "Comedy Film / ดูเพลิน", genreEn: "Comedy Film / Easy watch", sourceLabel: "Netflix Tudum", sourceUrl: "https://www.netflix.com/tudum", status: "watch" },
-    ],
+    items: julyMovieItems,
   },
   {
     id: "august-2026",

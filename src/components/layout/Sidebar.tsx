@@ -226,6 +226,23 @@ function isSameBangkokDay(value: string) {
   return formatter.format(date) === formatter.format(new Date());
 }
 
+function formatTopicGroups(groups: Record<string, number> | undefined, lang: "th" | "en") {
+  if (!groups) return "";
+  const labels: Record<string, { th: string; en: string }> = {
+    cinema: { th: "หนังโรง", en: "cinema" },
+    streaming: { th: "Netflix", en: "Netflix" },
+    indoor: { th: "Indoor", en: "indoor" },
+    outdoor: { th: "Outdoor", en: "outdoor" },
+    expo: { th: "Expo", en: "expo" },
+    fair: { th: "Fair", en: "fair" },
+    festival: { th: "Festival", en: "festival" },
+  };
+
+  return Object.entries(groups)
+    .map(([key, count]) => `${labels[key]?.[lang] ?? key} ${count}`)
+    .join(" / ");
+}
+
 async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en">> {
   const now = Date.now();
 
@@ -257,15 +274,25 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
           Pragma: "no-cache",
         },
       });
-      const payload = (await response.json()) as { checked?: number; reachable?: number; success?: boolean; error?: string };
+      const payload = (await response.json()) as {
+        checked?: number;
+        reachable?: number;
+        success?: boolean;
+        error?: string;
+        summary?: { totalItems?: number; groups?: Record<string, number>; latestTitles?: string[] };
+      };
       const checked = payload.checked ?? 0;
       const reachable = payload.reachable ?? 0;
-      if (!response.ok || !payload.success || reachable === 0) throw new Error(payload.error || `live sources ${reachable}/${checked}`);
+      const totalItems = payload.summary?.totalItems ?? 0;
+      if (!response.ok || !payload.success || totalItems === 0) throw new Error(payload.error || `live sources ${reachable}/${checked}`);
       const label = LIVE_TOPIC_LABELS[href];
+      const groupTextTh = formatTopicGroups(payload.summary?.groups, "th");
+      const groupTextEn = formatTopicGroups(payload.summary?.groups, "en");
+      const latestTh = payload.summary?.latestTitles?.slice(0, 3).join(" / ");
       return {
         status: "success",
-        th: `ค้นหาแหล่งข้อมูลจริงของ${label.th}แล้ว ${reachable}/${checked} แหล่ง`,
-        en: `Checked ${reachable}/${checked} live sources for ${label.en}`,
+        th: `อัปเดต${label.th}ได้ ${totalItems} รายการ${groupTextTh ? ` (${groupTextTh})` : ""} · แหล่งข้อมูลตอบ ${reachable}/${checked}${latestTh ? ` · ใหม่: ${latestTh}` : ""}`,
+        en: `Updated ${totalItems} ${label.en} items${groupTextEn ? ` (${groupTextEn})` : ""}; live sources ${reachable}/${checked}`,
       };
     }
 
