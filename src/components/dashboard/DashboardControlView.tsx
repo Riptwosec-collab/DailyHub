@@ -580,24 +580,24 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
       : "grid gap-0 sm:grid-cols-[11rem_minmax(0,1fr)]";
 
   return (
-    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "")}>
+    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3")}>
       <div className={layoutClass}>
         {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />}
-        <div className="flex min-w-0 flex-col p-4">
+        <div className={cn("flex min-w-0 flex-col p-4", !hasImage && "h-full w-full p-5 sm:p-6")}>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={isFeatured ? "red" : detail.key === "cybersecurity" ? "purple" : "blue"}>{isFeatured ? (lang === "th" ? "Priority สูง" : "High Priority") : dailyCategoryLabel(item.category, lang)}</Badge>
             <Badge tone={dailyNewsStatusTone(item)}>{statusLabel}</Badge>
             <span className="ml-auto rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-sm font-black text-emerald-100">{item.priorityScore}</span>
           </div>
-          <h3 className={cn("mt-3 font-black text-white", isFeatured ? "text-2xl leading-9" : "line-clamp-2 text-base leading-6")}>{dailyItemTitle(item, lang)}</h3>
+          <h3 className={cn("mt-3 max-w-none font-black text-white", !hasImage ? "text-xl leading-8 sm:text-2xl sm:leading-9" : isFeatured ? "text-2xl leading-9" : "line-clamp-2 text-base leading-6")}>{dailyItemTitle(item, lang)}</h3>
           <p className="mt-2 text-xs font-semibold text-slate-500">{item.sourceName} · {formatNewsTime(item.publishedAt, lang)}</p>
-          <p className={cn("mt-3 text-sm leading-6 text-slate-300", isFeatured ? "line-clamp-3" : "line-clamp-2")}>{dailyItemSummary(item, lang)}</p>
-          {isFeatured && (
+          <p className={cn("mt-3 max-w-none text-sm leading-6 text-slate-300", !hasImage ? "text-base leading-7" : isFeatured ? "line-clamp-3" : "line-clamp-2")}>{dailyItemSummary(item, lang)}</p>
+          {(isFeatured || !hasImage) && (
             <div className="mt-4 space-y-1 text-sm leading-6 text-slate-300">
               {dailyItemBullets(item, lang).slice(0, 2).map((point) => <p key={point}>• {point}</p>)}
             </div>
           )}
-          <div className="mt-auto flex flex-wrap gap-2 pt-4">
+          <div className={cn("mt-auto flex flex-wrap gap-2 pt-4", !hasImage && "justify-end")}>
             <Button asChild size="sm">
               <a href={item.sourceUrl} target="_blank" rel="noreferrer">{dailyText(lang, "readFull")}</a>
             </Button>

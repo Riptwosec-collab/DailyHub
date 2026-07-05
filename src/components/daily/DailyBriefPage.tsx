@@ -479,9 +479,9 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
             <NewsSourceBadge item={item} lang={lang} />
             <span className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/12 px-4 py-2 text-xl font-black text-cyan-100">{item.priorityScore}</span>
           </div>
-          <h2 className="mt-4 max-w-3xl text-2xl font-black leading-tight text-white sm:text-3xl">{itemTitle(item, lang)}</h2>
+          <h2 className={cn("mt-4 text-2xl font-black leading-tight text-white sm:text-3xl", hasImage ? "max-w-3xl" : "max-w-none")}>{itemTitle(item, lang)}</h2>
           <p className="mt-2 text-xs font-semibold text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
-          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className={cn("mt-4 grid gap-4", hasImage ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : "xl:grid-cols-[minmax(0,1fr)_18rem]")}>
             <div>
               <p className="text-sm font-semibold leading-7 text-slate-300">{itemSummary(item, lang)}</p>
               <div className="mt-3 space-y-1 text-sm leading-6 text-slate-300">
@@ -518,17 +518,22 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
   const text = copy[lang];
   const hasImage = hasRealNewsImage(item);
   return (
-    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage && "md:grid-cols-[10rem_minmax(0,1fr)]")}>
+    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "md:grid-cols-[10rem_minmax(0,1fr)]" : "p-5 sm:p-6")}>
       {hasImage && <StoryVisual item={item} />}
-      <div className="min-w-0">
+      <div className={cn("min-w-0", !hasImage && "w-full")}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
           <NewsStatusBadge item={item} lang={lang} />
           <span className="ml-auto rounded-xl border border-violet-300/20 bg-violet-300/10 px-3 py-1.5 text-sm font-black text-violet-100">{item.priorityScore}</span>
         </div>
-        <h3 className="mt-3 line-clamp-2 text-lg font-black leading-7 text-white">{itemTitle(item, lang)}</h3>
+        <h3 className={cn("mt-3 font-black text-white", hasImage ? "line-clamp-2 text-lg leading-7" : "max-w-none text-xl leading-8 sm:text-2xl sm:leading-9")}>{itemTitle(item, lang)}</h3>
         <p className="mt-1 text-xs font-semibold text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
-        <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-300">{itemSummary(item, lang)}</p>
+        <p className={cn("mt-3 text-sm leading-6 text-slate-300", hasImage ? "line-clamp-2" : "max-w-none text-base leading-7")}>{itemSummary(item, lang)}</p>
+        {!hasImage && (
+          <div className="mt-3 space-y-1 text-sm leading-6 text-slate-300">
+            {itemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>- {point}</p>)}
+          </div>
+        )}
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{text.hide}</Button>
           <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>

@@ -163,7 +163,13 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
 
   try {
     if (href === "/stocks") {
-      const response = await fetch(`/api/stocks/quotes?symbols=NVDA,MSFT,GOOGL,AMZN,META,AVGO,AMD,TSM,CRWD,RKLB&refresh=${now}`, { cache: "no-store" });
+      const response = await fetch(`/api/stocks/quotes?symbols=NVDA,MSFT,GOOGL,AMZN,META,AVGO,AMD,TSM,CRWD,RKLB&refresh=${now}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       if (!response.ok) throw new Error(`stocks ${response.status}`);
       const payload = (await response.json()) as { quotes?: unknown[]; source?: string; error?: string };
       const count = payload.quotes?.length ?? 0;
@@ -176,14 +182,25 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
     }
 
     if (href === "/daily" || href === "/dashboard") {
-      const response = await fetch(`/api/news/latest?refresh=${now}`, { cache: "no-store" });
+      const response = await fetch(`/api/news/latest?refresh=${now}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       if (!response.ok) throw new Error(`news ${response.status}`);
-      const payload = (await response.json()) as { items?: unknown[]; summary?: { totalItems?: number; mode?: string } };
-      const count = payload.summary?.totalItems ?? payload.items?.length ?? 0;
+      const payload = (await response.json()) as {
+        data?: { items?: unknown[]; summary?: { totalItems?: number; mode?: string } };
+        items?: unknown[];
+        summary?: { totalItems?: number; mode?: string };
+      };
+      const data = payload.data ?? payload;
+      const count = data.summary?.totalItems ?? data.items?.length ?? 0;
       return {
         status: "success",
-        th: `ดึงข่าวล่าสุดได้ ${count} รายการ โหมด ${payload.summary?.mode || "live"}`,
-        en: `Fetched ${count} latest news items in ${payload.summary?.mode || "live"} mode`,
+        th: `ดึงข่าวล่าสุดได้ ${count} รายการ โหมด ${data.summary?.mode || "live"}`,
+        en: `Fetched ${count} latest news items in ${data.summary?.mode || "live"} mode`,
       };
     }
 
@@ -242,6 +259,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const [manualUpdates, setManualUpdates] = useState<ManualUpdateState>({});
   const [hydratedUpdates, setHydratedUpdates] = useState(false);
   const [updatingHref, setUpdatingHref] = useState<string | null>(null);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -260,6 +278,10 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     if (!hydratedUpdates) return;
     window.localStorage.setItem(UPDATE_STORAGE_KEY, JSON.stringify(manualUpdates));
   }, [hydratedUpdates, manualUpdates]);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   const handleUpdateTopic = async (href: string) => {
     setUpdatingHref(href);
@@ -330,17 +352,20 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
 
       <nav className="mt-7 flex-1 space-y-2 overflow-y-auto pr-1">
         {navItems.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const pathIsActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = pendingHref ? item.href === pendingHref : pathIsActive;
           const label = item.key ? t(item.key) : lang === "th" ? item.th : item.en;
           const manualUpdate = manualUpdates[item.href];
           const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt;
           const updateCount = manualUpdate?.count ?? 0;
+          const isFreshUpdate = manualUpdate?.status === "success" && updateCount > 0;
 
           return (
             <div
               key={item.href}
               className={cn(
                 "group rounded-xl border transition-all duration-200",
+                isFreshUpdate && "nimbus-live-new",
                 isActive
                   ? "border-cyan-300/25 bg-cyan-300/[0.10] shadow-[0_0_26px_rgba(34,211,238,0.10)]"
                   : "border-white/0 bg-transparent hover:border-white/10 hover:bg-white/[0.045]",
@@ -348,7 +373,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             >
               <Link
                 href={item.href}
-                onClick={onNavigate}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => {
+                  setPendingHref(item.href);
+                  onNavigate?.();
+                }}
                 className={cn(
                   "flex min-h-12 items-center gap-3 px-3.5 pb-2 pt-2.5 text-sm font-semibold transition-all",
                   isActive ? "text-white" : "text-slate-400 group-hover:text-white",

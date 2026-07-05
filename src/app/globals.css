@@ -679,6 +679,76 @@ th {
   background: rgba(2, 6, 23, 0.55);
 }
 
+@property --nimbus-live-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.nimbus-live-new {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(52, 211, 153, 0.62) !important;
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.18),
+    0 0 24px rgba(16, 185, 129, 0.16) !important;
+}
+
+.nimbus-live-new::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--nimbus-live-angle, 0deg), transparent 0 58%, rgba(52, 211, 153, 0.92) 66%, rgba(34, 211, 238, 0.75) 72%, transparent 82%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: nimbus-live-spin 2.4s linear infinite;
+}
+
+.nimbus-live-new-row {
+  position: relative;
+  outline: 1px solid rgba(52, 211, 153, 0.45);
+  outline-offset: -1px;
+  box-shadow:
+    inset 3px 0 0 rgba(52, 211, 153, 0.85),
+    inset 0 0 26px rgba(16, 185, 129, 0.08);
+  animation: nimbus-live-row-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes nimbus-live-spin {
+  to {
+    --nimbus-live-angle: 360deg;
+  }
+}
+
+@keyframes nimbus-live-row-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 3px 0 0 rgba(52, 211, 153, 0.72),
+      inset 0 0 20px rgba(16, 185, 129, 0.06);
+  }
+  50% {
+    box-shadow:
+      inset 3px 0 0 rgba(52, 211, 153, 1),
+      inset 0 0 34px rgba(16, 185, 129, 0.14);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimbus-live-new::after,
+  .nimbus-live-new-row {
+    animation: none;
+  }
+}
+
 html[data-theme="cream"] .stock-hub {
   --stock-panel: rgba(243, 232, 216, 0.94);
   --stock-line: rgba(128, 84, 45, 0.30);
@@ -1056,4 +1126,12 @@ html[data-theme="cream"] span {
 .daily-sidebar button,
 .daily-sidebar a {
   min-height: 2.35rem;
+  touch-action: manipulation;
+}
+
+.stock-hub button,
+.daily-sidebar button,
+.daily-sidebar a {
+  position: relative;
+  z-index: 1;
 }
