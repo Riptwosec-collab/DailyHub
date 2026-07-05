@@ -34,6 +34,62 @@ type ManualUpdateEntry = {
 type ManualUpdateState = Record<string, ManualUpdateEntry>;
 
 const UPDATE_STORAGE_KEY = "nimbusdaily-menu-updates";
+const STOCK_REFRESH_SYMBOLS = [
+  "NVDA",
+  "MSFT",
+  "GOOGL",
+  "AMZN",
+  "META",
+  "AVGO",
+  "AMD",
+  "TSM",
+  "ASML",
+  "MU",
+  "QCOM",
+  "CRWD",
+  "PANW",
+  "NET",
+  "DDOG",
+  "SNOW",
+  "V",
+  "MA",
+  "HOOD",
+  "SOFI",
+  "RKLB",
+  "LMT",
+  "GEV",
+  "CEG",
+  "ASTS",
+  "LLY",
+  "UNH",
+  "COST",
+  "WMT",
+  "MCD",
+  "BRK-B",
+  "VOO",
+  "VTI",
+  "QQQ",
+  "SCHD",
+  "BND",
+  "GLD",
+  "BTC-USD",
+  "ETH-USD",
+  "LINK",
+  "ARM",
+  "MRVL",
+  "ANET",
+  "VRT",
+  "APP",
+  "RDDT",
+  "MELI",
+  "ISRG",
+].join(",");
+
+const LIVE_TOPIC_LABELS: Record<string, { th: string; en: string }> = {
+  "/concerts": { th: "ตารางคอนเสิร์ต", en: "concert schedule" },
+  "/movies": { th: "หนังโรงไทยและ Netflix / ซีรีส์", en: "movies and streaming" },
+  "/events": { th: "งานอีเวนต์ / Expo / Fair", en: "events, expo, and fair" },
+};
 
 const navItems: NavItem[] = [
   {
@@ -175,7 +231,7 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
 
   try {
     if (href === "/stocks") {
-      const response = await fetch(`/api/stocks/quotes?symbols=NVDA,MSFT,GOOGL,AMZN,META,AVGO,AMD,TSM,CRWD,RKLB&refresh=${now}`, {
+      const response = await fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(STOCK_REFRESH_SYMBOLS)}&refresh=${now}`, {
         cache: "no-store",
         headers: {
           "Cache-Control": "no-cache",
@@ -190,6 +246,26 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
         status: "success",
         th: `ดึงราคาหุ้นสดได้ ${count} ตัว จาก ${payload.source || "Yahoo Finance"}`,
         en: `Fetched ${count} live stock quotes from ${payload.source || "Yahoo Finance"}`,
+      };
+    }
+
+    if (href in LIVE_TOPIC_LABELS) {
+      const response = await fetch(`/api/topic-refresh?topic=${encodeURIComponent(href.slice(1))}&refresh=${now}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      const payload = (await response.json()) as { checked?: number; reachable?: number; success?: boolean; error?: string };
+      const checked = payload.checked ?? 0;
+      const reachable = payload.reachable ?? 0;
+      if (!response.ok || !payload.success || reachable === 0) throw new Error(payload.error || `live sources ${reachable}/${checked}`);
+      const label = LIVE_TOPIC_LABELS[href];
+      return {
+        status: "success",
+        th: `ค้นหาแหล่งข้อมูลจริงของ${label.th}แล้ว ${reachable}/${checked} แหล่ง`,
+        en: `Checked ${reachable}/${checked} live sources for ${label.en}`,
       };
     }
 

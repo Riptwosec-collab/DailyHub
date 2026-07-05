@@ -358,9 +358,9 @@ export function StocksHubView() {
           <StockQuickNav view={view} activeCategoryId={activeCategoryId} onView={selectView} onCategory={selectCategory} />
           {view === "overview" && <OverviewBoard stocks={filteredAll} setView={selectView} onCategory={selectCategory} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "market" && <MarketStatus lastUpdated={lastUpdated} />}
-          {view === "alerts" && <PriceAlerts stocks={hydratedStocks.slice(0, 8)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
+          {view === "alerts" && <PriceAlerts stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
-          {view === "watchlist" && <WatchlistPage stocks={hydratedStocks.slice(0, 10)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
+          {view === "watchlist" && <WatchlistPage stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "portfolio" && <PortfolioAllocation />}
           {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           <footer className="stock-footer rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
@@ -546,18 +546,18 @@ function OverviewBoard({
       </div>
       <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
         <button type="button" onPointerDown={() => setView("overview")} onClick={() => setView("overview")} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white">All</button>
-        {categories.slice(0, 6).map((category) => (
+        {categories.map((category) => (
           <button key={category.id} type="button" onPointerDown={() => onCategory(category.id)} onClick={() => onCategory(category.id)} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">{category.title}</button>
         ))}
         <button type="button" onPointerDown={() => setView("heatmap")} onClick={() => setView("heatmap")} className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15">Heatmap</button>
         <button type="button" onPointerDown={() => setView("watchlist")} onClick={() => setView("watchlist")} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">Watchlist</button>
       </div>
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <PriceTable title="Stock Overview Board" stocks={stocks.slice(0, 18)} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+        <PriceTable title="Stock Overview Board" stocks={stocks} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <aside className="space-y-5">
           <HowToRead />
           <TopMovers stocks={stocks} />
-          <MiniWatchlist stocks={stocks.slice(0, 6)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+          <MiniWatchlist stocks={stocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         </aside>
       </div>
     </div>
@@ -573,7 +573,7 @@ function CategoryResearch({ category, stocks, freshSymbols, staleSymbols }: { ca
       </main>
       <aside className="space-y-5">
         <WhyWatch items={category.why} />
-        <MiniWatchlist stocks={stocks.slice(0, 8)} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+        <MiniWatchlist stocks={stocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <MarketSummary />
       </aside>
     </div>
@@ -684,8 +684,10 @@ function MarketStatus({ lastUpdated }: { lastUpdated: string }) {
 }
 
 function PriceAlerts({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
-  const rows = stocks.slice(0, 4);
+  const rows = stocks;
   const hasStaleRows = rows.some((item) => staleSymbols?.has(item.ticker));
+  const [selectedChannel, setSelectedChannel] = useState("Telegram");
+  const [testStatus, setTestStatus] = useState("ready");
   return (
     <div className={cn("grid gap-5 xl:grid-cols-[minmax(0,1fr)_28rem]", hasStaleRows && "nimbus-live-stale")}>
       <main className="space-y-5">
@@ -697,8 +699,13 @@ function PriceAlerts({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem
             ))}
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
-            {["Telegram", "Email", "In-app", "Push"].map((item, index) => <button key={item} type="button" className={cn("rounded-xl border px-5 py-2.5 text-sm font-extrabold", index === 0 ? "border-blue-300/40 bg-blue-600 text-white" : "border-white/10 bg-white/[0.04] text-slate-300")}>{item}</button>)}
+            {["Telegram", "Email", "In-app", "Push"].map((item) => (
+              <button key={item} type="button" onClick={() => setSelectedChannel(item)} aria-pressed={selectedChannel === item} className={cn("rounded-xl border px-5 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5", selectedChannel === item ? "border-blue-300/40 bg-blue-600 text-white" : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/30 hover:text-white")}>
+                {item}
+              </button>
+            ))}
           </div>
+          <p className="mt-3 text-xs font-bold text-cyan-100/80">Active channel: {selectedChannel}</p>
         </article>
         <PriceTable title="รายการแจ้งเตือนของฉัน" stocks={rows} compact freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
@@ -709,7 +716,10 @@ function PriceAlerts({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem
             <div className="grid h-16 w-16 place-items-center rounded-full bg-sky-500 text-3xl">✈</div>
             <div><p className="font-extrabold text-emerald-300">เชื่อมต่อแล้ว</p><p className="text-sm text-slate-400">@NimbusDailyBot</p></div>
           </div>
-          <button type="button" className="mt-5 w-full rounded-xl border border-sky-300/30 bg-sky-500/10 px-4 py-3 font-extrabold text-sky-200">ทดสอบการแจ้งเตือน</button>
+          <button type="button" onClick={() => setTestStatus(`sent ${new Date().toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" })}`)} className="mt-5 w-full rounded-xl border border-sky-300/30 bg-sky-500/10 px-4 py-3 font-extrabold text-sky-200 transition hover:-translate-y-0.5 hover:bg-sky-500/15">
+            ทดสอบการแจ้งเตือน
+          </button>
+          <p className="mt-2 text-xs font-bold text-slate-400">Status: {testStatus}</p>
         </article>
         <MiniWatchlist stocks={rows} title="กิจกรรมแจ้งเตือนล่าสุด" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </aside>
@@ -720,14 +730,14 @@ function PriceAlerts({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem
 function Heatmap({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   const [mode, setMode] = useState("Heatmap");
   const groups = [
-    ["เทคโนโลยี", stocks.filter((item) => ["AI / Mega Cap", "Semiconductor", "Cloud / Cybersecurity"].includes(item.category)).slice(0, 12)],
+    ["เทคโนโลยี", stocks.filter((item) => ["AI / Mega Cap", "Semiconductor", "Cloud / Cybersecurity"].includes(item.category))],
     ["บริการผู้บริโภค", stocks.filter((item) => ["AMZN", "META", "MCD", "COST"].includes(item.ticker))],
-    ["เฮลธ์แคร์", stocks.filter((item) => item.category.includes("Healthcare")).slice(0, 5)],
-    ["ETF / ดัชนี", stocks.filter((item) => item.category === "ETF").slice(0, 6)],
-    ["สินทรัพย์ทางเลือก", stocks.filter((item) => item.category === "Alternative Assets").slice(0, 4)],
+    ["เฮลธ์แคร์", stocks.filter((item) => item.category.includes("Healthcare"))],
+    ["ETF / ดัชนี", stocks.filter((item) => item.category === "ETF")],
+    ["สินทรัพย์ทางเลือก", stocks.filter((item) => item.category === "Alternative Assets")],
   ] as const;
-  const afterUp = [...stocks].filter((item) => afterChangePct(item.quote) > 0).sort((a, b) => afterChangePct(b.quote) - afterChangePct(a.quote)).slice(0, 6);
-  const afterDown = [...stocks].filter((item) => afterChangePct(item.quote) < 0).sort((a, b) => afterChangePct(a.quote) - afterChangePct(b.quote)).slice(0, 6);
+  const afterUp = [...stocks].filter((item) => afterChangePct(item.quote) > 0).sort((a, b) => afterChangePct(b.quote) - afterChangePct(a.quote));
+  const afterDown = [...stocks].filter((item) => afterChangePct(item.quote) < 0).sort((a, b) => afterChangePct(a.quote) - afterChangePct(b.quote));
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
@@ -800,35 +810,49 @@ function AfterHoursPanel({ title, stocks, tone, freshSymbols, staleSymbols }: { 
 }
 
 function WatchlistPage({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
+  const [watchlist, setWatchlist] = useState("AI Watchlist");
+  const [actionStatus, setActionStatus] = useState("พร้อมใช้งาน");
+  const visibleStocks = filterWatchlist(stocks, watchlist);
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="space-y-5">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {["AI Watchlist", "High Growth", "Safe Long-term", "Space", "ETF Core", "Crypto"].map((item, index) => (
-            <button key={item} type="button" className={cn("nimbus-card-3d rounded-2xl border px-4 py-4 text-left", index === 0 ? "border-blue-300/50 bg-blue-500/15" : "border-white/10 bg-slate-950/55")}>
+          {["AI Watchlist", "High Growth", "Safe Long-term", "Space", "ETF Core", "Crypto"].map((item) => (
+            <button key={item} type="button" onClick={() => setWatchlist(item)} aria-pressed={watchlist === item} className={cn("nimbus-card-3d rounded-2xl border px-4 py-4 text-left transition hover:-translate-y-0.5", watchlist === item ? "border-blue-300/50 bg-blue-500/15" : "border-white/10 bg-slate-950/55 hover:border-cyan-300/25")}>
               <p className="font-extrabold text-white">{item}</p>
-              <p className="text-sm text-slate-400">{15 + index * 3} รายการ</p>
+              <p className="text-sm text-slate-400">{filterWatchlist(stocks, item).length} รายการ</p>
             </button>
           ))}
         </div>
-        <PriceTable title="AI Watchlist" stocks={stocks} compact freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+        <PriceTable title={watchlist} stocks={visibleStocks} compact freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
       <aside className="space-y-5">
-        <MiniWatchlist stocks={stocks.slice(0, 6)} title="รายการโปรด" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+        <MiniWatchlist stocks={visibleStocks} title="รายการโปรด" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
           <h2 className="text-xl font-extrabold text-white">การดำเนินการด่วน</h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            {["สร้าง Watchlist", "นำเข้ารายการ", "แชร์ Watchlist", "ตั้งแจ้งเตือน"].map((item) => <button key={item} type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm font-bold text-slate-300">{item}</button>)}
+            {["สร้าง Watchlist", "นำเข้ารายการ", "แชร์ Watchlist", "ตั้งแจ้งเตือน"].map((item) => <button key={item} type="button" onClick={() => setActionStatus(item)} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm font-bold text-slate-300 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:text-white">{item}</button>)}
           </div>
+          <p className="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold text-cyan-100">Action: {actionStatus}</p>
         </article>
       </aside>
     </div>
   );
 }
 
+function filterWatchlist(stocks: StockItem[], watchlist: string) {
+  if (watchlist === "High Growth") return stocks.filter((item) => changePct(item.quote) > 0 || afterChangePct(item.quote) > 0);
+  if (watchlist === "Safe Long-term") return stocks.filter((item) => ["ETF", "Healthcare / Consumer / Quality"].includes(item.category));
+  if (watchlist === "Space") return stocks.filter((item) => item.category.includes("Space"));
+  if (watchlist === "ETF Core") return stocks.filter((item) => item.category === "ETF");
+  if (watchlist === "Crypto") return stocks.filter((item) => item.category === "Alternative Assets");
+  return stocks;
+}
+
 function PortfolioAllocation() {
   const [holdings, setHoldings] = useState<PortfolioHolding[]>(defaultPortfolioHoldings);
   const [loaded, setLoaded] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("Custom Portfolio");
 
   useEffect(() => {
     try {
@@ -918,7 +942,7 @@ function PortfolioAllocation() {
           <MetricCard title="สถานะ Rebalance" value={drift > 1.2 ? "ควรปรับ" : "สมดุล"} sub={`เบี่ยงเบน ${drift.toFixed(1)}%`} icon="↺" tone="green" />
           <MetricCard title="จำนวนสินทรัพย์" value={holdings.length.toString()} sub="แก้ไขได้เอง" icon="◎" tone="violet" />
           {["Conservative", "Growth", "Aggressive", "Custom Portfolio"].map((item) => (
-            <button key={item} type="button" className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5 text-left transition hover:border-cyan-300/25">
+            <button key={item} type="button" onClick={() => setSelectedModel(item)} aria-pressed={selectedModel === item} className={cn("nimbus-card-3d rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/25", selectedModel === item ? "border-cyan-300/35 bg-cyan-300/10" : "border-white/10 bg-slate-950/62")}>
               <p className="font-extrabold text-white">{item}</p>
               <p className="mt-2 text-sm text-slate-400">โมเดลพอร์ตพร้อมใช้ ปรับน้ำหนักต่อได้เอง</p>
             </button>
@@ -1087,6 +1111,7 @@ function HeatTile({ item, big, fresh, stale }: { item: StockItem; big?: boolean;
 }
 
 function RebalanceBox({ holdings, totalValue }: { holdings: PortfolioHolding[]; totalValue: number }) {
+  const [applied, setApplied] = useState(false);
   const suggestions = holdings
     .map((item) => {
       const diff = item.target - item.current;
@@ -1113,9 +1138,10 @@ function RebalanceBox({ holdings, totalValue }: { holdings: PortfolioHolding[]; 
           </div>
         ))}
       </div>
-      <button className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 font-extrabold text-white transition hover:bg-blue-500" type="button">
+      <button onClick={() => setApplied(true)} className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-blue-500" type="button">
         ใช้เป็นแผนปรับพอร์ต
       </button>
+      {applied ? <p className="mt-2 text-xs font-bold text-emerald-200">บันทึกแผนปรับพอร์ตไว้ในหน้าจอนี้แล้ว</p> : null}
     </article>
   );
 }
