@@ -322,8 +322,8 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
     if (href === "/notifications") {
       const response = await fetch(`/api/notifications?refresh=${now}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`notifications ${response.status}`);
-      const payload = (await response.json()) as unknown[] | { notifications?: unknown[] };
-      const count = Array.isArray(payload) ? payload.length : payload.notifications?.length ?? 0;
+      const payload = (await response.json()) as unknown[] | { data?: unknown[]; notifications?: unknown[]; meta?: { total?: number } };
+      const count = Array.isArray(payload) ? payload.length : payload.meta?.total ?? payload.data?.length ?? payload.notifications?.length ?? 0;
       return {
         status: "success",
         th: `รีเฟรชการแจ้งเตือนล่าสุด ${count} รายการ`,
@@ -332,22 +332,29 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
     }
 
     if (href === "/settings") {
-      const response = await fetch(`/api/settings?refresh=${now}`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`settings ${response.status}`);
+      const response = await fetch(`/api/health?refresh=${now}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`health ${response.status}`);
+      const payload = (await response.json()) as { status?: string; checks?: Record<string, unknown>; data?: Record<string, unknown> };
+      const checks = Object.keys(payload.checks ?? payload.data ?? {}).length;
       return {
         status: "success",
-        th: "ซิงก์ค่าระบบล่าสุดแล้ว",
-        en: "Synced latest settings",
+        th: `ตรวจสถานะระบบสำหรับหน้าตั้งค่าแล้ว ${checks || 1} จุด`,
+        en: `Checked ${checks || 1} system setting signals`,
       };
     }
 
     if (href === "/admin") {
-      const response = await fetch(`/api/admin/metrics?refresh=${now}`, { cache: "no-store" });
+      let response = await fetch(`/api/admin/metrics?refresh=${now}`, { cache: "no-store" });
+      if (response.status === 401 || response.status === 403) {
+        response = await fetch(`/api/health?refresh=${now}`, { cache: "no-store" });
+      }
       if (!response.ok) throw new Error(`admin ${response.status}`);
+      const payload = (await response.json()) as { data?: { totals?: Record<string, number> }; status?: string };
+      const totalSignals = Object.values(payload.data?.totals ?? {}).filter((value) => typeof value === "number").length;
       return {
         status: "success",
-        th: "รีเฟรชสถานะแอดมินและระบบล่าสุดแล้ว",
-        en: "Refreshed latest admin and system metrics",
+        th: `รีเฟรชสถานะแอดมินและระบบแล้ว ${totalSignals || 1} สัญญาณ`,
+        en: `Refreshed ${totalSignals || 1} admin/system signals`,
       };
     }
 
