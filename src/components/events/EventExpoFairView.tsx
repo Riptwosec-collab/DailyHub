@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { cn } from "@/lib/utils";
 
 type EventMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -344,9 +345,11 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
 
 function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; isThai: boolean }) {
   const meta = kindMeta[event.kind];
+  const freshness = getContentFreshness({ kind: "event", date: event.dateEn });
+  const freshnessTone = freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray";
 
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className={cn("overflow-hidden p-0", getFreshnessClass(freshness.status))}>
       <div className="grid gap-0 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <EventArtwork event={event} />
         <div className="flex min-w-0 flex-col p-5">
@@ -354,6 +357,7 @@ function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; 
             <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.08] text-sm font-black text-white">{index + 1}</span>
             <Badge tone={meta.tone}>{isThai ? meta.labelTh : meta.labelEn}</Badge>
             <Badge tone="gray">{isThai ? event.sourceTh : event.sourceEn}</Badge>
+            <Badge tone={freshnessTone}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</Badge>
           </div>
           <h3 className="mt-4 text-2xl font-black leading-tight text-white">{event.title}</h3>
           <div className="mt-4 grid gap-3 text-sm font-semibold text-slate-300 md:grid-cols-2">

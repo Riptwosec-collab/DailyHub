@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { cn } from "@/lib/utils";
 import type { DailyBriefApiResponse, DailyBriefCategory, DailyBriefCategoryKey, DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
@@ -370,26 +371,16 @@ function NewsStatusBadge({ item, lang }: { item: DailyBriefItem; lang: Lang }) {
   return <Badge tone="gray">{text.ready}</Badge>;
 }
 
-const DAILY_NEWS_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
-const DAILY_NEWS_FRESH_MS = 10 * 60 * 60 * 1000;
-
-function newsTime(item: DailyBriefItem) {
-  const time = new Date(item.publishedAt).getTime();
-  return Number.isFinite(time) ? time : 0;
-}
-
 function hasRealNewsImage(item: DailyBriefItem) {
   return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
 }
 
 function isExpiredNewsItem(item: DailyBriefItem) {
-  const time = newsTime(item);
-  return Boolean(time && Date.now() - time > DAILY_NEWS_MAX_AGE_MS);
+  return !getContentFreshness({ kind: "news", date: item.publishedAt }).isVisible;
 }
 
-function isFreshNewsItem(item: DailyBriefItem) {
-  const time = newsTime(item);
-  return Boolean(time && Date.now() - time <= DAILY_NEWS_FRESH_MS);
+function newsFreshness(item: DailyBriefItem) {
+  return getContentFreshness({ kind: "news", date: item.publishedAt });
 }
 
 function newsImageSrc(item: DailyBriefItem) {
@@ -423,8 +414,9 @@ function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: bo
   const detail = getDailyBriefTopicDetail(item.category);
   const [failed, setFailed] = useState(false);
   if (!hasRealNewsImage(item) || failed) return null;
+  const freshness = newsFreshness(item);
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale")}>
+    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", getFreshnessClass(freshness.status))}>
       <Image
         src={newsImageSrc(item)}
         alt={itemTitle(item, "en")}
@@ -456,8 +448,9 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
 }) {
   const text = copy[lang];
   const hasImage = hasRealNewsImage(item);
+  const freshness = newsFreshness(item);
   return (
-    <Card className={cn("overflow-hidden border-cyan-300/25 p-0", !hasImage && (isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
+    <Card className={cn("overflow-hidden border-cyan-300/25 p-0", !hasImage && getFreshnessClass(freshness.status))}>
       <div className={cn("grid gap-0", hasImage && "lg:grid-cols-[18rem_minmax(0,1fr)]")}>
         {hasImage && <div className="p-4">
           <StoryVisual item={item} large />
@@ -465,6 +458,7 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
         <div className="flex min-w-0 flex-col p-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="purple">{categoryLabel(item.category, lang)}</Badge>
+            <Badge tone={freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray"}>{getFreshnessLabel(freshness.status, lang)}</Badge>
             <NewsSourceBadge item={item} lang={lang} />
             <span className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/12 px-4 py-2 text-xl font-black text-cyan-100">{item.priorityScore}</span>
           </div>
@@ -506,12 +500,14 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
 }) {
   const text = copy[lang];
   const hasImage = hasRealNewsImage(item);
+  const freshness = newsFreshness(item);
   return (
-    <Card className={cn("group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "md:grid-cols-[10rem_minmax(0,1fr)]" : "p-5 sm:p-6", !hasImage && (isFreshNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
+    <Card className={cn("group gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "grid md:grid-cols-[10rem_minmax(0,1fr)]" : "flex min-h-0 w-full flex-col p-5 sm:p-6", !hasImage && getFreshnessClass(freshness.status))}>
       {hasImage && <StoryVisual item={item} />}
-      <div className={cn("min-w-0", !hasImage && "w-full")}>
+      <div className={cn("min-w-0", !hasImage && "flex w-full flex-1 flex-col")}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
+          <Badge tone={freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray"}>{getFreshnessLabel(freshness.status, lang)}</Badge>
           <NewsStatusBadge item={item} lang={lang} />
           <span className="ml-auto rounded-xl border border-violet-300/20 bg-violet-300/10 px-3 py-1.5 text-sm font-black text-violet-100">{item.priorityScore}</span>
         </div>
@@ -523,7 +519,7 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
             {itemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>- {point}</p>)}
           </div>
         )}
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <div className="mt-auto flex flex-wrap justify-end gap-2 pt-4">
           <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{text.hide}</Button>
           <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
           <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />

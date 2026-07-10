@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { clampScore, cn, formatDateTime } from "@/lib/utils";
 import type { Lang } from "@/lib/translations";
@@ -19,7 +20,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type BadgeTone = "blue" | "green" | "purple" | "red" | "gray";
+type BadgeTone = "blue" | "green" | "purple" | "red" | "yellow" | "gray";
 type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "failed";
 type Localized = Record<Lang, string>;
 type NewsTelegramResult = { status: DailyBriefItem["telegramStatus"]; message: string; parts: number };
@@ -485,26 +486,16 @@ type NewsSnapshotCard = {
   icon: string;
 };
 
-const DASHBOARD_NEWS_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
-const DASHBOARD_NEWS_FRESH_MS = 10 * 60 * 60 * 1000;
-
-function dashboardNewsTime(item: DailyBriefItem) {
-  const time = new Date(item.publishedAt).getTime();
-  return Number.isFinite(time) ? time : 0;
-}
-
 function hasRealDashboardNewsImage(item: DailyBriefItem) {
   return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
 }
 
 function isExpiredDashboardNewsItem(item: DailyBriefItem) {
-  const time = dashboardNewsTime(item);
-  return Boolean(time && Date.now() - time > DASHBOARD_NEWS_MAX_AGE_MS);
+  return !getContentFreshness({ kind: "news", date: item.publishedAt }).isVisible;
 }
 
-function isFreshDashboardNewsItem(item: DailyBriefItem) {
-  const time = dashboardNewsTime(item);
-  return Boolean(time && Date.now() - time <= DASHBOARD_NEWS_FRESH_MS);
+function dashboardNewsFreshness(item: DailyBriefItem) {
+  return getContentFreshness({ kind: "news", date: item.publishedAt });
 }
 
 function dashboardNewsImageSrc(item: DailyBriefItem) {
@@ -521,8 +512,9 @@ function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefIt
   const detail = getDailyBriefTopicDetail(item.category);
   const [failed, setFailed] = useState(false);
   if (!hasRealDashboardNewsImage(item) || failed) return null;
+  const freshness = dashboardNewsFreshness(item);
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", isFreshDashboardNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale")}>
+    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", getFreshnessClass(freshness.status))}>
       <Image
         src={dashboardNewsImageSrc(item)}
         alt={dailyItemTitle(item, "en")}
@@ -560,8 +552,9 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
   const isFeatured = variant === "featured";
   const isCompact = variant === "compact";
   const hasImage = hasRealDashboardNewsImage(item);
+  const freshness = dashboardNewsFreshness(item);
   const layoutClass = !hasImage
-    ? "h-full"
+    ? "flex h-full min-h-0 flex-col"
     : isFeatured
     ? "grid h-full grid-rows-[minmax(18rem,auto)_1fr]"
     : isCompact
@@ -569,12 +562,13 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
       : "grid gap-0 sm:grid-cols-[11rem_minmax(0,1fr)]";
 
   return (
-    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3", !hasImage && (isFreshDashboardNewsItem(item) ? "nimbus-live-new" : "nimbus-live-stale"))}>
+    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3", !hasImage && getFreshnessClass(freshness.status))}>
       <div className={layoutClass}>
         {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />}
         <div className={cn("flex min-w-0 flex-col p-4", !hasImage && "h-full w-full p-5 sm:p-6")}>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={isFeatured ? "red" : detail.key === "cybersecurity" ? "purple" : "blue"}>{isFeatured ? (lang === "th" ? "Priority สูง" : "High Priority") : dailyCategoryLabel(item.category, lang)}</Badge>
+            <Badge tone={freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray"}>{getFreshnessLabel(freshness.status, lang)}</Badge>
             <Badge tone={dailyNewsStatusTone(item)}>{statusLabel}</Badge>
             <span className="ml-auto rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-sm font-black text-emerald-100">{item.priorityScore}</span>
           </div>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { cn } from "@/lib/utils";
 
 type ConcertMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -704,11 +705,14 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
   const meta = sectionMeta[event.category];
   const highlightLabel = event.category === "indoor" ? "ศิลปิน / ไฮไลต์" : "ไฮไลต์ / รูปแบบงาน";
   const detailUrl = eventLinks[event.id];
+  const freshness = getContentFreshness({ kind: "event", date: event.dateEn });
+  const freshnessTone = freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray";
 
   return (
     <article
       className={cn(
         "concert-card nimbus-card-3d rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,12,27,0.94))] p-4 shadow-[0_18px_46px_rgba(0,0,0,0.25)] transition hover:border-fuchsia-300/45 hover:bg-slate-900/90 sm:flex sm:gap-5",
+        getFreshnessClass(freshness.status),
         event.isPlaceholder && "border-dashed bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(2,12,27,0.72))]",
       )}
     >
@@ -719,6 +723,7 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
           <span className={cn("concert-chip rounded-full border px-3 py-1 text-xs font-black", meta.chip)}>
             {event.isPlaceholder ? (isThai ? "รออัปเดต" : "Watch") : meta.title}
           </span>
+          <Badge tone={freshnessTone}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</Badge>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           <DetailRow icon="📅" label={isThai ? event.dateTh : event.dateEn} />

@@ -739,6 +739,33 @@ th {
   animation: nimbus-live-spin 3.2s linear infinite;
 }
 
+.nimbus-live-expiring {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(251, 191, 36, 0.52) !important;
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.12),
+    0 0 22px rgba(245, 158, 11, 0.10) !important;
+}
+
+.nimbus-live-expiring::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--nimbus-live-angle, 0deg), transparent 0 62%, rgba(251, 191, 36, 0.78) 70%, rgba(34, 211, 238, 0.42) 76%, transparent 86%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: nimbus-live-spin 4s linear infinite;
+}
+
 .nimbus-live-new-row {
   position: relative;
   outline: 1px solid rgba(52, 211, 153, 0.45);
@@ -772,6 +799,7 @@ th {
 @media (prefers-reduced-motion: reduce) {
   .nimbus-live-new::after,
   .nimbus-live-stale::after,
+  .nimbus-live-expiring::after,
   .nimbus-live-new-row {
     animation: none;
   }

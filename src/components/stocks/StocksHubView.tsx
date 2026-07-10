@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { cn } from "@/lib/utils";
 
 type ViewId = "overview" | "market" | "alerts" | "heatmap" | "watchlist" | "portfolio" | "category";
@@ -205,6 +206,7 @@ export function StocksHubView() {
   const [freshSymbols, setFreshSymbols] = useState<Set<string>>(new Set());
   const [staleSymbols, setStaleSymbols] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState("ใช้ fallback sample");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [quoteSource, setQuoteSource] = useState("sample fallback");
@@ -255,7 +257,11 @@ export function StocksHubView() {
   const loadQuotes = useCallback(async (signal?: AbortSignal, manualRefresh = false) => {
     setQuoteLoading(true);
     setQuoteError("");
-    if (manualRefresh) setLastUpdated(new Date().toLocaleString("th-TH"));
+    if (manualRefresh) {
+      const now = new Date();
+      setLastUpdated(now.toLocaleString("th-TH"));
+      setLastUpdatedAt(now.toISOString());
+    }
     const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
 
     try {
@@ -306,12 +312,16 @@ export function StocksHubView() {
       freshTimerRef.current = setTimeout(() => setFreshSymbols(new Set()), 18000);
       staleTimerRef.current = setTimeout(() => setStaleSymbols(new Set()), 18000);
       setQuoteSource(payload.source ?? "Yahoo Finance");
-      setLastUpdated(payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("th-TH") : new Date().toLocaleString("th-TH"));
+      const updatedDate = payload.updatedAt ? new Date(payload.updatedAt) : new Date();
+      setLastUpdated(updatedDate.toLocaleString("th-TH"));
+      setLastUpdatedAt(updatedDate.toISOString());
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setQuoteError(error instanceof Error ? error.message : "Live quote refresh failed");
       setQuoteSource("sample fallback");
-      setLastUpdated(new Date().toLocaleString("th-TH"));
+      const fallbackDate = new Date();
+      setLastUpdated(fallbackDate.toLocaleString("th-TH"));
+      setLastUpdatedAt(fallbackDate.toISOString());
     } finally {
       if (!signal?.aborted) setQuoteLoading(false);
     }
@@ -349,6 +359,7 @@ export function StocksHubView() {
             query={query}
             setQuery={setQuery}
             lastUpdated={lastUpdated}
+            lastUpdatedAt={lastUpdatedAt}
             liveCount={Object.keys(liveQuotes).length}
             quoteError={quoteError}
             quoteLoading={quoteLoading}
@@ -357,7 +368,7 @@ export function StocksHubView() {
           />
           <StockQuickNav view={view} activeCategoryId={activeCategoryId} onView={selectView} onCategory={selectCategory} />
           {view === "overview" && <OverviewBoard stocks={filteredAll} setView={selectView} onCategory={selectCategory} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
-          {view === "market" && <MarketStatus lastUpdated={lastUpdated} />}
+          {view === "market" && <MarketStatus lastUpdated={lastUpdated} lastUpdatedAt={lastUpdatedAt} />}
           {view === "alerts" && <PriceAlerts stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "watchlist" && <WatchlistPage stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
@@ -456,6 +467,7 @@ function StockTopbar({
   query,
   setQuery,
   lastUpdated,
+  lastUpdatedAt,
   liveCount,
   quoteError,
   quoteLoading,
@@ -467,6 +479,7 @@ function StockTopbar({
   query: string;
   setQuery: (value: string) => void;
   lastUpdated: string;
+  lastUpdatedAt: string | null;
   liveCount: number;
   quoteError: string;
   quoteLoading: boolean;
@@ -482,6 +495,12 @@ function StockTopbar({
     portfolio: "จัดสรรพอร์ตการลงทุน",
     category: category.title,
   };
+  const freshness = getContentFreshness({ kind: "stock", updatedAt: lastUpdatedAt });
+  const freshnessTone =
+    freshness.status === "new" ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100"
+    : freshness.status === "expired" ? "border-rose-300/30 bg-rose-300/12 text-rose-100"
+    : "border-slate-300/20 bg-white/[0.06] text-slate-200";
+
   return (
     <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <div>
@@ -493,7 +512,7 @@ function StockTopbar({
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-        <div className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+        <div className={cn("nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/60 p-4", getFreshnessClass(freshness.status))}>
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-slate-400">ตลาดสหรัฐ</p>
             <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-extrabold text-emerald-200">เปิดทำการ</span>
@@ -503,6 +522,9 @@ function StockTopbar({
               <p className="text-2xl font-extrabold text-white">Live / Delayed</p>
               <p className="text-sm font-semibold text-slate-400">อัปเดตล่าสุด: {lastUpdated}</p>
               <p className="mt-1 text-xs font-bold text-cyan-100/80">{quoteSource} · {liveCount || "sample"} quotes</p>
+              <span className={cn("mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-extrabold", freshnessTone)}>
+                {getFreshnessLabel(freshness.status, "th")}
+              </span>
             </div>
             <button
               type="button"
@@ -647,10 +669,16 @@ function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { ti
   );
 }
 
-function MarketStatus({ lastUpdated }: { lastUpdated: string }) {
+function MarketStatus({ lastUpdated, lastUpdatedAt }: { lastUpdated: string; lastUpdatedAt: string | null }) {
+  const freshness = getContentFreshness({ kind: "stock", updatedAt: lastUpdatedAt });
+  const freshnessTone =
+    freshness.status === "new" ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100"
+    : freshness.status === "expired" ? "border-rose-300/30 bg-rose-300/12 text-rose-100"
+    : "border-slate-300/20 bg-white/[0.06] text-slate-200";
+
   return (
     <div className="space-y-5">
-      <article className="nimbus-card-3d grid gap-6 rounded-2xl border border-blue-400/30 bg-gradient-to-br from-blue-950/70 to-slate-950 p-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
+      <article className={cn("nimbus-card-3d grid gap-6 rounded-2xl border border-blue-400/30 bg-gradient-to-br from-blue-950/70 to-slate-950 p-6 lg:grid-cols-[minmax(0,1fr)_28rem]", getFreshnessClass(freshness.status))}>
         <div className="flex items-center gap-6">
           <div className="relative grid h-44 w-44 place-items-center rounded-full border border-emerald-300/30 bg-emerald-400/10">
             <span className="absolute h-28 w-28 rounded-full border border-emerald-300/45" />
@@ -665,6 +693,9 @@ function MarketStatus({ lastUpdated }: { lastUpdated: string }) {
         </div>
         <div className="space-y-5 border-white/10 lg:border-l lg:pl-8">
           <InfoLine label="อัปเดตล่าสุด" value={lastUpdated} />
+          <div className={cn("rounded-2xl border px-4 py-3 text-sm font-extrabold", freshnessTone)}>
+            {getFreshnessLabel(freshness.status, "th")}
+          </div>
           <InfoLine label="ข้อมูลราคา" value="Real-time / Delayed 15 min" />
           <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
             <InfoLine label="เวลาสหรัฐฯ (ET)" value="09:30 - 16:00" />

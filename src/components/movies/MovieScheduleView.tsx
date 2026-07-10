@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { topicRefreshCatalog } from "@/data/topic-refresh-catalog";
 import { cn } from "@/lib/utils";
 
@@ -243,13 +244,17 @@ function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
 }
 
 function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isThai: boolean }) {
+  const freshness = getContentFreshness({ kind: "movie", date: item.dateEn });
   return (
-    <div className="grid gap-3 border-b border-white/10 px-3 py-3 transition hover:bg-white/[0.045] last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center">
+    <div className={cn("grid gap-3 border-b border-white/10 px-3 py-3 transition hover:bg-white/[0.045] last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center", getFreshnessClass(freshness.status))}>
       <span className="grid h-10 w-10 place-items-center rounded-xl border border-fuchsia-300/35 bg-fuchsia-400/10 text-lg font-black text-white shadow-[0_0_18px_rgba(217,70,239,0.28)]">{index + 1}</span>
       <MoviePoster item={item} isThai={isThai} />
       <div className="min-w-0">
         <p className="line-clamp-2 text-base font-black leading-snug text-white sm:text-lg">{item.title}</p>
-        <p className="mt-1 text-xs font-bold text-slate-400">{item.sourceLabel} · {isThai ? "โปสเตอร์จาก TMDB" : "Poster via TMDB"}</p>
+        <div className="mt-1 flex flex-wrap gap-2 text-xs font-bold text-slate-400">
+          <span>{item.sourceLabel} · {isThai ? "โปสเตอร์จาก TMDB" : "Poster via TMDB"}</span>
+          <span className={cn("rounded-lg border px-2 py-0.5", freshness.status === "new" && "border-emerald-300/30 bg-emerald-300/10 text-emerald-100", freshness.status === "active" && "border-slate-300/20 bg-slate-300/10 text-slate-300", freshness.status === "expiring" && "border-amber-300/30 bg-amber-300/10 text-amber-100", freshness.status === "expired" && "border-rose-300/30 bg-rose-300/10 text-rose-100")}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</span>
+        </div>
       </div>
       <p className="text-sm font-black text-fuchsia-100">📅 {isThai ? item.dateTh : item.dateEn}</p>
       <p className="text-sm font-semibold leading-6 text-slate-200">☆ {isThai ? item.genreTh : item.genreEn}</p>
