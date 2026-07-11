@@ -647,6 +647,8 @@ export function DailyBriefPage() {
   const [data, setData] = useState<DailyBriefApiResponse | null>(null);
   const [active, setActive] = useState<DailyBriefCategoryKey>("all");
   const [search, setSearch] = useState("");
+  const [minPriority, setMinPriority] = useState(0);
+  const [savedOnly, setSavedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<DailyBriefItem | null>(null);
@@ -654,7 +656,7 @@ export function DailyBriefPage() {
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const visibleItems = data?.items.filter((item) => !item.isHidden && !isExpiredNewsItem(item)) || [];
+  const visibleItems = data?.items.filter((item) => !item.isHidden && !isExpiredNewsItem(item) && item.priorityScore >= minPriority && (!savedOnly || item.isSaved)) || [];
   const featuredItem = selected && visibleItems.some((item) => item.id === selected.id) ? selected : visibleItems[0] || null;
   const feedItems = featuredItem ? visibleItems.filter((item) => item.id !== featuredItem.id) : visibleItems;
 
@@ -741,6 +743,11 @@ export function DailyBriefPage() {
       />
       {data && <DailyBriefStats data={data} lang={lang} />}
       {data && <NewsCategoryTabs categories={data.categories} active={active} setActive={setActive} lang={lang} />}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-slate-950/45 p-3 text-sm font-bold text-slate-300">
+        <label className="flex items-center gap-2">{lang === "th" ? "ความสำคัญ" : "Priority"}<select value={minPriority} onChange={(event) => setMinPriority(Number(event.target.value))} className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-white"><option value={0}>{lang === "th" ? "ทั้งหมด" : "All"}</option><option value={60}>60+</option><option value={80}>80+</option></select></label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={savedOnly} onChange={(event) => setSavedOnly(event.target.checked)} className="h-4 w-4 accent-cyan-300" />{lang === "th" ? "บันทึกไว้" : "Saved"}</label>
+        <span className="ml-auto text-xs text-cyan-100">{lang === "th" ? `${visibleItems.length} ข่าว` : `${visibleItems.length} stories`}</span>
+      </div>
       {data && <CategoryInfoPanel active={active} lang={lang} />}
       {error && <ErrorState message={error} onRetry={load} lang={lang} />}
       {loading && <LoadingState lang={lang} />}

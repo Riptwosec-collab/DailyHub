@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { isScheduledItemActive } from "@/lib/event-date";
 import { topicRefreshCatalog } from "@/data/topic-refresh-catalog";
 import { cn } from "@/lib/utils";
 
@@ -293,8 +294,17 @@ export function MovieScheduleView() {
   const isThai = lang === "th";
   const [activeMonthId, setActiveMonthId] = useState(months[0].id);
   const [platform, setPlatform] = useState<PlatformKey>("all");
+  const [, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/movies") setRefreshVersion((value) => value + 1);
+    };
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
   const activeMonth = months.find((month) => month.id === activeMonthId) ?? months[0];
-  const filteredItems = useMemo(() => activeMonth.items.filter((item) => platform === "all" || item.platform === platform), [activeMonth, platform]);
+  const refreshedNow = new Date();
+  const filteredItems = activeMonth.items.filter((item) => isScheduledItemActive(item.dateEn, refreshedNow) && (platform === "all" || item.platform === platform));
   const countLabel = isThai ? `รวม ${filteredItems.length} เรื่อง` : `${filteredItems.length} titles`;
   const platformKeys: PlatformKey[] = ["all", "cinema", "streaming"];
 

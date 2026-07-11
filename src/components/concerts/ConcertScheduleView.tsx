@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { isScheduledItemActive } from "@/lib/event-date";
 import { cn } from "@/lib/utils";
 
 type ConcertMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -614,8 +615,8 @@ const expoFairEventIds = new Set([
   "red-earth-renegades-2026",
 ]);
 
-function isConcertVisible(event: FestivalEvent) {
-  return !expoFairEventIds.has(event.id);
+function isConcertVisible(event: FestivalEvent, now = new Date()) {
+  return !expoFairEventIds.has(event.id) && (event.isPlaceholder || isScheduledItemActive(event.dateEn, now));
 }
 
 const sectionMeta = {
@@ -639,8 +640,8 @@ const sectionMeta = {
   },
 } satisfies Record<EventCategory, { icon: string; title: string; th: string; en: string; border: string; bg: string; chip: string }>;
 
-function getRealEventCount(month: FestivalMonth) {
-  return month.events.filter((event) => isConcertVisible(event) && !event.isPlaceholder).length;
+function getRealEventCount(month: FestivalMonth, now = new Date()) {
+  return month.events.filter((event) => isConcertVisible(event, now) && !event.isPlaceholder).length;
 }
 
 function concertPosterSrc(event: FestivalEvent, detailUrl: string) {
@@ -790,10 +791,19 @@ function EventSection({ category, events, isThai }: { category: EventCategory; e
 export function ConcertScheduleView() {
   const { lang } = useLanguage();
   const [activeMonthId, setActiveMonthId] = useState<ConcertMonthId>("july-2026");
+  const [, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/concerts") setRefreshVersion((value) => value + 1);
+    };
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
   const activeMonth = festivalMonths.find((month) => month.id === activeMonthId) ?? festivalMonths[0];
-  const totalEvents = useMemo(() => festivalMonths.reduce((total, month) => total + getRealEventCount(month), 0), []);
-  const monthRealCount = getRealEventCount(activeMonth);
-  const visibleEvents = activeMonth.events.filter(isConcertVisible);
+  const refreshedNow = new Date();
+  const totalEvents = festivalMonths.reduce((total, month) => total + getRealEventCount(month, refreshedNow), 0);
+  const monthRealCount = getRealEventCount(activeMonth, refreshedNow);
+  const visibleEvents = activeMonth.events.filter((event) => isConcertVisible(event, refreshedNow));
   const indoorEvents = visibleEvents.filter((event) => event.category === "indoor");
   const outdoorEvents = visibleEvents.filter((event) => event.category === "outdoor");
   const isThai = lang === "th";
@@ -844,7 +854,7 @@ export function ConcertScheduleView() {
                 >
                   <span className="block">{isThai ? month.labelTh : month.labelEn}</span>
                   <span className="concert-muted mt-1 block text-xs font-bold text-slate-400">
-                    {isThai ? `${getRealEventCount(month)} งาน` : `${getRealEventCount(month)} events`}
+                    {isThai ? `${getRealEventCount(month, refreshedNow)} งาน` : `${getRealEventCount(month, refreshedNow)} events`}
                   </span>
                 </button>
               );

@@ -94,16 +94,15 @@ export const topicRefreshCatalog: Record<TopicRefreshCatalog["topic"], TopicRefr
   },
 };
 
-export function summarizeTopicCatalog(topic: TopicRefreshCatalog["topic"]) {
-  const catalog = topicRefreshCatalog[topic];
-  const groups = catalog.items.reduce<Record<string, number>>((acc, item) => {
+export function summarizeTopicCatalog(topic: TopicRefreshCatalog["topic"], items = topicRefreshCatalog[topic].items) {
+  const groups = items.reduce<Record<string, number>>((acc, item) => {
     acc[item.group] = (acc[item.group] ?? 0) + 1;
     return acc;
   }, {});
 
   return {
-    totalItems: catalog.items.length,
+    totalItems: items.length,
     groups,
-    latestTitles: catalog.items.slice(0, 5).map((item) => item.title),
+    latestTitles: items.slice(0, 5).map((item) => item.title),
   };
 }

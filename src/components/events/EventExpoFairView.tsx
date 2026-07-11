@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { isScheduledItemActive } from "@/lib/event-date";
+import type { TopicRefreshItem } from "@/data/topic-refresh-catalog";
 import { cn } from "@/lib/utils";
 
 type EventMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -389,9 +391,46 @@ export function EventExpoFairView() {
   const isThai = lang === "th";
   const [activeMonthId, setActiveMonthId] = useState<EventMonthId>(eventMonths[0].id);
   const [kind, setKind] = useState<EventKind | "all">("all");
+  const [location, setLocation] = useState("");
+  const [liveItems, setLiveItems] = useState<TopicRefreshItem[]>([]);
+  const [, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/events") setRefreshVersion((value) => value + 1);
+    };
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
+  useEffect(() => {
+    const loadLiveItems = async () => {
+      const response = await fetch("/api/topic-refresh?topic=events", { cache: "no-store" });
+      const payload = await response.json() as { items?: TopicRefreshItem[] };
+      if (response.ok && payload.items) setLiveItems(payload.items);
+    };
+    void loadLiveItems();
+    const handleRefresh = () => void loadLiveItems();
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
   const activeMonth = eventMonths.find((month) => month.id === activeMonthId) ?? eventMonths[0];
-  const events = useMemo(() => activeMonth.events.filter((event) => kind === "all" || event.kind === kind), [activeMonth, kind]);
-  const total = eventMonths.reduce((sum, month) => sum + month.events.length, 0);
+  const refreshedNow = new Date();
+  const apiEvents: ExpoEvent[] = liveItems.map((item) => ({
+    id: item.id,
+    kind: (["expo", "fair", "festival", "outdoor"].includes(item.group) ? item.group : "festival") as EventKind,
+    title: item.title,
+    dateTh: item.dateTh,
+    dateEn: item.dateEn,
+    venueTh: item.detailTh,
+    venueEn: item.detailEn,
+    highlights: [item.sourceLabel],
+    sourceTh: item.sourceLabel,
+    sourceEn: item.sourceLabel,
+    sourceUrl: item.sourceUrl,
+    imageTitle: item.title,
+  }));
+  const sourceEvents = apiEvents.length ? apiEvents : activeMonth.events;
+  const events = sourceEvents.filter((event) => isScheduledItemActive(event.dateEn, refreshedNow) && (kind === "all" || event.kind === kind) && (!location.trim() || `${event.title} ${event.venueTh} ${event.venueEn}`.toLowerCase().includes(location.trim().toLowerCase())));
+  const total = eventMonths.reduce((sum, month) => sum + month.events.filter((event) => isScheduledItemActive(event.dateEn, refreshedNow)).length, 0);
 
   return (
     <section className="nimbus-card-3d relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-slate-950/72 p-4 shadow-2xl shadow-emerald-950/20 sm:p-6">
@@ -423,6 +462,10 @@ export function EventExpoFairView() {
         </header>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-3">
+          <label className="rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-sm font-bold text-slate-200">
+            <span className="sr-only">ค้นหาสถานที่</span>
+            <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder={isThai ? "ค้นหาสถานที่หรืองาน" : "Search place or event"} className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+          </label>
           <div className="rounded-2xl border border-emerald-300/28 bg-emerald-300/[0.07] p-4 text-sm font-bold text-slate-200">📅 <span className="text-emerald-200">{isThai ? "เดือน:" : "Month:"}</span> {isThai ? activeMonth.labelTh : activeMonth.labelEn}</div>
           <div className="rounded-2xl border border-fuchsia-300/28 bg-fuchsia-300/[0.07] p-4 text-sm font-bold text-slate-200">🏷 <span className="text-fuchsia-200">{isThai ? "ประเภท:" : "Type:"}</span> {kind === "all" ? (isThai ? "ทั้งหมด" : "All") : (isThai ? kindMeta[kind].labelTh : kindMeta[kind].labelEn)}</div>
           <div className="rounded-2xl border border-cyan-300/28 bg-cyan-300/[0.07] p-4 text-sm font-bold text-slate-200">ⓘ {isThai ? activeMonth.noteTh : activeMonth.noteEn}</div>

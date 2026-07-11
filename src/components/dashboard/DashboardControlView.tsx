@@ -508,10 +508,19 @@ function dashboardNewsImageSrc(item: DailyBriefItem) {
   return `/api/poster-image?${params.toString()}`;
 }
 
-function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefItem; lang: Lang; large?: boolean }) {
+function DashboardNewsVisual({
+  item,
+  lang,
+  large = false,
+  onImageError,
+}: {
+  item: DailyBriefItem;
+  lang: Lang;
+  large?: boolean;
+  onImageError: () => void;
+}) {
   const detail = getDailyBriefTopicDetail(item.category);
-  const [failed, setFailed] = useState(false);
-  if (!hasRealDashboardNewsImage(item) || failed) return null;
+  if (!hasRealDashboardNewsImage(item)) return null;
   const freshness = dashboardNewsFreshness(item);
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70", large ? "min-h-80" : "min-h-36", getFreshnessClass(freshness.status))}>
@@ -523,7 +532,7 @@ function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefIt
         sizes={large ? "(min-width: 1280px) 520px, 100vw" : "(min-width: 768px) 180px, 100vw"}
         unoptimized
         loading="lazy"
-        onError={() => setFailed(true)}
+        onError={onImageError}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06)_10%,rgba(2,6,23,0.96)_100%)]" />
       <div className="absolute left-5 top-5 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryLabel(item.category, lang)}</div>
@@ -551,7 +560,9 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
   const statusLabel = item.isSaved ? dailyText(lang, "saved") : item.telegramStatus === "idle" ? (lang === "th" ? "พร้อมส่ง" : "ready") : item.telegramStatus;
   const isFeatured = variant === "featured";
   const isCompact = variant === "compact";
-  const hasImage = hasRealDashboardNewsImage(item);
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [item.id, item.imageUrl]);
+  const hasImage = hasRealDashboardNewsImage(item) && !imageFailed;
   const freshness = dashboardNewsFreshness(item);
   const layoutClass = !hasImage
     ? "flex h-full min-h-0 flex-col"
@@ -559,12 +570,12 @@ function DashboardStoryCard({ item, lang, variant, isSending, onSend, onSave, on
     ? "grid h-full grid-rows-[minmax(18rem,auto)_1fr]"
     : isCompact
       ? "grid h-full grid-rows-[minmax(9rem,auto)_1fr]"
-      : "grid gap-0 sm:grid-cols-[11rem_minmax(0,1fr)]";
+      : "grid h-full grid-rows-[minmax(12rem,auto)_1fr]";
 
   return (
-    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "md:col-span-3", !hasImage && getFreshnessClass(freshness.status))}>
+    <Card className={cn("group overflow-hidden p-0 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", isFeatured ? "lg:row-span-2" : "", !hasImage && variant === "compact" && "2xl:col-span-3", !hasImage && getFreshnessClass(freshness.status))}>
       <div className={layoutClass}>
-        {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} />}
+        {hasImage && <DashboardNewsVisual item={item} lang={lang} large={isFeatured} onImageError={() => setImageFailed(true)} />}
         <div className={cn("flex min-w-0 flex-col p-4", !hasImage && "h-full w-full p-5 sm:p-6")}>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={isFeatured ? "red" : detail.key === "cybersecurity" ? "purple" : "blue"}>{isFeatured ? (lang === "th" ? "Priority สูง" : "High Priority") : dailyCategoryLabel(item.category, lang)}</Badge>
@@ -641,7 +652,7 @@ function DailyBriefDashboardSection({
 
   return (
     <section className="dashboard-hud space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div className="space-y-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
             <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/55 px-4 shadow-inner shadow-black/20">
@@ -730,7 +741,7 @@ function DailyBriefDashboardSection({
                       onHide={onHideNews}
                     />
                   ))}
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 2xl:grid-cols-3">
                     {lowerStories.map((item) => (
                       <DashboardStoryCard
                         key={item.id}
@@ -750,7 +761,7 @@ function DailyBriefDashboardSection({
           </Card>
         </div>
 
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <aside className="space-y-4 2xl:sticky 2xl:top-24 2xl:self-start">
           <Card className="p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-black text-white">Top 5 {lang === "th" ? "ข่าวสำคัญวันนี้" : "important stories"}</h2>
