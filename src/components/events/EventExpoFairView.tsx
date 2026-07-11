@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { isScheduledItemActive } from "@/lib/event-date";
 import type { TopicRefreshItem } from "@/data/topic-refresh-catalog";
 import { cn } from "@/lib/utils";
@@ -345,13 +345,14 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
   );
 }
 
-function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; isThai: boolean }) {
+function EventCard({ event, index, isThai, isNew }: { event: ExpoEvent; index: number; isThai: boolean; isNew: boolean }) {
   const meta = kindMeta[event.kind];
-  const freshness = getContentFreshness({ kind: "event", date: event.dateEn });
-  const freshnessTone = freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray";
+  const dateStatus = isScheduledItemActive(event.dateEn) ? "active" : "expired";
+  const freshnessStatus = isNew ? "new" : dateStatus;
+  const freshnessTone = freshnessStatus === "new" ? "green" : freshnessStatus === "expired" ? "red" : "gray";
 
   return (
-    <Card className={cn("overflow-hidden p-0", getFreshnessClass(freshness.status))}>
+    <Card className={cn("overflow-hidden p-0", getFreshnessClass(freshnessStatus))}>
       <div className="grid gap-0 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <EventArtwork event={event} />
         <div className="flex min-w-0 flex-col p-5">
@@ -359,7 +360,7 @@ function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; 
             <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.08] text-sm font-black text-white">{index + 1}</span>
             <Badge tone={meta.tone}>{isThai ? meta.labelTh : meta.labelEn}</Badge>
             <Badge tone="gray">{isThai ? event.sourceTh : event.sourceEn}</Badge>
-            <Badge tone={freshnessTone}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</Badge>
+            <Badge tone={freshnessTone}>{getFreshnessLabel(freshnessStatus, isThai ? "th" : "en")}</Badge>
           </div>
           <h3 className="mt-4 text-2xl font-black leading-tight text-white">{event.title}</h3>
           <div className="mt-4 grid gap-3 text-sm font-semibold text-slate-300 md:grid-cols-2">
@@ -393,10 +394,15 @@ export function EventExpoFairView() {
   const [kind, setKind] = useState<EventKind | "all">("all");
   const [location, setLocation] = useState("");
   const [liveItems, setLiveItems] = useState<TopicRefreshItem[]>([]);
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [, setRefreshVersion] = useState(0);
   useEffect(() => {
     const handleRefresh = (event: Event) => {
-      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/events") setRefreshVersion((value) => value + 1);
+      const detail = (event as CustomEvent<{ href?: string; itemIds?: string[] }>).detail;
+      if (detail?.href === "/events") {
+        setRefreshVersion((value) => value + 1);
+        setNewItemIds(new Set(detail.itemIds ?? []));
+      }
     };
     window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
     return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
@@ -489,7 +495,7 @@ export function EventExpoFairView() {
         </div>
 
         <main className="mt-6 grid gap-4 2xl:grid-cols-2">
-          {events.map((event, index) => <EventCard key={event.id} event={event} index={index} isThai={isThai} />)}
+          {events.map((event, index) => <EventCard key={event.id} event={event} index={index} isThai={isThai} isNew={newItemIds.has(event.id)} />)}
           {!events.length && (
             <Card className="p-8 text-center 2xl:col-span-2">
               <p className="text-3xl">🔎</p>

@@ -28,6 +28,7 @@ type ManualUpdateEntry = {
   count: number;
   newItems?: number;
   expiredItems?: number;
+  itemIds?: string[];
   status?: "success" | "error";
   th?: string;
   en?: string;
@@ -267,7 +268,7 @@ function formatTopicGroups(groups: Record<string, number> | undefined, lang: "th
     .join(" / ");
 }
 
-async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en" | "newItems" | "expiredItems">> {
+async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en" | "newItems" | "expiredItems" | "itemIds">> {
   const now = Date.now();
 
   try {
@@ -319,12 +320,14 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       const groupTextEn = formatTopicGroups(payload.summary?.groups, "en");
       const latestTh = payload.summary?.latestTitles?.slice(0, 3).join(" / ");
       const expiredItems = payload.expiredCount ?? 0;
-      const newItems = countNewItems(href, (payload.items ?? []).map((item, index) => item.id ?? item.title ?? String(index)));
+      const itemIds = (payload.items ?? []).map((item, index) => item.id ?? item.title ?? String(index));
+      const newItems = countNewItems(href, itemIds);
       const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
         newItems,
         expiredItems,
+        itemIds,
         th: `อัปเดต${label.th} ${totalItems} รายการ · ${newText.th}${groupTextTh ? ` (${groupTextTh})` : ""} · แหล่งข้อมูลตอบ ${reachable}/${checked}${latestTh ? ` · ล่าสุด: ${latestTh}` : ""}`,
         en: `Updated ${totalItems} ${label.en} items · ${newText.en}${groupTextEn ? ` (${groupTextEn})` : ""}; live sources ${reachable}/${checked}`,
       };
@@ -462,7 +465,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         ...result,
       },
     }));
-    if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href } }));
+    if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
     setUpdatingHref(null);
   };
 
@@ -482,7 +485,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
       return next;
     });
     for (const [href, result] of results) {
-      if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href } }));
+      if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
     }
     setBatchSummary({
       news: results.filter(([href]) => href === "/daily" || href === "/dashboard").reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
