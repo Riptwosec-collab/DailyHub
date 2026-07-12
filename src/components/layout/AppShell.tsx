@@ -1,22 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const onPointerMove = (event: PointerEvent) => {
-      root.style.setProperty("--pointer-x", `${Math.round((event.clientX / window.innerWidth) * 100)}%`);
-      root.style.setProperty("--pointer-y", `${Math.round((event.clientY / window.innerHeight) * 100)}%`);
-    };
-
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onPointerMove);
-  }, []);
 
   return (
     <div className="app-root min-h-screen overflow-hidden text-slate-100">
@@ -44,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <main className="min-w-0 flex-1 lg:pl-72">
               <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
-              <div className="w-full px-3 py-5 sm:px-4 lg:px-6 lg:py-8 2xl:px-8">{children}</div>
+              <div className="mx-auto w-full max-w-[1680px] px-3 py-4 sm:px-5 lg:px-7 lg:py-6 2xl:px-9">{children}</div>
             </main>
           </div>
     </div>

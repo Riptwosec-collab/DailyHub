@@ -10,7 +10,7 @@ export function Card({ children, className, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "nimbus-card-3d app-surface rounded-xl",
+        "nimbus-card-3d app-surface rounded-lg",
         className,
       )}
       {...props}

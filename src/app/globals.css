@@ -1113,7 +1113,7 @@ a,
 }
 
 .dashboard-one-screen > *:not(:first-child) {
-  display: none !important;
+  display: block;
 }
 
 .dashboard-hud,
@@ -1190,4 +1190,85 @@ html[data-theme="cream"] span {
 .daily-sidebar a {
   position: relative;
   z-index: 1;
+}
+
+/* NimbusDaily UI system: quiet surfaces, consistent geometry, and restrained glow. */
+:root {
+  --background: #050b18;
+  --foreground: #f3f8ff;
+  --app-bg-0: #030814;
+  --app-bg-1: #050b18;
+  --app-bg-2: #07101f;
+  --panel-bg: rgba(8, 20, 38, 0.88);
+  --panel-border: rgba(56, 189, 248, 0.18);
+  --sidebar-bg: rgba(4, 12, 25, 0.96);
+  --topbar-bg: rgba(4, 12, 25, 0.90);
+  --muted-text: #91a8c0;
+  --nimbus-depth-shadow: 0 12px 32px rgba(0, 4, 14, 0.28);
+}
+
+body,
+.app-root {
+  background: linear-gradient(180deg, #030814 0%, #050b18 48%, #07101f 100%);
+}
+
+.app-backdrop-glow {
+  background:
+    radial-gradient(circle at 76% 0%, rgba(33, 139, 255, 0.08), transparent 30rem),
+    linear-gradient(180deg, rgba(2, 8, 20, 0.10), rgba(2, 8, 20, 0.42));
+}
+
+.app-backdrop-grid {
+  opacity: 0.42;
+  background-size: 72px 72px;
+}
+
+.app-surface {
+  border-color: var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--nimbus-depth-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.nimbus-card-3d {
+  transform: none;
+  box-shadow: var(--nimbus-depth-shadow);
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.nimbus-card-3d::before,
+.nimbus-card-3d::after {
+  content: none;
+}
+
+.nimbus-card-3d:hover {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.28);
+  background: rgba(10, 25, 46, 0.92);
+  box-shadow: 0 16px 36px rgba(0, 4, 14, 0.34), 0 0 18px rgba(14, 165, 233, 0.05);
+}
+
+.nimbus-button-3d,
+.nimbus-button-3d:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.daily-sidebar nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.daily-sidebar nav::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

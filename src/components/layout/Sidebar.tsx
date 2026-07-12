@@ -39,18 +39,22 @@ type ManualUpdateState = Record<string, ManualUpdateEntry>;
 const UPDATE_STORAGE_KEY = "nimbusdaily-menu-updates";
 const REFRESH_SNAPSHOT_STORAGE_KEY = "nimbusdaily-menu-refresh-snapshots";
 
-function countNewItems(href: string, itemIds: string[]) {
-  if (typeof window === "undefined") return 0;
+function getNewItemIds(href: string, itemIds: string[]) {
+  if (typeof window === "undefined") return [];
 
   try {
     const snapshots = JSON.parse(window.localStorage.getItem(REFRESH_SNAPSHOT_STORAGE_KEY) ?? "{}") as Record<string, string[]>;
     const previous = snapshots[href] ?? [];
-    const newItems = previous.length === 0 ? itemIds.length : itemIds.filter((item) => !previous.includes(item)).length;
+    const newItems = previous.length === 0 ? itemIds : itemIds.filter((item) => !previous.includes(item));
     window.localStorage.setItem(REFRESH_SNAPSHOT_STORAGE_KEY, JSON.stringify({ ...snapshots, [href]: itemIds }));
     return newItems;
   } catch {
-    return itemIds.length;
+    return itemIds;
   }
+}
+
+function countNewItems(href: string, itemIds: string[]) {
+  return getNewItemIds(href, itemIds).length;
 }
 
 function newItemText(newItems: number, expiredItems = 0) {
@@ -188,6 +192,46 @@ const navItems: NavItem[] = [
     },
   },
   {
+    href: "/scheduled-tasks",
+    key: "nav_scheduled_tasks",
+    icon: "SC",
+    update: {
+      updatedAt: "2026-07-04T02:35:00.000Z",
+      th: "จัดการงานอัตโนมัติ กำหนดเวลา และสั่งทำงานทันที",
+      en: "Manage scheduled automations and run tasks on demand",
+    },
+  },
+  {
+    href: "/task-results",
+    key: "nav_task_results",
+    icon: "RS",
+    update: {
+      updatedAt: "2026-07-04T02:38:00.000Z",
+      th: "ตรวจผลลัพธ์ รายละเอียด และสถานะการทำงานล่าสุด",
+      en: "Review recent task results, details, and statuses",
+    },
+  },
+  {
+    href: "/data-library",
+    key: "nav_data_library",
+    icon: "DL",
+    update: {
+      updatedAt: "2026-07-04T02:40:00.000Z",
+      th: "ค้นหาและจัดการแหล่งข้อมูลที่ระบบใช้งาน",
+      en: "Search and manage connected data sources",
+    },
+  },
+  {
+    href: "/templates",
+    key: "nav_templates",
+    icon: "TP",
+    update: {
+      updatedAt: "2026-07-04T02:42:00.000Z",
+      th: "เลือกเทมเพลตงานจากรายการที่มีอยู่ในระบบ",
+      en: "Choose from the task templates available in the system",
+    },
+  },
+  {
     href: "/notifications",
     key: "nav_notifications",
     icon: "NT",
@@ -321,13 +365,14 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       const latestTh = payload.summary?.latestTitles?.slice(0, 3).join(" / ");
       const expiredItems = payload.expiredCount ?? 0;
       const itemIds = (payload.items ?? []).map((item, index) => item.id ?? item.title ?? String(index));
-      const newItems = countNewItems(href, itemIds);
+      const newItemIds = getNewItemIds(href, itemIds);
+      const newItems = newItemIds.length;
       const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
         newItems,
         expiredItems,
-        itemIds,
+        itemIds: newItemIds,
         th: `อัปเดต${label.th} ${totalItems} รายการ · ${newText.th}${groupTextTh ? ` (${groupTextTh})` : ""} · แหล่งข้อมูลตอบ ${reachable}/${checked}${latestTh ? ` · ล่าสุด: ${latestTh}` : ""}`,
         en: `Updated ${totalItems} ${label.en} items · ${newText.en}${groupTextEn ? ` (${groupTextEn})` : ""}; live sources ${reachable}/${checked}`,
       };
@@ -499,7 +544,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     <aside
       className={cn(
         "daily-sidebar border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl",
-        mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-80 flex-col p-4 lg:flex",
+        mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-4 lg:flex",
       )}
     >
       <Link href="/dashboard" className="flex min-h-14 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
@@ -515,7 +560,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         </div>
       </Link>
 
-      <div className="mt-5 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.065] p-4">
+      <div className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.055] p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase text-cyan-200">{t("sidebar_phase")}</p>
           <button
@@ -527,11 +572,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             {updatingHref === "__all__" ? (lang === "th" ? "กำลังดึง..." : "Updating...") : (lang === "th" ? "อัปเดตทั้งหมด" : "Update all")}
           </button>
         </div>
-        <p className="mt-2 text-sm leading-7 text-slate-300">{t("sidebar_desc")}</p>
+        <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-400">{t("sidebar_desc")}</p>
         {batchSummary ? <p className="mt-3 rounded-md border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-xs font-extrabold text-emerald-100">{lang === "th" ? `สรุปรอบล่าสุด: ข่าวใหม่ ${batchSummary.news} · กิจกรรมใหม่ ${batchSummary.events} · หมดอายุ ${batchSummary.expired}` : `Latest: ${batchSummary.news} news · ${batchSummary.events} events · ${batchSummary.expired} expired`}</p> : null}
       </div>
 
-      <nav className="mt-5 flex-1 space-y-2.5 overflow-y-auto pr-1">
+      <nav className="mt-4 flex-1 space-y-1 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const pathIsActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isActive = pendingHref ? item.href === pendingHref : pathIsActive;
@@ -584,7 +629,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                 <span className="truncate">{label}</span>
               </Link>
 
-              {(!mobile || isActive || updatingHref === item.href) && <div className="px-3.5 pb-3">
+              {(isActive || updatingHref === item.href) && <div className="px-3.5 pb-3">
                 <div className="rounded-md border border-white/10 bg-slate-950/35 p-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">

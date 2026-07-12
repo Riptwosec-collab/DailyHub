@@ -268,19 +268,19 @@ export function StocksHubView() {
 
       const previousStoredQuotes = getStoredQuoteSnapshot();
       const changedSymbols = new Set<string>();
-      const unchangedSymbols = new Set<string>();
       for (const [ticker, nextQuote] of Object.entries(nextQuotes)) {
         const previous = previousStoredQuotes[ticker] ?? quoteSnapshotRef.current[ticker] ?? seedQuotes[ticker];
         const changed = quoteValuesChanged(previous, nextQuote);
         if (changed) changedSymbols.add(ticker);
-        if (manualRefresh && !changed && previousStoredQuotes[ticker]) unchangedSymbols.add(ticker);
       }
       quoteSnapshotRef.current = { ...quoteSnapshotRef.current, ...nextQuotes };
       saveStoredQuoteSnapshot(quoteSnapshotRef.current);
 
       setLiveQuotes(nextQuotes);
       setFreshSymbols(changedSymbols);
-      setStaleSymbols(unchangedSymbols);
+      // An unchanged quote is valid data, not an error. Red is reserved for
+      // failed or genuinely expired data instead of marking every old row.
+      setStaleSymbols(new Set());
       if (freshTimerRef.current) clearTimeout(freshTimerRef.current);
       if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
       freshTimerRef.current = setTimeout(() => setFreshSymbols(new Set()), 18000);
@@ -546,7 +546,6 @@ function OverviewBoard({
         <aside className="space-y-5">
           <HowToRead />
           <TopMovers stocks={stocks} />
-          <MiniWatchlist stocks={stocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         </aside>
       </div>
     </div>
@@ -562,7 +561,6 @@ function CategoryResearch({ category, stocks, freshSymbols, staleSymbols }: { ca
       </main>
       <aside className="space-y-5">
         <WhyWatch items={category.why} />
-        <MiniWatchlist stocks={stocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         <MarketSummary />
       </aside>
     </div>
