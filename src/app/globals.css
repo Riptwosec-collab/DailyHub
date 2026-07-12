@@ -1231,6 +1231,7 @@ body,
 }
 
 .nimbus-card-3d {
+  border-radius: 8px !important;
   transform: none;
   box-shadow: var(--nimbus-depth-shadow);
   transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;

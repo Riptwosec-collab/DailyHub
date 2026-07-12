@@ -14,20 +14,21 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/Input";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { Select } from "@/components/ui/Select";
 
 const statuses: Array<"All" | TaskRunStatus> = ["All", "success", "running", "failed"];
 
 const copy = {
   th: {
-    ready: "เฟส 17: ดึง Task Results ผ่าน API แล้ว",
+    ready: "ผลลัพธ์งานพร้อมใช้งาน",
     loadingTitle: "กำลังโหลดผลลัพธ์",
     loadingDesc: "กำลังดึง task runs จาก /api/task-runs",
     errorTitle: "โหลดผลลัพธ์ไม่สำเร็จ",
-    badge: "เฟส 17 API Results",
+    badge: "ประวัติการทำงาน",
     title: "ผลลัพธ์งาน",
-    desc: "ประวัติการรันทั้งหมดถูกดึงจาก /api/task-runs และ regenerate ผ่าน /api/task-runs/:id/regenerate",
+    desc: "ตรวจผลลัพธ์จากงานอัตโนมัติ เปิดรายละเอียด คัดลอก หรือสร้างผลลัพธ์ใหม่ได้จากจุดเดียว",
     overview: "ภาพรวมการรัน",
-    total: "รอบรันทั้งหมดจาก API",
+    total: "รอบการทำงานทั้งหมด",
     success: "สำเร็จ",
     running: "กำลังรัน",
     failed: "ล้มเหลว",
@@ -50,15 +51,15 @@ const copy = {
     finished: "เสร็จ",
   },
   en: {
-    ready: "Phase 17: Task Results are fetched through the API",
+    ready: "Task results are ready",
     loadingTitle: "Loading task results",
     loadingDesc: "Fetching task results from /api/task-runs",
     errorTitle: "Task results loading failed",
-    badge: "Phase 17 API Results",
+    badge: "Run history",
     title: "Task Results",
-    desc: "Task results are fetched from /api/task-runs and refreshed through /api/task-runs/:id/regenerate.",
+    desc: "Review automation results, open details, copy content, or regenerate an output from one place.",
     overview: "Result Overview",
-    total: "total summaries from API",
+    total: "total task runs",
     success: "Success",
     running: "Running",
     failed: "Failed",
@@ -159,7 +160,7 @@ export function TaskResultsApiView() {
         <Card className="relative overflow-hidden p-6 sm:p-8">
           <div className="relative">
             <Badge tone="purple">{text.badge}</Badge>
-            <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">{text.title}</h1>
+            <h1 className="mt-4 text-3xl font-black text-white">{text.title}</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">{text.desc}</p>
           </div>
         </Card>
@@ -176,15 +177,15 @@ export function TaskResultsApiView() {
         </Card>
       </section>
 
-      <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl md:grid-cols-[1fr_190px_auto]">
+      <div className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-4 md:grid-cols-[1fr_190px_auto]">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.search} />
-        <select className="h-12 rounded-2xl border border-white/10 bg-slate-950/55 px-4 text-sm font-semibold text-white" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as "All" | TaskRunStatus)}>
+        <Select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as "All" | TaskRunStatus)}>
           {statuses.map((status) => <option key={status} value={status}>{status === "All" ? text.allStatus : status}</option>)}
-        </select>
+        </Select>
         <Button variant="secondary" onClick={loadData} type="button">{text.refresh}</Button>
       </div>
 
-      <div className="flex flex-col justify-between gap-3 rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-slate-300 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-3 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-slate-300 sm:flex-row sm:items-center">
         <p>{message}</p>
         <Badge tone="blue">{text.showing} {filteredRuns.length}</Badge>
       </div>
@@ -219,7 +220,7 @@ export function TaskResultsApiView() {
                   <Info label={text.finished} value={run.finishedAt ? formatDateTime(run.finishedAt, lang) : "-"} />
                   <Info label="Telegram" value={run.telegramStatus ?? "-"} />
                 </div>
-                {run.errorMessage ? <p className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{run.errorMessage}</p> : null}
+                {run.errorMessage ? <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{run.errorMessage}</p> : null}
               </Card>
             );
           })}
@@ -231,9 +232,9 @@ export function TaskResultsApiView() {
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: "green" | "purple" | "red" | "blue" }) {
   const toneClass = { green: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200", purple: "border-violet-300/20 bg-violet-300/10 text-violet-200", red: "border-red-300/20 bg-red-300/10 text-red-200", blue: "border-cyan-300/20 bg-cyan-300/10 text-cyan-200" }[tone];
-  return <div className={`rounded-2xl border p-3 ${toneClass}`}><p className="font-bold">{value}</p><p className="text-xs opacity-80">{label}</p></div>;
+  return <div className={`rounded-lg border p-3 ${toneClass}`}><p className="font-bold">{value}</p><p className="text-xs opacity-80">{label}</p></div>;
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="font-semibold text-slate-400">{label}</p><p className="mt-1 text-slate-200">{value}</p></div>;
+  return <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3"><p className="font-semibold text-slate-400">{label}</p><p className="mt-1 text-slate-200">{value}</p></div>;
 }
