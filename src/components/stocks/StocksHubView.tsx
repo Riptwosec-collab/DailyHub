@@ -37,12 +37,11 @@ type Category = {
   title: string;
   subtitle: string;
   icon: string;
-  image: "ai" | "chip" | "cloud" | "fintech" | "space" | "health" | "etf" | "assets" | "portfolio" | "growth";
+  image: "ai" | "chip" | "cloud" | "fintech" | "space" | "health" | "etf" | "assets" | "growth";
   overviewTitle: string;
   overview: string;
   tags: string[];
   why: string[];
-  watchlist: string[];
   stocks: StockItem[];
 };
 
@@ -60,9 +59,9 @@ type QuoteApiPayload = {
 const stockQuoteSnapshotStorageKey = "nimbusdaily-stock-quote-snapshot";
 
 const navItems: { id: ViewId; title: string; icon: string }[] = [
-  { id: "overview", title: "Stock Overview", icon: "â†—" },
-  { id: "market", title: "à¸ªà¸–à¸²à¸™à¸°à¸•à¸¥à¸²à¸”", icon: "â—" },
-  { id: "heatmap", title: "Heatmap", icon: "â–¦" },
+  { id: "overview", title: "Stock Overview", icon: "↗" },
+  { id: "market", title: "สถานะตลาด", icon: "●" },
+  { id: "heatmap", title: "Heatmap", icon: "▦" },
 ];
 
 const seedQuotes: Record<string, Quote> = {
@@ -117,15 +116,15 @@ const seedQuotes: Record<string, Quote> = {
 };
 
 const categories: Category[] = [
-  category("ai-mega-cap", "AI / Mega Cap", "à¸«à¸¸à¹‰à¸™à¸œà¸¹à¹‰à¸™à¸³à¹€à¸—à¸„à¹‚à¸™à¹‚à¸¥à¸¢à¸µà¹à¸¥à¸° AI à¸‚à¸™à¸²à¸”à¹ƒà¸«à¸à¹ˆà¸‚à¸­à¸‡à¸ªà¸«à¸£à¸±à¸à¸¯", "AI", "ai", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” AI / Mega Cap", "à¸à¸¥à¸¸à¹ˆà¸¡à¸œà¸¹à¹‰à¸™à¸³ AI, Cloud, Advertising, Enterprise Software à¹à¸¥à¸° Data Center Infrastructure à¸—à¸µà¹ˆà¹€à¸›à¹‡à¸™à¹à¸à¸™à¸«à¸¥à¸±à¸à¸‚à¸­à¸‡à¸£à¸°à¸šà¸šà¸™à¸´à¹€à¸§à¸¨à¸”à¸´à¸ˆà¸´à¸—à¸±à¸¥à¹‚à¸¥à¸", ["Core AI", "Mega Cap", "Cloud", "Data Center", "Ads"], ["NVDA", "MSFT", "GOOGL", "AMZN", "META", "AVGO"]),
-  category("semiconductor", "Semiconductor", "à¸«à¸¸à¹‰à¸™à¹à¸¥à¸°à¸˜à¸¸à¸£à¸à¸´à¸ˆà¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¸žà¸·à¹‰à¸™à¸à¸²à¸™à¸Šà¸´à¸›à¸—à¸µà¹ˆà¹„à¸”à¹‰à¸­à¸²à¸™à¸´à¸ªà¸‡à¸ªà¹Œà¸ˆà¸²à¸ AI", "SC", "chip", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” Semiconductor", "à¸„à¸£à¸­à¸šà¸„à¸¥à¸¸à¸¡à¸œà¸¹à¹‰à¸­à¸­à¸à¹à¸šà¸šà¸Šà¸´à¸› à¹‚à¸£à¸‡à¸‡à¸²à¸™à¸œà¸¥à¸´à¸•à¸Šà¸´à¸› à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¸œà¸¥à¸´à¸• à¹à¸¥à¸°à¸«à¸™à¹ˆà¸§à¸¢à¸„à¸§à¸²à¸¡à¸ˆà¸³ à¸‹à¸¶à¹ˆà¸‡à¹€à¸›à¹‡à¸™à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¸ªà¸³à¸„à¸±à¸à¸‚à¸­à¸‡ AI à¹à¸¥à¸° Cloud", ["GPU", "Foundry", "Equipment", "Memory", "Mobile AI"], ["AMD", "TSM", "ASML", "MU", "QCOM", "AVGO", "NVDA"]),
-  category("cloud-cybersecurity", "Cloud / Cybersecurity", "à¸«à¸¸à¹‰à¸™à¸„à¸¥à¸²à¸§à¸”à¹Œ à¸‹à¸­à¸Ÿà¸•à¹Œà¹à¸§à¸£à¹Œà¸­à¸‡à¸„à¹Œà¸à¸£ à¹à¸¥à¸°à¸„à¸§à¸²à¸¡à¸›à¸¥à¸­à¸”à¸ à¸±à¸¢à¹„à¸‹à¹€à¸šà¸­à¸£à¹Œ", "CY", "cloud", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” Cloud / Cybersecurity", "à¸˜à¸µà¸¡à¸™à¸µà¹‰à¹„à¸”à¹‰à¹à¸£à¸‡à¸«à¸™à¸¸à¸™à¸ˆà¸²à¸à¸à¸²à¸£à¸¢à¹‰à¸²à¸¢à¸£à¸°à¸šà¸šà¸‚à¸¶à¹‰à¸™à¸„à¸¥à¸²à¸§à¸”à¹Œ à¸à¸²à¸£à¸›à¹‰à¸­à¸‡à¸à¸±à¸™à¸‚à¹‰à¸­à¸¡à¸¹à¸¥ Observability à¹à¸¥à¸° data platform à¸ªà¸³à¸«à¸£à¸±à¸šà¸­à¸‡à¸„à¹Œà¸à¸£", ["Cloud", "Security", "Edge", "Observability", "Data Cloud"], ["CRWD", "PANW", "NET", "DDOG", "SNOW", "MSFT"]),
-  category("fintech-platform", "Fintech / Platform", "à¸«à¸¸à¹‰à¸™à¹à¸žà¸¥à¸•à¸Ÿà¸­à¸£à¹Œà¸¡à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™ à¸à¸²à¸£à¹€à¸‡à¸´à¸™à¸”à¸´à¸ˆà¸´à¸—à¸±à¸¥ à¹à¸¥à¸°à¹‚à¸šà¸£à¸à¹€à¸à¸­à¸£à¹Œà¸£à¸¸à¹ˆà¸™à¹ƒà¸«à¸¡à¹ˆ", "FP", "fintech", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” Fintech / Platform", "à¸£à¸§à¸¡à¹€à¸„à¸£à¸·à¸­à¸‚à¹ˆà¸²à¸¢à¸à¸²à¸£à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™ à¹à¸žà¸¥à¸•à¸Ÿà¸­à¸£à¹Œà¸¡à¸à¸²à¸£à¹€à¸‡à¸´à¸™ à¹à¸¥à¸°à¸˜à¸¸à¸£à¸à¸´à¸ˆà¸—à¸µà¹ˆà¹„à¸”à¹‰à¸›à¸£à¸°à¹‚à¸¢à¸Šà¸™à¹Œà¸ˆà¸²à¸ cashless economy", ["Payments", "Fintech", "Trading", "Digital Bank"], ["V", "MA", "HOOD", "SOFI"]),
-  category("space-defense-infra", "Space / Defense / Infra", "à¸«à¸¸à¹‰à¸™à¸˜à¸µà¸¡à¸­à¸§à¸à¸²à¸¨ à¸à¸¥à¸²à¹‚à¸«à¸¡ à¸žà¸¥à¸±à¸‡à¸‡à¸²à¸™ à¹à¸¥à¸°à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¸žà¸·à¹‰à¸™à¸à¸²à¸™à¸ªà¸³à¸«à¸£à¸±à¸šà¸¢à¸¸à¸„ AI", "SP", "space", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” Space / Defense / Infra", "à¸„à¸£à¸­à¸šà¸„à¸¥à¸¸à¸¡à¸™à¸§à¸±à¸•à¸à¸£à¸£à¸¡à¸­à¸§à¸à¸²à¸¨ à¸à¸¥à¸²à¹‚à¸«à¸¡ à¸žà¸¥à¸±à¸‡à¸‡à¸²à¸™ à¹à¸¥à¸°à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¸žà¸·à¹‰à¸™à¸à¸²à¸™à¸—à¸µà¹ˆà¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸à¸±à¸š AI data center", ["Space", "Defense", "Power", "Infra"], ["RKLB", "LMT", "GEV", "CEG", "ASTS"]),
-  category("healthcare-consumer-quality", "Healthcare / Consumer / Quality", "à¸«à¸¸à¹‰à¸™à¸„à¸¸à¸“à¸ à¸²à¸žà¸ªà¸¹à¸‡ à¹à¸™à¸§à¸£à¸±à¸šà¹€à¸¨à¸£à¸©à¸à¸à¸´à¸ˆ à¹à¸¥à¸°à¸˜à¸¸à¸£à¸à¸´à¸ˆà¹à¸šà¸£à¸™à¸”à¹Œà¹à¸‚à¹‡à¸‡à¹à¸£à¸‡", "HQ", "health", "à¸ à¸²à¸žà¸£à¸§à¸¡à¸«à¸¡à¸§à¸” Healthcare / Consumer / Quality", "à¸à¸¥à¸¸à¹ˆà¸¡à¸„à¸¸à¸“à¸ à¸²à¸žà¸ªà¸¹à¸‡à¸—à¸µà¹ˆà¸¡à¸µà¸à¸£à¸°à¹à¸ªà¹€à¸‡à¸´à¸™à¸ªà¸”à¹à¸¥à¸°à¹à¸šà¸£à¸™à¸”à¹Œà¹à¸‚à¹‡à¸‡à¹à¸£à¸‡ à¹€à¸«à¸¡à¸²à¸°à¸ªà¸³à¸«à¸£à¸±à¸šà¸”à¸¹à¹€à¸›à¹‡à¸™à¹à¸à¸™à¸ªà¸¡à¸”à¸¸à¸¥à¸žà¸­à¸£à¹Œà¸•", ["Healthcare", "Consumer", "Quality", "Defensive"], ["LLY", "UNH", "COST", "WMT", "MCD", "BRK.B"]),
-  category("etf", "ETF", "à¸à¸­à¸‡à¸—à¸¸à¸™à¸”à¸±à¸Šà¸™à¸µà¹à¸¥à¸°à¸˜à¸µà¸¡à¸¢à¸­à¸”à¸™à¸´à¸¢à¸¡à¸ªà¸³à¸«à¸£à¸±à¸šà¸à¸£à¸°à¸ˆà¸²à¸¢à¸žà¸­à¸£à¹Œà¸•", "EF", "etf", "à¸ à¸²à¸žà¸£à¸§à¸¡ ETF", "ETF à¸Šà¹ˆà¸§à¸¢à¸à¸£à¸°à¸ˆà¸²à¸¢à¸à¸²à¸£à¸¥à¸‡à¸—à¸¸à¸™ à¸„à¸£à¸­à¸šà¸„à¸¥à¸¸à¸¡à¸•à¸¥à¸²à¸”à¸à¸§à¹‰à¸²à¸‡ à¹€à¸—à¸„à¹‚à¸™à¹‚à¸¥à¸¢à¸µ à¸«à¸¸à¹‰à¸™à¸›à¸±à¸™à¸œà¸¥ à¸žà¸±à¸™à¸˜à¸šà¸±à¸•à¸£ à¹à¸¥à¸°à¸˜à¸µà¸¡à¹€à¸‰à¸žà¸²à¸°", ["Broad Market", "Tech", "Dividend", "Bond", "Thematic"], ["VOO", "VTI", "QQQ", "SCHD", "BND"]),
-  category("alternative-assets", "Alternative Assets", "à¸—à¸­à¸‡à¸„à¸³à¹à¸¥à¸°à¸„à¸£à¸´à¸›à¹‚à¸•à¸ªà¸³à¸«à¸£à¸±à¸šà¸à¸£à¸°à¸ˆà¸²à¸¢à¸„à¸§à¸²à¸¡à¹€à¸ªà¸µà¹ˆà¸¢à¸‡à¸«à¸£à¸·à¸­à¹€à¸žà¸´à¹ˆà¸¡à¹‚à¸­à¸à¸²à¸ªà¹€à¸•à¸´à¸šà¹‚à¸•", "AA", "assets", "à¸ à¸²à¸žà¸£à¸§à¸¡ Alternative Assets", "à¸£à¸§à¸¡à¸ªà¸´à¸™à¸—à¸£à¸±à¸žà¸¢à¹Œà¸—à¸²à¸‡à¹€à¸¥à¸·à¸­à¸à¸­à¸¢à¹ˆà¸²à¸‡à¸—à¸­à¸‡à¸„à¸³à¹à¸¥à¸°à¸„à¸£à¸´à¸›à¹‚à¸• à¹€à¸žà¸·à¹ˆà¸­à¸Šà¹ˆà¸§à¸¢à¸”à¸¹à¸ à¸²à¸žà¸£à¸§à¸¡à¸à¸²à¸£à¸à¸£à¸°à¸ˆà¸²à¸¢à¸„à¸§à¸²à¸¡à¹€à¸ªà¸µà¹ˆà¸¢à¸‡", ["Gold", "Crypto", "Inflation Hedge", "Digital Asset"], ["GLD", "BTC", "ETH", "LINK"]),
-  category("future-growth-picks", "Future Growth Picks", "à¸«à¸¸à¹‰à¸™à¹€à¸•à¸´à¸šà¹‚à¸•à¸—à¸µà¹ˆà¸™à¹ˆà¸²à¸ªà¸™à¹ƒà¸ˆà¹€à¸žà¸´à¹ˆà¸¡à¹€à¸•à¸´à¸¡ à¸™à¸­à¸à¹€à¸«à¸™à¸·à¸­à¸ˆà¸²à¸à¸à¸¥à¸¸à¹ˆà¸¡à¹à¸à¸™à¸«à¸¥à¸±à¸", "FG", "growth", "à¸ à¸²à¸žà¸£à¸§à¸¡ Future Growth Picks", "à¸šà¸£à¸´à¸©à¸±à¸—à¸˜à¸µà¸¡à¹€à¸•à¸´à¸šà¹‚à¸•à¸ˆà¸²à¸ AI chips, networking, power infrastructure, advertising, social platforms à¹à¸¥à¸° robotics", ["AI Chip", "Networking", "Power", "Ads", "Robotics"], ["ARM", "MRVL", "ANET", "VRT", "APP", "RDDT", "MELI", "ISRG"]),
+  category("ai-mega-cap", "AI / Mega Cap", "หุ้นผู้นำเทคโนโลยีและ AI ขนาดใหญ่ของสหรัฐฯ", "AI", "ai", "ภาพรวมหมวด AI / Mega Cap", "กลุ่มผู้นำ AI, Cloud, Advertising, Enterprise Software และ Data Center Infrastructure ที่เป็นแกนหลักของระบบนิเวศดิจิทัลโลก", ["Core AI", "Mega Cap", "Cloud", "Data Center", "Ads"], ["NVDA", "MSFT", "GOOGL", "AMZN", "META", "AVGO"]),
+  category("semiconductor", "Semiconductor", "หุ้นและธุรกิจโครงสร้างพื้นฐานชิปที่ได้อานิสงส์จาก AI", "SC", "chip", "ภาพรวมหมวด Semiconductor", "ครอบคลุมผู้ออกแบบชิป โรงงานผลิตชิป อุปกรณ์ผลิต และหน่วยความจำ ซึ่งเป็นโครงสร้างสำคัญของ AI และ Cloud", ["GPU", "Foundry", "Equipment", "Memory", "Mobile AI"], ["AMD", "TSM", "ASML", "MU", "QCOM", "AVGO", "NVDA"]),
+  category("cloud-cybersecurity", "Cloud / Cybersecurity", "หุ้นคลาวด์ ซอฟต์แวร์องค์กร และความปลอดภัยไซเบอร์", "CY", "cloud", "ภาพรวมหมวด Cloud / Cybersecurity", "ธีมนี้ได้แรงหนุนจากการย้ายระบบขึ้นคลาวด์ การป้องกันข้อมูล Observability และ data platform สำหรับองค์กร", ["Cloud", "Security", "Edge", "Observability", "Data Cloud"], ["CRWD", "PANW", "NET", "DDOG", "SNOW", "MSFT"]),
+  category("fintech-platform", "Fintech / Platform", "หุ้นแพลตฟอร์มชำระเงิน การเงินดิจิทัล และโบรกเกอร์รุ่นใหม่", "FP", "fintech", "ภาพรวมหมวด Fintech / Platform", "รวมเครือข่ายการชำระเงิน แพลตฟอร์มการเงิน และธุรกิจที่ได้ประโยชน์จาก cashless economy", ["Payments", "Fintech", "Trading", "Digital Bank"], ["V", "MA", "HOOD", "SOFI"]),
+  category("space-defense-infra", "Space / Defense / Infra", "หุ้นธีมอวกาศ กลาโหม พลังงาน และโครงสร้างพื้นฐานสำหรับยุค AI", "SP", "space", "ภาพรวมหมวด Space / Defense / Infra", "ครอบคลุมนวัตกรรมอวกาศ กลาโหม พลังงาน และโครงสร้างพื้นฐานที่เชื่อมกับ AI data center", ["Space", "Defense", "Power", "Infra"], ["RKLB", "LMT", "GEV", "CEG", "ASTS"]),
+  category("healthcare-consumer-quality", "Healthcare / Consumer / Quality", "หุ้นคุณภาพสูง แนวรับเศรษฐกิจ และธุรกิจแบรนด์แข็งแรง", "HQ", "health", "ภาพรวมหมวด Healthcare / Consumer / Quality", "กลุ่มคุณภาพสูงที่มีกระแสเงินสดและแบรนด์แข็งแรง เหมาะสำหรับดูเป็นแกนสมดุลพอร์ต", ["Healthcare", "Consumer", "Quality", "Defensive"], ["LLY", "UNH", "COST", "WMT", "MCD", "BRK.B"]),
+  category("etf", "ETF", "กองทุนดัชนีและธีมยอดนิยมสำหรับกระจายพอร์ต", "EF", "etf", "ภาพรวม ETF", "ETF ช่วยกระจายการลงทุน ครอบคลุมตลาดกว้าง เทคโนโลยี หุ้นปันผล พันธบัตร และธีมเฉพาะ", ["Broad Market", "Tech", "Dividend", "Bond", "Thematic"], ["VOO", "VTI", "QQQ", "SCHD", "BND"]),
+  category("alternative-assets", "Alternative Assets", "ทองคำและคริปโตสำหรับกระจายความเสี่ยงหรือเพิ่มโอกาสเติบโต", "AA", "assets", "ภาพรวม Alternative Assets", "รวมสินทรัพย์ทางเลือกอย่างทองคำและคริปโต เพื่อช่วยดูภาพรวมการกระจายความเสี่ยง", ["Gold", "Crypto", "Inflation Hedge", "Digital Asset"], ["GLD", "BTC", "ETH", "LINK"]),
+  category("future-growth-picks", "Future Growth Picks", "หุ้นเติบโตที่น่าสนใจเพิ่มเติม นอกเหนือจากกลุ่มแกนหลัก", "FG", "growth", "ภาพรวม Future Growth Picks", "บริษัทธีมเติบโตจาก AI chips, networking, power infrastructure, advertising, social platforms และ robotics", ["AI Chip", "Networking", "Power", "Ads", "Robotics"], ["ARM", "MRVL", "ANET", "VRT", "APP", "RDDT", "MELI", "ISRG"]),
 ];
 
 const allStocks = categories.flatMap((item) => item.stocks);
@@ -179,7 +178,7 @@ export function StocksHubView() {
   const [liveQuotes, setLiveQuotes] = useState<Record<string, Quote>>({});
   const [freshSymbols, setFreshSymbols] = useState<Set<string>>(new Set());
   const [staleSymbols, setStaleSymbols] = useState<Set<string>>(new Set());
-  const [lastUpdated, setLastUpdated] = useState("à¹ƒà¸Šà¹‰ fallback sample");
+  const [lastUpdated, setLastUpdated] = useState("ใช้ fallback sample");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
@@ -346,7 +345,7 @@ export function StocksHubView() {
           {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           <footer className="stock-footer rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
-            à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸žà¸·à¹ˆà¸­à¸à¸²à¸£à¸¨à¸¶à¸à¸©à¸² à¹„à¸¡à¹ˆà¹ƒà¸Šà¹ˆà¸„à¸³à¹à¸™à¸°à¸™à¸³à¸à¸²à¸£à¸¥à¸‡à¸—à¸¸à¸™ à¸£à¸²à¸„à¸²à¸ˆà¸²à¸ API à¸­à¸²à¸ˆà¸¥à¹ˆà¸²à¸Šà¹‰à¸²à¸«à¸£à¸·à¸­à¹ƒà¸Šà¹‰ fallback à¹€à¸¡à¸·à¹ˆà¸­à¹à¸«à¸¥à¹ˆà¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸•à¸­à¸šà¸ªà¸™à¸­à¸‡
+            ข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน ราคาจาก API อาจล่าช้าหรือใช้ fallback เมื่อแหล่งข้อมูลไม่ตอบสนอง
           </footer>
         </div>
       </div>
@@ -458,9 +457,9 @@ function StockTopbar({
   onRefresh: () => void;
 }) {
   const titleMap: Record<ViewId, string> = {
-    overview: "à¸«à¸™à¹‰à¸²à¸£à¸§à¸¡à¸«à¸¸à¹‰à¸™",
-    market: "à¸ªà¸–à¸²à¸™à¸°à¸•à¸¥à¸²à¸”à¹à¸¥à¸°à¹€à¸§à¸¥à¸²à¸­à¸±à¸›à¹€à¸”à¸•",
-    heatmap: "Heatmap à¸•à¸¥à¸²à¸”à¸«à¸¸à¹‰à¸™",
+    overview: "หน้ารวมหุ้น",
+    market: "สถานะตลาดและเวลาอัปเดต",
+    heatmap: "Heatmap ตลาดหุ้น",
     category: category.title,
   };
   const freshness = getContentFreshness({ kind: "stock", updatedAt: lastUpdatedAt });
@@ -473,23 +472,23 @@ function StockTopbar({
     <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <div>
         <h1 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">{titleMap[view]}</h1>
-        <p className="mt-2 text-lg font-medium text-slate-300">{view === "category" ? category.subtitle : "à¸ à¸²à¸žà¸£à¸§à¸¡à¸•à¸¥à¸²à¸” à¸«à¸¸à¹‰à¸™à¹€à¸”à¹ˆà¸™ à¹à¸¥à¸°à¸£à¸²à¸„à¸²à¸«à¸¥à¸±à¸‡à¸•à¸¥à¸²à¸”à¸›à¸´à¸”à¹ƒà¸™à¸«à¸™à¹‰à¸²à¹€à¸”à¸µà¸¢à¸§"}</p>
+        <p className="mt-2 text-lg font-medium text-slate-300">{view === "category" ? category.subtitle : "ภาพรวมตลาด หุ้นเด่น และราคาหลังตลาดปิดในหน้าเดียว"}</p>
         <label className="relative mt-4 block">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">âŒ•</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/55 pl-12 pr-4 text-base font-semibold text-white shadow-inner shadow-black/20 transition focus:border-cyan-300/45" placeholder="à¸„à¹‰à¸™à¸«à¸²à¸«à¸¸à¹‰à¸™, Ticker, à¸«à¸£à¸·à¸­à¸«à¸¡à¸§à¸”à¸«à¸¡à¸¹à¹ˆ..." />
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/55 pl-12 pr-4 text-base font-semibold text-white shadow-inner shadow-black/20 transition focus:border-cyan-300/45" placeholder="ค้นหาหุ้น, Ticker, หรือหมวดหมู่..." />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
         <div className={cn("nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/60 p-4", getFreshnessClass(freshness.status))}>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-slate-400">à¸•à¸¥à¸²à¸”à¸ªà¸«à¸£à¸±à¸</p>
-            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-extrabold text-emerald-200">à¹€à¸›à¸´à¸”à¸—à¸³à¸à¸²à¸£</span>
+            <p className="text-sm font-bold text-slate-400">ตลาดสหรัฐ</p>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-extrabold text-emerald-200">เปิดทำการ</span>
           </div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-2xl font-extrabold text-white">Live / Delayed</p>
-              <p className="text-sm font-semibold text-slate-400">à¸­à¸±à¸›à¹€à¸”à¸•à¸¥à¹ˆà¸²à¸ªà¸¸à¸”: {lastUpdated}</p>
-              <p className="mt-1 text-xs font-bold text-cyan-100/80">{quoteSource} Â· {liveCount || "sample"} quotes</p>
+              <p className="text-sm font-semibold text-slate-400">อัปเดตล่าสุด: {lastUpdated}</p>
+              <p className="mt-1 text-xs font-bold text-cyan-100/80">{quoteSource} · {liveCount || "sample"} quotes</p>
               <span className={cn("mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-extrabold", freshnessTone)}>
                 {getFreshnessLabel(freshness.status, "th")}
               </span>
@@ -500,10 +499,10 @@ function StockTopbar({
               onClick={onRefresh}
               className="rounded-xl border border-cyan-300/30 bg-cyan-300/12 px-4 py-2 text-xs font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/18 disabled:cursor-not-allowed disabled:opacity-55"
             >
-              {quoteLoading ? "à¸à¸³à¸¥à¸±à¸‡à¸­à¸±à¸›à¹€à¸”à¸•..." : "à¸­à¸±à¸›à¹€à¸”à¸•à¸£à¸²à¸„à¸²à¸ªà¸”"}
+              {quoteLoading ? "กำลังอัปเดต..." : "อัปเดตราคาสด"}
             </button>
           </div>
-          {quoteError ? <p className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-100">à¹ƒà¸Šà¹‰ sample à¸Šà¸±à¹ˆà¸§à¸„à¸£à¸²à¸§: {quoteError}</p> : null}
+          {quoteError ? <p className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-100">ใช้ sample ชั่วคราว: {quoteError}</p> : null}
         </div>
       </div>
     </header>
@@ -529,10 +528,10 @@ function OverviewBoard({
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="à¸ˆà¸³à¸™à¸§à¸™à¸«à¸¸à¹‰à¸™à¸—à¸µà¹ˆà¸•à¸´à¸”à¸•à¸²à¸¡" value={stocks.length.toString()} sub="à¸£à¸§à¸¡à¸—à¸¸à¸à¸«à¸¡à¸§à¸”" icon="â˜†" tone="blue" />
-        <MetricCard title="à¸«à¸¸à¹‰à¸™à¸šà¸§à¸à¸§à¸±à¸™à¸™à¸µà¹‰" value={gainers.length.toString()} sub={`${Math.round((gainers.length / stocks.length) * 100)}% à¸‚à¸­à¸‡à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”`} icon="â†—" tone="green" />
-        <MetricCard title="à¸«à¸¸à¹‰à¸™à¸¥à¸šà¸§à¸±à¸™à¸™à¸µà¹‰" value={losers.toString()} sub={`${Math.round((losers / stocks.length) * 100)}% à¸‚à¸­à¸‡à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”`} icon="â†˜" tone="red" />
-        <MetricCard title="After Hours à¹€à¸”à¹ˆà¸™" value={afterMovers.toString()} sub="à¸¡à¸µà¸£à¸²à¸„à¸²à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹à¸›à¸¥à¸‡" icon="â˜¾" tone="violet" />
+        <MetricCard title="จำนวนหุ้นที่ติดตาม" value={stocks.length.toString()} sub="รวมทุกหมวด" icon="☆" tone="blue" />
+        <MetricCard title="หุ้นบวกวันนี้" value={gainers.length.toString()} sub={`${Math.round((gainers.length / stocks.length) * 100)}% ของทั้งหมด`} icon="↗" tone="green" />
+        <MetricCard title="หุ้นลบวันนี้" value={losers.toString()} sub={`${Math.round((losers / stocks.length) * 100)}% ของทั้งหมด`} icon="↘" tone="red" />
+        <MetricCard title="After Hours เด่น" value={afterMovers.toString()} sub="มีราคาเปลี่ยนแปลง" icon="☾" tone="violet" />
       </div>
       <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
         <button type="button" onPointerDown={() => setView("overview")} onClick={() => setView("overview")} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white">All</button>
@@ -557,7 +556,7 @@ function CategoryResearch({ category, stocks, freshSymbols, staleSymbols }: { ca
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="min-w-0 space-y-5">
         <OverviewPanel category={category} />
-        <PriceTable title={`à¸«à¸¸à¹‰à¸™à¹ƒà¸™à¸«à¸¡à¸§à¸” ${category.title}`} stocks={stocks} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+        <PriceTable title={`หุ้นในหมวด ${category.title}`} stocks={stocks} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
       </main>
       <aside className="space-y-5">
         <WhyWatch items={category.why} />
@@ -581,11 +580,11 @@ function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { ti
               <th className="px-4 py-3">Ticker</th>
               <th className="px-4 py-3">Company / Theme</th>
               <th className="px-4 py-3">Trend</th>
-              <th className="px-4 py-3">à¸£à¸²à¸„à¸²à¸§à¸±à¸™à¸™à¸µà¹‰</th>
-              <th className="px-4 py-3">à¸›à¸´à¸”à¹€à¸¡à¸·à¹ˆà¸­à¸§à¸²à¸™</th>
-              <th className="px-4 py-3">à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹à¸›à¸¥à¸‡</th>
+              <th className="px-4 py-3">ราคาวันนี้</th>
+              <th className="px-4 py-3">ปิดเมื่อวาน</th>
+              <th className="px-4 py-3">เปลี่ยนแปลง</th>
               <th className="px-4 py-3">After Hours</th>
-              <th className="px-4 py-3">à¸¡à¸¸à¸¡à¸¡à¸­à¸‡</th>
+              <th className="px-4 py-3">มุมมอง</th>
             </tr>
           </thead>
           <tbody>
@@ -597,7 +596,7 @@ function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { ti
                 <tr key={`${item.ticker}-${title}`} className={cn("border-t border-white/8 transition hover:bg-white/[0.04]", freshSymbols?.has(item.ticker) && "nimbus-live-new-row", staleSymbols?.has(item.ticker) && "nimbus-live-stale")}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-xl text-slate-500">â˜†</span>
+                      <span className="text-xl text-slate-500">☆</span>
                       <LogoBadge item={item} />
                       <div>
                         <p className="text-lg font-extrabold text-white">{item.ticker}</p>
@@ -619,7 +618,7 @@ function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { ti
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-2 rounded-lg bg-white/[0.06] px-3 py-2 font-bold text-slate-200">
-                      â˜¾ {formatPrice(item.quote.afterHours)}
+                      ☾ {formatPrice(item.quote.afterHours)}
                       <span className={after >= 0 ? "text-emerald-300" : "text-rose-300"}>{signedPct(after)}</span>
                     </span>
                   </td>
@@ -651,20 +650,20 @@ function MarketStatus({ lastUpdated, lastUpdatedAt }: { lastUpdated: string; las
             <span className="h-5 w-5 rounded-full bg-emerald-300 shadow-[0_0_28px_rgba(52,211,153,.7)]" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-slate-300">à¸•à¸¥à¸²à¸”à¸ªà¸«à¸£à¸±à¸:</p>
-            <p className="mt-2 text-6xl font-extrabold text-emerald-300">à¹€à¸›à¸´à¸”à¸—à¸³à¸à¸²à¸£</p>
+            <p className="text-2xl font-bold text-slate-300">ตลาดสหรัฐ:</p>
+            <p className="mt-2 text-6xl font-extrabold text-emerald-300">เปิดทำการ</p>
             <span className="mt-3 inline-flex rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-sm font-extrabold text-emerald-200">LIVE</span>
           </div>
         </div>
         <div className="space-y-5 border-white/10 lg:border-l lg:pl-8">
-          <InfoLine label="à¸­à¸±à¸›à¹€à¸”à¸•à¸¥à¹ˆà¸²à¸ªà¸¸à¸”" value={lastUpdated} />
+          <InfoLine label="อัปเดตล่าสุด" value={lastUpdated} />
           <div className={cn("rounded-2xl border px-4 py-3 text-sm font-extrabold", freshnessTone)}>
             {getFreshnessLabel(freshness.status, "th")}
           </div>
-          <InfoLine label="à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸£à¸²à¸„à¸²" value="Real-time / Delayed 15 min" />
+          <InfoLine label="ข้อมูลราคา" value="Real-time / Delayed 15 min" />
           <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
-            <InfoLine label="à¹€à¸§à¸¥à¸²à¸ªà¸«à¸£à¸±à¸à¸¯ (ET)" value="09:30 - 16:00" />
-            <InfoLine label="à¹€à¸§à¸¥à¸²à¹„à¸—à¸¢ (ICT)" value="20:30 - 03:00" />
+            <InfoLine label="เวลาสหรัฐฯ (ET)" value="09:30 - 16:00" />
+            <InfoLine label="เวลาไทย (ICT)" value="20:30 - 03:00" />
           </div>
         </div>
       </article>
@@ -682,11 +681,11 @@ function MarketStatus({ lastUpdated, lastUpdatedAt }: { lastUpdated: string; las
 function Heatmap({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   const [mode, setMode] = useState("Heatmap");
   const groups = [
-    ["à¹€à¸—à¸„à¹‚à¸™à¹‚à¸¥à¸¢à¸µ", stocks.filter((item) => ["AI / Mega Cap", "Semiconductor", "Cloud / Cybersecurity"].includes(item.category))],
-    ["à¸šà¸£à¸´à¸à¸²à¸£à¸œà¸¹à¹‰à¸šà¸£à¸´à¹‚à¸ à¸„", stocks.filter((item) => ["AMZN", "META", "MCD", "COST"].includes(item.ticker))],
-    ["à¹€à¸®à¸¥à¸˜à¹Œà¹à¸„à¸£à¹Œ", stocks.filter((item) => item.category.includes("Healthcare"))],
-    ["ETF / à¸”à¸±à¸Šà¸™à¸µ", stocks.filter((item) => item.category === "ETF")],
-    ["à¸ªà¸´à¸™à¸—à¸£à¸±à¸žà¸¢à¹Œà¸—à¸²à¸‡à¹€à¸¥à¸·à¸­à¸", stocks.filter((item) => item.category === "Alternative Assets")],
+    ["เทคโนโลยี", stocks.filter((item) => ["AI / Mega Cap", "Semiconductor", "Cloud / Cybersecurity"].includes(item.category))],
+    ["บริการผู้บริโภค", stocks.filter((item) => ["AMZN", "META", "MCD", "COST"].includes(item.ticker))],
+    ["เฮลธ์แคร์", stocks.filter((item) => item.category.includes("Healthcare"))],
+    ["ETF / ดัชนี", stocks.filter((item) => item.category === "ETF")],
+    ["สินทรัพย์ทางเลือก", stocks.filter((item) => item.category === "Alternative Assets")],
   ] as const;
   const afterUp = [...stocks].filter((item) => afterChangePct(item.quote) > 0).sort((a, b) => afterChangePct(b.quote) - afterChangePct(a.quote));
   const afterDown = [...stocks].filter((item) => afterChangePct(item.quote) < 0).sort((a, b) => afterChangePct(a.quote) - afterChangePct(b.quote));
@@ -717,8 +716,8 @@ function Heatmap({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; 
           ))}
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <AfterHoursPanel title="After Hours à¸‚à¸¶à¹‰à¸™" stocks={afterUp} tone="up" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
-          <AfterHoursPanel title="After Hours à¸¥à¸‡" stocks={afterDown} tone="down" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+          <AfterHoursPanel title="After Hours ขึ้น" stocks={afterUp} tone="up" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
+          <AfterHoursPanel title="After Hours ลง" stocks={afterDown} tone="down" freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
         </div>
       </main>
       <aside className="space-y-5">
@@ -734,7 +733,7 @@ function AfterHoursPanel({ title, stocks, tone, freshSymbols, staleSymbols }: { 
   return (
     <section className={cn("rounded-2xl border p-4", positive ? "border-emerald-300/25 bg-emerald-400/[0.08]" : "border-rose-300/25 bg-rose-400/[0.08]")}>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-extrabold text-white">{positive ? "ðŸŒ™" : "âš "} {title}</h3>
+        <h3 className="text-base font-extrabold text-white">{positive ? "🌙" : "⚠"} {title}</h3>
         <span className={cn("rounded-full px-3 py-1 text-xs font-black", positive ? "bg-emerald-300/15 text-emerald-100" : "bg-rose-300/15 text-rose-100")}>{stocks.length} tickers</span>
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -790,9 +789,9 @@ function HowToRead({ title = "How to Read" }: { title?: string }) {
     <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
       <h2 className="text-xl font-extrabold text-white">{title}</h2>
       <div className="mt-4 space-y-4 text-sm font-semibold leading-7 text-slate-300">
-        <p><span className="mr-2 text-emerald-300">â—</span><b>Today</b> = à¸£à¸²à¸„à¸²à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸‚à¸­à¸‡à¸§à¸±à¸™à¸—à¸³à¸à¸²à¸£à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™</p>
-        <p><span className="mr-2 text-blue-300">â—</span><b>Prev Close</b> = à¸£à¸²à¸„à¸²à¸›à¸´à¸”à¸‚à¸­à¸‡à¸§à¸±à¸™à¸—à¸³à¸à¸²à¸£à¸à¹ˆà¸­à¸™à¸«à¸™à¹‰à¸²</p>
-        <p><span className="mr-2 text-violet-300">â—</span><b>After Hours</b> = à¸£à¸²à¸„à¸²à¸«à¸¥à¸±à¸‡à¸›à¸´à¸”à¸•à¸¥à¸²à¸” à¸­à¸²à¸ˆà¹€à¸›à¹‡à¸™ delayed</p>
+        <p><span className="mr-2 text-emerald-300">●</span><b>Today</b> = ราคาล่าสุดของวันทำการปัจจุบัน</p>
+        <p><span className="mr-2 text-blue-300">●</span><b>Prev Close</b> = ราคาปิดของวันทำการก่อนหน้า</p>
+        <p><span className="mr-2 text-violet-300">●</span><b>After Hours</b> = ราคาหลังปิดตลาด อาจเป็น delayed</p>
       </div>
     </article>
   );
@@ -808,25 +807,16 @@ function TopMovers({ stocks, title = "Top Movers" }: { stocks: StockItem[]; titl
   );
 }
 
-function MiniWatchlist({ stocks, title = "à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸µà¹ˆà¸•à¸´à¸”à¸•à¸²à¸¡", freshSymbols, staleSymbols }: { stocks: StockItem[]; title?: string; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
-  return (
-    <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
-      <h2 className="text-xl font-extrabold text-white">{title}</h2>
-      <div className="mt-4 space-y-3">{stocks.map((item) => <div key={`${title}-${item.ticker}`} className={cn("flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2", freshSymbols?.has(item.ticker) && "nimbus-live-new", staleSymbols?.has(item.ticker) && "nimbus-live-stale")}><div className="flex items-center gap-2"><LogoBadge item={item} small /><span className="font-bold text-white">{item.ticker}</span></div><span className={change(item.quote) >= 0 ? "font-bold text-emerald-300" : "font-bold text-rose-300"}>{formatPrice(item.quote.price)}</span></div>)}</div>
-    </article>
-  );
-}
-
 function WhyWatch({ items }: { items: string[] }) {
-  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">Why Watch</h2><ul className="mt-4 space-y-3">{items.map((item) => <li key={item} className="flex gap-3 text-sm font-semibold leading-7 text-slate-300"><span className="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-400/15 text-xs text-emerald-200">âœ“</span><span>{item}</span></li>)}</ul></article>;
+  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">Why Watch</h2><ul className="mt-4 space-y-3">{items.map((item) => <li key={item} className="flex gap-3 text-sm font-semibold leading-7 text-slate-300"><span className="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-400/15 text-xs text-emerald-200">✓</span><span>{item}</span></li>)}</ul></article>;
 }
 
 function MarketSummary() {
-  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">à¸ªà¸£à¸¸à¸›à¸ à¸²à¸žà¸£à¸§à¸¡à¸•à¸¥à¸²à¸”</h2><div className="mt-4 space-y-4">{marketIndexes.slice(1).map((item) => <MarketLine key={item.label} item={item} />)}</div></article>;
+  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">สรุปภาพรวมตลาด</h2><div className="mt-4 space-y-4">{marketIndexes.slice(1).map((item) => <MarketLine key={item.label} item={item} />)}</div></article>;
 }
 
 function MarketMiniCard() {
-  return <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-slate-900/70 p-4"><p className="font-bold text-white">à¸•à¸¥à¸²à¸”à¸§à¸±à¸™à¸™à¸µà¹‰</p><p className="text-sm font-semibold text-emerald-300">â— à¹€à¸›à¸´à¸”à¸—à¸³à¸à¸²à¸£</p><div className="mt-3 space-y-2">{marketIndexes.slice(1, 4).map((item) => <MarketLine key={item.label} item={item} mini />)}</div></div>;
+  return <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-slate-900/70 p-4"><p className="font-bold text-white">ตลาดวันนี้</p><p className="text-sm font-semibold text-emerald-300">● เปิดทำการ</p><div className="mt-3 space-y-2">{marketIndexes.slice(1, 4).map((item) => <MarketLine key={item.label} item={item} mini />)}</div></div>;
 }
 
 function MarketIndexCard({ item }: { item: (typeof marketIndexes)[number] }) {
@@ -838,7 +828,7 @@ function MarketLine({ item, mini = false }: { item: (typeof marketIndexes)[numbe
 }
 
 function TradingSession() {
-  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">à¸Šà¹ˆà¸§à¸‡à¹€à¸§à¸¥à¸²à¸à¸²à¸£à¸‹à¸·à¹‰à¸­à¸‚à¸²à¸¢à¸‚à¸­à¸‡à¸•à¸¥à¸²à¸”à¸ªà¸«à¸£à¸±à¸à¸¯</h2><div className="mt-5 grid gap-3 md:grid-cols-3">{[["Pre-market", "04:00 - 09:30 ET"], ["Regular Hours", "09:30 - 16:00 ET"], ["After Hours", "16:00 - 20:00 ET"]].map(([name, time], index) => <div key={name} className={cn("rounded-2xl border p-5 text-center", index === 1 ? "border-emerald-300/45 bg-emerald-400/10" : "border-white/10 bg-white/[0.04]")}><p className="text-lg font-extrabold text-white">{name}</p><p className="mt-1 text-slate-300">{time}</p></div>)}</div></article>;
+  return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">ช่วงเวลาการซื้อขายของตลาดสหรัฐฯ</h2><div className="mt-5 grid gap-3 md:grid-cols-3">{[["Pre-market", "04:00 - 09:30 ET"], ["Regular Hours", "09:30 - 16:00 ET"], ["After Hours", "16:00 - 20:00 ET"]].map(([name, time], index) => <div key={name} className={cn("rounded-2xl border p-5 text-center", index === 1 ? "border-emerald-300/45 bg-emerald-400/10" : "border-white/10 bg-white/[0.04]")}><p className="text-lg font-extrabold text-white">{name}</p><p className="mt-1 text-slate-300">{time}</p></div>)}</div></article>;
 }
 
 function HeatTile({ item, big, fresh, stale }: { item: StockItem; big?: boolean; fresh?: boolean; stale?: boolean }) {
@@ -847,7 +837,7 @@ function HeatTile({ item, big, fresh, stale }: { item: StockItem; big?: boolean;
 }
 
 function StockIllustration({ type, title }: { type: Category["image"]; title: string }) {
-  const label = { ai: "AI", chip: "CHIP", cloud: "CLOUD", fintech: "PAY", space: "ORBIT", health: "CARE", etf: "ETF", assets: "GOLD", portfolio: "ALLOC", growth: "GROW" }[type];
+  const label = { ai: "AI", chip: "CHIP", cloud: "CLOUD", fintech: "PAY", space: "ORBIT", health: "CARE", etf: "ETF", assets: "GOLD", growth: "GROW" }[type];
   return <div className="relative min-h-56 overflow-hidden rounded-2xl border border-blue-300/18 bg-slate-950/70"><div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_35%,rgba(59,130,246,0.30),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.2),rgba(2,6,23,0.72))]" /><div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(148,163,184,.18)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.14)_1px,transparent_1px)] [background-size:34px_34px]" /><div className="absolute right-8 top-8 grid h-28 w-28 rotate-[-12deg] place-items-center rounded-3xl border border-cyan-300/30 bg-cyan-300/10"><span className="text-4xl font-black text-cyan-100">{label}</span></div><div className="absolute bottom-5 left-5 right-5"><p className="text-xs font-bold uppercase text-cyan-200/80">Research Theme</p><p className="text-2xl font-extrabold text-white">{title}</p></div></div>;
 }
 
@@ -857,7 +847,7 @@ function LogoBadge({ item, small = false }: { item: StockItem; small?: boolean }
 
 function ViewBadge({ value, risk }: { value: number; risk: string }) {
   const tone = value > 0.8 ? "bg-emerald-400/15 text-emerald-200" : value < -0.4 ? "bg-amber-400/15 text-amber-200" : "bg-blue-400/15 text-blue-200";
-  return <span className={cn("rounded-lg px-3 py-1.5 text-sm font-extrabold", tone)}>{risk === "à¸ªà¸¹à¸‡" || risk === "à¸ªà¸¹à¸‡à¸¡à¸²à¸" ? "Volatile" : value >= 0 ? "Bullish" : "Watch"}</span>;
+  return <span className={cn("rounded-lg px-3 py-1.5 text-sm font-extrabold", tone)}>{risk === "สูง" || risk === "สูงมาก" ? "Volatile" : value >= 0 ? "Bullish" : "Watch"}</span>;
 }
 
 function Sparkline({ values, violet = false }: { values: number[]; violet?: boolean }) {
@@ -874,24 +864,24 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 
 function category(id: Category["id"], title: string, subtitle: string, icon: string, image: Category["image"], overviewTitle: string, overview: string, tags: string[], symbols: string[]): Category {
   const stocks = symbols.map((symbol) => makeStock(symbol, title));
-  return { id, title, subtitle, icon, image, overviewTitle, overview, tags, why: defaultWhy(title), watchlist: symbols, stocks };
+  return { id, title, subtitle, icon, image, overviewTitle, overview, tags, why: defaultWhy(title), stocks };
 }
 
 function makeStock(ticker: string, categoryName: string): StockItem {
   const quote = seedQuotes[ticker] ?? q(ticker, 100, 99, 100.5, "-", "-");
   const meta: Record<string, Partial<StockItem>> = {
-    NVDA: { name: "NVIDIA Corporation", theme: "AI / Chip", thesis: "à¸œà¸¹à¹‰à¸™à¸³ GPU / AI Data Center", strength: "ecosystem à¹à¸‚à¹‡à¸‡à¹à¸à¸£à¹ˆà¸‡", risk: "à¸›à¸²à¸™à¸à¸¥à¸²à¸‡", tags: ["AI", "Chip"], accent: "#76ff7a", spark: [12, 18, 22, 31, 27, 39, 44] },
-    MSFT: { name: "Microsoft Corporation", theme: "Cloud", thesis: "Cloud + AI + Enterprise", strength: "à¸à¸²à¸™à¸¥à¸¹à¸à¸„à¹‰à¸²à¸­à¸‡à¸„à¹Œà¸à¸£à¹ƒà¸«à¸à¹ˆ", risk: "à¸•à¹ˆà¸³", tags: ["AI", "Cloud"], accent: "#41a5ff", spark: [18, 21, 24, 26, 31, 35, 38] },
-    GOOGL: { name: "Alphabet Inc.", theme: "Search / Cloud", thesis: "Search, YouTube, Cloud, AI", strength: "à¹‚à¸†à¸©à¸“à¸²à¹à¸¥à¸° AI", risk: "à¸›à¸²à¸™à¸à¸¥à¸²à¸‡", tags: ["AI", "Cloud"], accent: "#fbbc04", spark: [15, 17, 20, 19, 25, 29, 34] },
-    AMZN: { name: "Amazon.com, Inc.", theme: "AWS / Commerce", thesis: "AWS + E-commerce + AI", strength: "AWS à¹à¸‚à¹‡à¸‡à¹à¸£à¸‡", risk: "à¸›à¸²à¸™à¸à¸¥à¸²à¸‡", tags: ["Cloud"], accent: "#ff9900", spark: [11, 14, 18, 21, 24, 30, 35] },
-    META: { name: "Meta Platforms, Inc.", theme: "AI / Social", thesis: "Ads + AI + cash flow", strength: "à¸£à¸²à¸¢à¹„à¸”à¹‰à¹‚à¸†à¸©à¸“à¸²", risk: "à¸ªà¸¹à¸‡", tags: ["AI", "Social"], accent: "#66a7ff", spark: [13, 19, 17, 24, 29, 34, 37] },
-    AVGO: { name: "Broadcom Inc.", theme: "AI ASIC", thesis: "à¸Šà¸´à¸› AI / Network / VMware", strength: "custom chip", risk: "à¸ªà¸¹à¸‡", tags: ["Chip"], accent: "#e31b54", spark: [16, 22, 21, 29, 33, 39, 45] },
-    AMD: { name: "Advanced Micro Devices", theme: "GPU / CPU", thesis: "à¸—à¸²à¸‡à¹€à¸¥à¸·à¸­à¸ GPU/CPU AI", strength: "CPU + GPU cycle", risk: "à¸ªà¸¹à¸‡", tags: ["Chip"], accent: "#ed1c24", spark: [10, 14, 19, 16, 22, 26, 33] },
-    TSM: { name: "Taiwan Semiconductor", theme: "Foundry", thesis: "à¹‚à¸£à¸‡à¸‡à¸²à¸™à¸œà¸¥à¸´à¸•à¸Šà¸´à¸›à¸£à¸°à¸”à¸±à¸šà¹‚à¸¥à¸", strength: "foundry à¸£à¸°à¸”à¸±à¸šà¹‚à¸¥à¸", risk: "à¸›à¸²à¸™à¸à¸¥à¸²à¸‡", tags: ["Chip"], accent: "#f15a24", spark: [18, 20, 24, 28, 31, 33, 40] },
-    CRWD: { name: "CrowdStrike Holdings", theme: "Cybersecurity", thesis: "Cybersecurity à¸£à¸°à¸”à¸±à¸šà¸­à¸‡à¸„à¹Œà¸à¸£", strength: "endpoint platform", risk: "à¸ªà¸¹à¸‡", tags: ["Cyber"], accent: "#e11d48", spark: [42, 36, 31, 25, 28, 20, 18] },
-    RKLB: { name: "Rocket Lab USA, Inc.", theme: "Space", thesis: "Launch / satellite", strength: "space systems growth", risk: "à¸ªà¸¹à¸‡à¸¡à¸²à¸", tags: ["Space"], accent: "#111827", spark: [5, 7, 9, 15, 18, 21, 29] },
+    NVDA: { name: "NVIDIA Corporation", theme: "AI / Chip", thesis: "ผู้นำ GPU / AI Data Center", strength: "ecosystem แข็งแกร่ง", risk: "ปานกลาง", tags: ["AI", "Chip"], accent: "#76ff7a", spark: [12, 18, 22, 31, 27, 39, 44] },
+    MSFT: { name: "Microsoft Corporation", theme: "Cloud", thesis: "Cloud + AI + Enterprise", strength: "ฐานลูกค้าองค์กรใหญ่", risk: "ต่ำ", tags: ["AI", "Cloud"], accent: "#41a5ff", spark: [18, 21, 24, 26, 31, 35, 38] },
+    GOOGL: { name: "Alphabet Inc.", theme: "Search / Cloud", thesis: "Search, YouTube, Cloud, AI", strength: "โฆษณาและ AI", risk: "ปานกลาง", tags: ["AI", "Cloud"], accent: "#fbbc04", spark: [15, 17, 20, 19, 25, 29, 34] },
+    AMZN: { name: "Amazon.com, Inc.", theme: "AWS / Commerce", thesis: "AWS + E-commerce + AI", strength: "AWS แข็งแรง", risk: "ปานกลาง", tags: ["Cloud"], accent: "#ff9900", spark: [11, 14, 18, 21, 24, 30, 35] },
+    META: { name: "Meta Platforms, Inc.", theme: "AI / Social", thesis: "Ads + AI + cash flow", strength: "รายได้โฆษณา", risk: "สูง", tags: ["AI", "Social"], accent: "#66a7ff", spark: [13, 19, 17, 24, 29, 34, 37] },
+    AVGO: { name: "Broadcom Inc.", theme: "AI ASIC", thesis: "ชิป AI / Network / VMware", strength: "custom chip", risk: "สูง", tags: ["Chip"], accent: "#e31b54", spark: [16, 22, 21, 29, 33, 39, 45] },
+    AMD: { name: "Advanced Micro Devices", theme: "GPU / CPU", thesis: "ทางเลือก GPU/CPU AI", strength: "CPU + GPU cycle", risk: "สูง", tags: ["Chip"], accent: "#ed1c24", spark: [10, 14, 19, 16, 22, 26, 33] },
+    TSM: { name: "Taiwan Semiconductor", theme: "Foundry", thesis: "โรงงานผลิตชิประดับโลก", strength: "foundry ระดับโลก", risk: "ปานกลาง", tags: ["Chip"], accent: "#f15a24", spark: [18, 20, 24, 28, 31, 33, 40] },
+    CRWD: { name: "CrowdStrike Holdings", theme: "Cybersecurity", thesis: "Cybersecurity ระดับองค์กร", strength: "endpoint platform", risk: "สูง", tags: ["Cyber"], accent: "#e11d48", spark: [42, 36, 31, 25, 28, 20, 18] },
+    RKLB: { name: "Rocket Lab USA, Inc.", theme: "Space", thesis: "Launch / satellite", strength: "space systems growth", risk: "สูงมาก", tags: ["Space"], accent: "#111827", spark: [5, 7, 9, 15, 18, 21, 29] },
   };
-  const fallback = { name: ticker, theme: categoryName, thesis: categoryName, strength: "à¸•à¸´à¸”à¸•à¸²à¸¡à¸˜à¸µà¸¡à¸£à¸°à¸¢à¸°à¸¢à¸²à¸§", risk: "à¸›à¸²à¸™à¸à¸¥à¸²à¸‡", tags: [categoryName.split(" ")[0]], accent: "#3b82f6", spark: [10, 13, 12, 16, 20, 22, 25] };
+  const fallback = { name: ticker, theme: categoryName, thesis: categoryName, strength: "ติดตามธีมระยะยาว", risk: "ปานกลาง", tags: [categoryName.split(" ")[0]], accent: "#3b82f6", spark: [10, 13, 12, 16, 20, 22, 25] };
   const detail = { ...fallback, ...meta[ticker] };
   return {
     ticker,
@@ -914,7 +904,7 @@ function q(symbol: string, price: number, prevClose: number, afterHours: number,
 }
 
 function defaultWhy(title: string) {
-  return [`${title} à¹€à¸›à¹‡à¸™à¸˜à¸µà¸¡à¸—à¸µà¹ˆà¸„à¸§à¸£à¸•à¸´à¸”à¸•à¸²à¸¡à¹ƒà¸™à¸žà¸­à¸£à¹Œà¸•à¸£à¸°à¸¢à¸°à¸¢à¸²à¸§`, "à¸¡à¸µà¸—à¸±à¹‰à¸‡à¹‚à¸­à¸à¸²à¸ªà¹€à¸•à¸´à¸šà¹‚à¸•à¹à¸¥à¸°à¸„à¸§à¸²à¸¡à¹€à¸ªà¸µà¹ˆà¸¢à¸‡à¹€à¸‰à¸žà¸²à¸°à¸à¸¥à¸¸à¹ˆà¸¡", "à¹€à¸«à¸¡à¸²à¸°à¸ªà¸³à¸«à¸£à¸±à¸šà¸”à¸¹à¸›à¸£à¸°à¸à¸­à¸šà¸à¸²à¸£à¸¨à¸¶à¸à¸©à¸² à¹„à¸¡à¹ˆà¹ƒà¸Šà¹ˆà¸ªà¸±à¸à¸à¸²à¸“à¸‹à¸·à¹‰à¸­à¸‚à¸²à¸¢"];
+  return [`${title} เป็นธีมที่ควรติดตามในพอร์ตระยะยาว`, "มีทั้งโอกาสเติบโตและความเสี่ยงเฉพาะกลุ่ม", "เหมาะสำหรับดูประกอบการศึกษา ไม่ใช่สัญญาณซื้อขาย"];
 }
 
 const marketIndexes = [
