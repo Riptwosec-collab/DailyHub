@@ -59,5 +59,5 @@ The API returns the same fields for every real news category in `processingRepor
 - TypeScript type check passed.
 - ESLint passed with only pre-existing warnings in unrelated legacy files.
 - Sixteen unit tests passed for retention boundaries, invalid/future dates, Bangkok formatting, freshness thresholds, processing counts, spam validation, stable source IDs, ranking, and source registry behavior.
-- Browser checks passed for dashboard loading, partial-section isolation, no desktop horizontal overflow, persisted collapse state, Global Top Stories, semantic source timestamps, preserved content during refresh, and zero initial stock change animations.
+- Browser checks passed at desktop and 390 x 844 mobile viewports for dashboard loading, partial-section isolation, no horizontal overflow, persisted collapse state, Global Top Stories, semantic source timestamps, preserved content during refresh, and zero initial stock change animations.
 - Production build passed.
