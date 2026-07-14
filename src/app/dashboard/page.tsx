@@ -1,10 +1,10 @@
-import { DashboardControlView } from "@/components/dashboard/DashboardControlView";
+import { DashboardOverviewView } from "@/components/dashboard/DashboardOverviewView";
 import { AppShell } from "@/components/layout/AppShell";
 
 export default function DashboardPage() {
   return (
     <AppShell>
-      <DashboardControlView />
+      <DashboardOverviewView />
     </AppShell>
   );
 }

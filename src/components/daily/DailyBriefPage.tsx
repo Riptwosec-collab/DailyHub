@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { DataFreshnessIndicator } from "@/components/ui/DataFreshnessIndicator";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { getDataFreshnessStatus, selectFreshnessTimestamp } from "@/lib/data-freshness";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { cn } from "@/lib/utils";
 import type { DailyBriefApiResponse, DailyBriefCategory, DailyBriefCategoryKey, DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
@@ -261,7 +263,7 @@ function DailyBriefHeader({ search, setSearch, onRefresh, onSummarize, onSendAll
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(59,130,246,0.20),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(124,58,237,0.18),transparent_24%)]" />
       <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_39rem] xl:items-start">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h1>
+          <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{text.subtitle}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge tone="blue">✦ {text.badgeNews}</Badge>
@@ -650,11 +652,13 @@ export function DailyBriefPage() {
   const [minPriority, setMinPriority] = useState(0);
   const [savedOnly, setSavedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<DailyBriefItem | null>(null);
   const [readerItem, setReaderItem] = useState<DailyBriefItem | null>(null);
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const searchFromUrl = new URLSearchParams(window.location.search).get("search");
@@ -665,20 +669,24 @@ export function DailyBriefPage() {
   const featuredItem = selected && visibleItems.some((item) => item.id === selected.id) ? selected : visibleItems[0] || null;
   const feedItems = featuredItem ? visibleItems.filter((item) => item.id !== featuredItem.id) : visibleItems;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (forceRefresh = false) => {
+    if (hasLoadedRef.current) setRefreshing(true);
+    else setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
       if (active !== "all") params.set("category", active);
       if (search.trim()) params.set("search", search.trim());
+      if (forceRefresh) params.set("refresh", String(Date.now()));
       const nextData = await apiRequest<DailyBriefApiResponse>(`/api/news/latest${params.toString() ? `?${params.toString()}` : ""}`);
       setData(nextData);
+      hasLoadedRef.current = true;
       setSelected((current) => current && nextData.items.some((item) => item.id === current.id && !isExpiredNewsItem(item) && !item.isHidden) ? current : nextData.items.find((item) => !isExpiredNewsItem(item) && !item.isHidden) || null);
     } catch (loadError) {
       setError(toErrorMessage(loadError));
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [active, search]);
 
@@ -729,7 +737,7 @@ export function DailyBriefPage() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { void load(); }, search.trim() ? 300 : 0);
+    const timer = window.setTimeout(() => { void load(false); }, search.trim() ? 300 : 0);
     return () => window.clearTimeout(timer);
   }, [load, search]);
 
@@ -738,15 +746,53 @@ export function DailyBriefPage() {
       <DailyBriefHeader
         search={search}
         setSearch={setSearch}
-        onRefresh={load}
+        onRefresh={() => void load(true)}
         onSummarize={() => void summarize()}
         onSendAll={() => void sendItems(visibleItems)}
         onSendCategory={() => void sendItems(visibleItems)}
-        loading={loading}
+        loading={loading || refreshing}
         sending={sending}
         lang={lang}
       />
       {data && <DailyBriefStats data={data} lang={lang} />}
+      {data?.freshness ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/45 p-3">
+          <DataFreshnessIndicator
+            updatedAt={selectFreshnessTimestamp(data.freshness)?.value}
+            status={getDataFreshnessStatus("news", data.freshness)}
+            sourceNames={data.processingReport?.sourceNames}
+            label={lang === "th" ? "ข่าว" : "News"}
+            lang={lang}
+          />
+          {data.processingReport ? <p className="text-xs font-bold text-slate-400">{lang === "th" ? `เพิ่มจากแหล่งใหม่ ${data.processingReport.addedFromNewSources} · หมดอายุ ${data.processingReport.removedExpired} · ซ้ำ ${data.processingReport.removedDuplicates} · Invalid ${data.processingReport.removedInvalid}` : `New source ${data.processingReport.addedFromNewSources} · expired ${data.processingReport.removedExpired} · duplicate ${data.processingReport.removedDuplicates} · invalid ${data.processingReport.removedInvalid}`}</p> : null}
+        </div>
+      ) : null}
+      {active === "all" && data?.summary.globalTopStories?.length ? (
+        <section aria-labelledby="global-top-stories" className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
+            <div>
+              <h2 id="global-top-stories" className="text-lg font-black text-white">{lang === "th" ? "ข่าวเด่นทั่วโลก" : "Global Top Stories"}</h2>
+              <p className="mt-1 text-sm text-slate-400">{lang === "th" ? "คัดจากหลายแหล่งข่าวและรวมเรื่องที่ซ้ำกันแล้ว" : "Ranked across sources with duplicate stories merged."}</p>
+            </div>
+            <button type="button" onClick={() => setActive("world")} className="rounded-md border border-cyan-300/20 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-300/10">{lang === "th" ? "ดูข่าวโลกทั้งหมด" : "View world news"}</button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {data.summary.globalTopStories.slice(0, 4).map((item) => (
+              <article key={`global-${item.id}`} className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/50">
+                {hasRealNewsImage(item) ? <StoryVisual item={item} /> : null}
+                <div className="p-4">
+                  <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                    <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-cyan-100">{item.category}</span>
+                    {item.sourceMetadata?.addedInCurrentUpgrade ? <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-emerald-100">{lang === "th" ? "แหล่งข้อมูลใหม่" : "New source"}</span> : null}
+                  </div>
+                  <h3 className="mt-3 line-clamp-2 text-sm font-black leading-6 text-white"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-cyan-100">{itemTitle(item, lang)}</a></h3>
+                  <p className="mt-2 text-xs text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {data && <NewsCategoryTabs categories={data.categories} active={active} setActive={setActive} lang={lang} />}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-slate-950/45 p-3 text-sm font-bold text-slate-300">
         <label className="flex items-center gap-2">{lang === "th" ? "ความสำคัญ" : "Priority"}<select value={minPriority} onChange={(event) => setMinPriority(Number(event.target.value))} className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-white"><option value={0}>{lang === "th" ? "ทั้งหมด" : "All"}</option><option value={60}>60+</option><option value={80}>80+</option></select></label>
@@ -755,7 +801,7 @@ export function DailyBriefPage() {
       </div>
       {data && <CategoryInfoPanel active={active} lang={lang} />}
       {error && <ErrorState message={error} onRetry={load} lang={lang} />}
-      {loading && <LoadingState lang={lang} />}
+      {loading && !data && <LoadingState lang={lang} />}
       {!loading && !error && data && (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <main className="space-y-6">

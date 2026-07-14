@@ -53,6 +53,8 @@ type QuoteApiPayload = {
   fallback?: boolean;
   quotes?: QuoteApiItem[];
   updatedAt?: string;
+  fetchedAt?: string;
+  sourceId?: string;
   error?: string;
 };
 
@@ -232,15 +234,11 @@ export function StocksHubView() {
   const loadQuotes = useCallback(async (signal?: AbortSignal, manualRefresh = false) => {
     setQuoteLoading(true);
     setQuoteError("");
-    if (manualRefresh) {
-      const now = new Date();
-      setLastUpdated(now.toLocaleString("th-TH"));
-      setLastUpdatedAt(now.toISOString());
-    }
     const symbols = uniqueStocks.map((item) => item.yahoo ?? item.ticker).join(",");
 
     try {
-      const response = await fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(symbols)}&refresh=${Date.now()}`, {
+      const refreshParam = manualRefresh ? `&refresh=${Date.now()}` : "";
+      const response = await fetch(`/api/stocks/quotes?symbols=${encodeURIComponent(symbols)}${refreshParam}`, {
         cache: "no-store",
         headers: {
           "Cache-Control": "no-cache",
@@ -272,12 +270,12 @@ export function StocksHubView() {
       for (const [ticker, nextQuote] of Object.entries(nextQuotes)) {
         const previous = previousStoredQuotes[ticker] ?? quoteSnapshotRef.current[ticker] ?? seedQuotes[ticker];
         const changed = quoteValuesChanged(previous, nextQuote);
-        if (changed) changedSymbols.add(ticker);
+        if (manualRefresh && changed) changedSymbols.add(ticker);
       }
       quoteSnapshotRef.current = { ...quoteSnapshotRef.current, ...nextQuotes };
       saveStoredQuoteSnapshot(quoteSnapshotRef.current);
 
-      setLiveQuotes(nextQuotes);
+      setLiveQuotes((current) => ({ ...current, ...nextQuotes }));
       setFreshSymbols(changedSymbols);
       // An unchanged quote is valid data, not an error. Red is reserved for
       // failed or genuinely expired data instead of marking every old row.
@@ -287,16 +285,20 @@ export function StocksHubView() {
       freshTimerRef.current = setTimeout(() => setFreshSymbols(new Set()), 18000);
       staleTimerRef.current = setTimeout(() => setStaleSymbols(new Set()), 18000);
       setQuoteSource(payload.source ?? "Yahoo Finance");
-      const updatedDate = payload.updatedAt ? new Date(payload.updatedAt) : new Date();
-      setLastUpdated(updatedDate.toLocaleString("th-TH"));
-      setLastUpdatedAt(updatedDate.toISOString());
+      const quoteUpdatedAt = Object.values(nextQuotes)
+        .map((quote) => quote.updatedAt)
+        .filter((value): value is string => Boolean(value && Number.isFinite(new Date(value).getTime())))
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+      const actualTimestamp = payload.updatedAt ?? quoteUpdatedAt ?? payload.fetchedAt;
+      if (actualTimestamp) {
+        const updatedDate = new Date(actualTimestamp);
+        setLastUpdated(updatedDate.toLocaleString("th-TH"));
+        setLastUpdatedAt(updatedDate.toISOString());
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setQuoteError(error instanceof Error ? error.message : "Live quote refresh failed");
-      setQuoteSource("sample fallback");
-      const fallbackDate = new Date();
-      setLastUpdated(fallbackDate.toLocaleString("th-TH"));
-      setLastUpdatedAt(fallbackDate.toISOString());
+      if (Object.keys(quoteSnapshotRef.current).length === 0) setQuoteSource("sample fallback");
     } finally {
       if (!signal?.aborted) setQuoteLoading(false);
     }
@@ -329,7 +331,7 @@ export function StocksHubView() {
   );
 
   return (
-    <section className="stock-hub w-full text-slate-100">
+    <section className="stock-hub w-full text-slate-100" aria-busy={quoteLoading}>
       <div className="min-w-0 space-y-5">
           <StockTopbar
             view={view}
@@ -440,7 +442,7 @@ function StockTopbar({
   return (
     <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <div>
-        <h1 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">{titleMap[view]}</h1>
+        <h2 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">{titleMap[view]}</h2>
         <p className="mt-2 text-sm font-medium text-slate-300 sm:text-base">{view === "category" ? category.subtitle : "ติดตามราคา แนวโน้ม และสถานะข้อมูลของสินทรัพย์ทั้งหมดในหน้าเดียว"}</p>
         <label className="relative mt-4 block">
           <span className="sr-only">ค้นหาหุ้น</span>

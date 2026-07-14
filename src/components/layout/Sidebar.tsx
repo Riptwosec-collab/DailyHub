@@ -9,7 +9,7 @@ import type { TranslationKey } from "@/lib/translations";
 import { ThemeToggle } from "./ThemeToggle";
 
 type UpdateCopy = {
-  updatedAt: string;
+  updatedAt?: string;
   th: string;
   en: string;
 };
@@ -28,6 +28,8 @@ type ManualUpdateEntry = {
   count: number;
   newItems?: number;
   expiredItems?: number;
+  duplicateItems?: number;
+  invalidItems?: number;
   itemIds?: string[];
   status?: "success" | "error";
   th?: string;
@@ -126,7 +128,7 @@ const navItems: NavItem[] = [
     key: "nav_home",
     icon: "HM",
     update: {
-      updatedAt: "2026-07-04T01:00:00.000Z",
+      updatedAt: "",
       th: "ตั้งค่าเริ่มต้นเป็นธีมมืดและปรับหน้าแรกให้อ่านสบายขึ้น",
       en: "Default dark theme and refined landing readability",
     },
@@ -136,7 +138,7 @@ const navItems: NavItem[] = [
     key: "nav_dashboard",
     icon: "DB",
     update: {
-      updatedAt: "2026-07-04T01:15:00.000Z",
+      updatedAt: "",
       th: "เพิ่มภาพรวม Daily Brief, API, Telegram และสถานะระบบ",
       en: "Daily Brief, API, Telegram, and system status overview updated",
     },
@@ -146,7 +148,7 @@ const navItems: NavItem[] = [
     key: "nav_daily",
     icon: "DY",
     update: {
-      updatedAt: "2026-07-04T01:30:00.000Z",
+      updatedAt: "",
       th: "ข่าวทุกหมวดมีรูปจริง ลิงก์ต้นทาง และข้อมูลพร้อมส่ง Telegram",
       en: "Every news topic includes real images, source links, and Telegram-ready briefs",
     },
@@ -156,7 +158,7 @@ const navItems: NavItem[] = [
     key: "nav_stocks",
     icon: "ST",
     update: {
-      updatedAt: "2026-07-04T01:45:00.000Z",
+      updatedAt: "",
       th: "รวมราคาวันนี้ ปิดเมื่อวาน After Hours และ Heatmap ไว้ในหน้าเดียว",
       en: "Today, previous close, after-hours, and heatmap are in one view",
     },
@@ -166,7 +168,7 @@ const navItems: NavItem[] = [
     key: "nav_concerts",
     icon: "CN",
     update: {
-      updatedAt: "2026-07-04T02:00:00.000Z",
+      updatedAt: "",
       th: "ตารางคอนเสิร์ตแยกเดือน พร้อมรูปจริงและลิงก์ซื้อบัตร",
       en: "Monthly concert schedule with real posters and ticket links",
     },
@@ -176,7 +178,7 @@ const navItems: NavItem[] = [
     key: "nav_movies",
     icon: "MV",
     update: {
-      updatedAt: "2026-07-04T02:15:00.000Z",
+      updatedAt: "",
       th: "หนังโรงไทยและ Netflix / ซีรีส์มีโปสเตอร์เต็มกรอบและแยกแพลตฟอร์ม",
       en: "Thai cinema and Netflix/series now show full posters by platform",
     },
@@ -186,7 +188,7 @@ const navItems: NavItem[] = [
     key: "nav_events",
     icon: "EV",
     update: {
-      updatedAt: "2026-07-04T02:30:00.000Z",
+      updatedAt: "",
       th: "เพิ่มงานอีเวนต์ / Expo / Fair พร้อมแยกหมวดและตัดข้อมูลซ้ำ",
       en: "Added Event / Expo / Fair categories with duplicate cleanup",
     },
@@ -215,6 +217,7 @@ function formatUpdateTime(value: string, lang: string) {
 
 function updateEntryIsNewer(entry: ManualUpdateEntry | undefined, fallback: UpdateCopy) {
   if (!entry?.updatedAt) return false;
+  if (!fallback.updatedAt) return true;
   return new Date(entry.updatedAt).getTime() >= new Date(fallback.updatedAt).getTime();
 }
 
@@ -242,7 +245,7 @@ function formatTopicGroups(groups: Record<string, number> | undefined, lang: "th
     .join(" / ");
 }
 
-async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en" | "newItems" | "expiredItems" | "itemIds">> {
+async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en" | "newItems" | "expiredItems" | "duplicateItems" | "invalidItems" | "itemIds"> & { updatedAt?: string }> {
   const now = Date.now();
 
   try {
@@ -255,13 +258,14 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
         },
       });
       if (!response.ok) throw new Error(`stocks ${response.status}`);
-      const payload = (await response.json()) as { quotes?: Array<{ symbol?: string; price?: number; prevClose?: number; afterHours?: number }>; source?: string; error?: string };
+      const payload = (await response.json()) as { quotes?: Array<{ symbol?: string; price?: number; prevClose?: number; afterHours?: number }>; source?: string; updatedAt?: string; fetchedAt?: string; error?: string };
       const count = payload.quotes?.length ?? 0;
       if (count === 0) throw new Error(payload.error || "no stock quotes");
       const newItems = countNewItems(href, (payload.quotes ?? []).map((quote) => `${quote.symbol ?? "unknown"}:${quote.price ?? ""}:${quote.prevClose ?? ""}:${quote.afterHours ?? ""}`));
       const newText = newItemText(newItems);
       return {
         status: "success",
+        updatedAt: payload.updatedAt ?? payload.fetchedAt,
         newItems,
         th: `ดึงราคาหุ้นสดได้ ${count} ตัว จาก ${payload.source || "Yahoo Finance"} · ${newText.th}`,
         en: `Fetched ${count} live stock quotes from ${payload.source || "Yahoo Finance"} · ${newText.en}`,
@@ -284,6 +288,7 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
         summary?: { totalItems?: number; groups?: Record<string, number>; latestTitles?: string[] };
         items?: Array<{ id?: string; title?: string }>;
         expiredCount?: number;
+        updatedAt?: string;
       };
       const checked = payload.checked ?? 0;
       const reachable = payload.reachable ?? 0;
@@ -300,6 +305,7 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
+        updatedAt: payload.updatedAt,
         newItems,
         expiredItems,
         itemIds: newItemIds,
@@ -318,19 +324,32 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       });
       if (!response.ok) throw new Error(`news ${response.status}`);
       const payload = (await response.json()) as {
-        data?: { items?: Array<{ id?: string; title?: string }>; summary?: { totalItems?: number; mode?: string } };
+        data?: { items?: Array<{ id?: string; title?: string }>; summary?: { totalItems?: number; mode?: string }; freshness?: { sourceUpdatedAt?: string; sourcePublishedAt?: string; fetchedAt?: string }; processingReport?: { addedFromNewSources?: number; removedExpired?: number; removedDuplicates?: number; removedInvalid?: number } };
         items?: Array<{ id?: string; title?: string }>;
         summary?: { totalItems?: number; mode?: string };
       };
-      const data = payload.data ?? payload;
+      const data = (payload.data ?? payload) as {
+        items?: Array<{ id?: string; title?: string }>;
+        summary?: { totalItems?: number; mode?: string };
+        freshness?: { sourceUpdatedAt?: string; sourcePublishedAt?: string; fetchedAt?: string };
+        processingReport?: { addedFromNewSources?: number; removedExpired?: number; removedDuplicates?: number; removedInvalid?: number };
+      };
       const count = data.summary?.totalItems ?? data.items?.length ?? 0;
-      const newItems = countNewItems(href, (data.items ?? []).map((item, index) => item.id ?? item.title ?? String(index)));
-      const newText = newItemText(newItems);
+      const detectedNewItems = countNewItems(href, (data.items ?? []).map((item, index) => item.id ?? item.title ?? String(index)));
+      const newItems = data.processingReport?.addedFromNewSources ?? detectedNewItems;
+      const expiredItems = data.processingReport?.removedExpired ?? 0;
+      const duplicateItems = data.processingReport?.removedDuplicates ?? 0;
+      const invalidItems = data.processingReport?.removedInvalid ?? 0;
+      const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
+        updatedAt: data.freshness?.sourceUpdatedAt ?? data.freshness?.sourcePublishedAt ?? data.freshness?.fetchedAt,
         newItems,
-        th: `ดึงข่าวล่าสุดได้ ${count} รายการ · ${newText.th} · โหมด ${data.summary?.mode || "live"}`,
-        en: `Fetched ${count} latest news items · ${newText.en} in ${data.summary?.mode || "live"} mode`,
+        expiredItems,
+        duplicateItems,
+        invalidItems,
+        th: `ดึงข่าวล่าสุดได้ ${count} รายการ · ${newText.th} · ซ้ำ ${duplicateItems} · ไม่ผ่าน ${invalidItems} · โหมด ${data.summary?.mode || "live"}`,
+        en: `Fetched ${count} latest news items · ${newText.en} · ${duplicateItems} duplicate · ${invalidItems} invalid in ${data.summary?.mode || "live"} mode`,
       };
     }
 
@@ -405,7 +424,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const [hydratedUpdates, setHydratedUpdates] = useState(false);
   const [updatingHref, setUpdatingHref] = useState<string | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [batchSummary, setBatchSummary] = useState<{ news: number; events: number; expired: number } | null>(null);
+  const [batchSummary, setBatchSummary] = useState<{ news: number; events: number; expired: number; duplicates: number; invalid: number } | null>(null);
 
   useEffect(() => {
     try {
@@ -435,9 +454,9 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     setManualUpdates((current) => ({
       ...current,
       [href]: {
-        updatedAt: new Date().toISOString(),
-        count: (current[href]?.count ?? 0) + 1,
         ...result,
+        updatedAt: result.status === "success" ? result.updatedAt ?? current[href]?.updatedAt ?? "" : current[href]?.updatedAt ?? "",
+        count: (current[href]?.count ?? 0) + 1,
       },
     }));
     if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
@@ -445,16 +464,15 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   };
 
   const handleUpdateAllTopics = async () => {
-    const now = new Date().toISOString();
     setUpdatingHref("__all__");
     const results = await Promise.all(navItems.map(async (item) => [item.href, await refreshMenuTopic(item.href)] as const));
     setManualUpdates((current) => {
       const next = { ...current };
       for (const [href, result] of results) {
         next[href] = {
-          updatedAt: now,
-          count: (current[href]?.count ?? 0) + 1,
           ...result,
+          updatedAt: result.status === "success" ? result.updatedAt ?? current[href]?.updatedAt ?? "" : current[href]?.updatedAt ?? "",
+          count: (current[href]?.count ?? 0) + 1,
         };
       }
       return next;
@@ -463,9 +481,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
       if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
     }
     setBatchSummary({
-      news: results.filter(([href]) => href === "/daily" || href === "/dashboard").reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
+      news: results.filter(([href]) => href === "/daily").reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
       events: results.filter(([href]) => ["/concerts", "/movies", "/events"].includes(href)).reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
       expired: results.reduce((sum, [, result]) => sum + (result.expiredItems ?? 0), 0),
+      duplicates: results.reduce((sum, [, result]) => sum + (result.duplicateItems ?? 0), 0),
+      invalid: results.reduce((sum, [, result]) => sum + (result.invalidItems ?? 0), 0),
     });
     setUpdatingHref(null);
   };
@@ -503,7 +523,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           </button>
         </div>
         <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-400">{t("sidebar_desc")}</p>
-        {batchSummary ? <p className="mt-3 rounded-md border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-xs font-extrabold text-emerald-100">{lang === "th" ? `สรุปรอบล่าสุด: ข่าวใหม่ ${batchSummary.news} · กิจกรรมใหม่ ${batchSummary.events} · หมดอายุ ${batchSummary.expired}` : `Latest: ${batchSummary.news} news · ${batchSummary.events} events · ${batchSummary.expired} expired`}</p> : null}
+        {batchSummary ? <p className="mt-3 rounded-md border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-xs font-extrabold text-emerald-100">{lang === "th" ? `สรุปรอบล่าสุด: ข่าวใหม่ ${batchSummary.news} · กิจกรรมใหม่ ${batchSummary.events} · หมดอายุ ${batchSummary.expired} · ซ้ำ ${batchSummary.duplicates} · ไม่ผ่าน ${batchSummary.invalid}` : `Latest: ${batchSummary.news} news · ${batchSummary.events} events · ${batchSummary.expired} expired · ${batchSummary.duplicates} duplicate · ${batchSummary.invalid} invalid`}</p> : null}
       </div>
 
       <nav className="mt-4 flex-1 space-y-1 overflow-y-auto pr-1">
@@ -513,7 +533,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           const label = item.key ? t(item.key) : lang === "th" ? item.th : item.en;
           const storedUpdate = manualUpdates[item.href];
           const manualUpdate = updateEntryIsNewer(storedUpdate, item.update) ? storedUpdate : undefined;
-          const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt;
+          const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt ?? "";
           const updateCount = manualUpdate?.count ?? 0;
           const newItems = manualUpdate?.newItems ?? 0;
           const expiredItems = manualUpdate?.expiredItems ?? 0;

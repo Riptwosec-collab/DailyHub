@@ -2,11 +2,23 @@ import type { DailyBriefItem } from "@/types/daily-brief";
 
 function normalizeTitle(value: string) {
   return value
+    .normalize("NFKC")
     .toLowerCase()
     .replace(/https?:\/\/\S+/g, "")
     .replace(/[^a-z0-9ก-๙\s]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function canonicalUrl(value: string) {
+  try {
+    const url = new URL(value);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"].forEach((key) => url.searchParams.delete(key));
+    url.hash = "";
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return value.trim().toLowerCase();
+  }
 }
 
 function tokenSet(value: string) {
@@ -35,7 +47,7 @@ function samePublishedWindow(a: DailyBriefItem, b: DailyBriefItem) {
 
 function isLikelyDuplicate(a: DailyBriefItem, b: DailyBriefItem) {
   const sameCategory = a.category === b.category;
-  const sameUrl = sameCategory && a.sourceUrl && b.sourceUrl && a.sourceUrl === b.sourceUrl;
+  const sameUrl = a.sourceUrl && b.sourceUrl && canonicalUrl(a.sourceUrl) === canonicalUrl(b.sourceUrl);
   const sameNormalizedTitle = sameCategory && normalizeTitle(a.titleTh || a.title) === normalizeTitle(b.titleTh || b.title);
   const similarTitle = jaccardSimilarity(a.titleTh || a.title, b.titleTh || b.title) >= 0.72;
   const categoryOverlap = sameCategory || a.tags.some((tag) => b.tags.includes(tag));
