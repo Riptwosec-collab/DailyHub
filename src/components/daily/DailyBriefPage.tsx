@@ -656,6 +656,11 @@ export function DailyBriefPage() {
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  useEffect(() => {
+    const searchFromUrl = new URLSearchParams(window.location.search).get("search");
+    if (searchFromUrl) setSearch(searchFromUrl);
+  }, []);
+
   const visibleItems = data?.items.filter((item) => !item.isHidden && !isExpiredNewsItem(item) && item.priorityScore >= minPriority && (!savedOnly || item.isSaved)) || [];
   const featuredItem = selected && visibleItems.some((item) => item.id === selected.id) ? selected : visibleItems[0] || null;
   const feedItems = featuredItem ? visibleItems.filter((item) => item.id !== featuredItem.id) : visibleItems;

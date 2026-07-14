@@ -397,6 +397,10 @@ export function EventExpoFairView() {
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [, setRefreshVersion] = useState(0);
   useEffect(() => {
+    const searchFromUrl = new URLSearchParams(window.location.search).get("search");
+    if (searchFromUrl) setLocation(searchFromUrl);
+  }, []);
+  useEffect(() => {
     const handleRefresh = (event: Event) => {
       const detail = (event as CustomEvent<{ href?: string; itemIds?: string[] }>).detail;
       if (detail?.href === "/events") {

@@ -195,6 +195,8 @@ export function StocksHubView() {
       if (parsed.categoryId) setActiveCategoryId(parsed.categoryId);
     };
 
+    const searchFromUrl = new URLSearchParams(window.location.search).get("search");
+    if (searchFromUrl) setQuery(searchFromUrl);
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
     window.addEventListener("popstate", syncFromHash);
@@ -321,11 +323,14 @@ export function StocksHubView() {
     return hydratedStocks.filter((item) => [item.ticker, item.name, item.theme, item.category, ...item.tags].join(" ").toLowerCase().includes(needle));
   }, [hydratedStocks, query]);
 
+  const marketState = useMemo(
+    () => Object.values(liveQuotes).find((quote) => quote.marketState)?.marketState,
+    [liveQuotes],
+  );
+
   return (
     <section className="stock-hub w-full text-slate-100">
-      <div className="grid gap-5 2xl:grid-cols-[15.5rem_minmax(0,1fr)]">
-        <StockSidebar view={view} activeCategoryId={activeCategoryId} onView={selectView} onCategory={selectCategory} />
-        <div className="min-w-0 space-y-5">
+      <div className="min-w-0 space-y-5">
           <StockTopbar
             view={view}
             category={activeCategory}
@@ -337,62 +342,26 @@ export function StocksHubView() {
             quoteError={quoteError}
             quoteLoading={quoteLoading}
             quoteSource={quoteSource}
+            marketState={marketState}
             onRefresh={() => void loadQuotes(undefined, true)}
           />
           <StockQuickNav view={view} activeCategoryId={activeCategoryId} onView={selectView} onCategory={selectCategory} />
-          {view === "overview" && <OverviewBoard stocks={filteredAll} setView={selectView} onCategory={selectCategory} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
-          {view === "market" && <MarketStatus lastUpdated={lastUpdated} lastUpdatedAt={lastUpdatedAt} />}
+          {view === "overview" && <OverviewBoard stocks={filteredAll} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
+          {view === "market" && <MarketStatus lastUpdated={lastUpdated} lastUpdatedAt={lastUpdatedAt} marketState={marketState} />}
           {view === "heatmap" && <Heatmap stocks={hydratedStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           {view === "category" && <CategoryResearch category={activeCategory} stocks={activeStocks} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />}
           <footer className="stock-footer rounded-2xl border border-white/10 bg-slate-950/45 px-5 py-4 text-center text-sm font-medium text-slate-400">
             ข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน ราคาจาก API อาจล่าช้าหรือใช้ fallback เมื่อแหล่งข้อมูลไม่ตอบสนอง
           </footer>
-        </div>
       </div>
     </section>
   );
 }
 
-function StockSidebar({ view, activeCategoryId, onView, onCategory }: { view: ViewId; activeCategoryId: string; onView: (id: ViewId) => void; onCategory: (id: string) => void }) {
-  return (
-    <aside className="nimbus-card-3d sticky top-24 hidden h-[calc(100vh-7rem)] rounded-2xl border border-white/10 bg-slate-950/72 p-4 2xl:block">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-violet-600 text-2xl font-black shadow-[0_0_34px_rgba(59,130,246,0.35)]">N</div>
-        <div>
-          <p className="text-lg font-extrabold leading-none text-white">NEXUS</p>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Research</p>
-        </div>
-      </div>
-      <nav className="max-h-[calc(100vh-18rem)] space-y-1.5 overflow-y-auto pr-1">
-        {navItems.map((item) => {
-          const active = view === item.id;
-          return (
-            <button key={item.id} type="button" aria-current={active ? "page" : undefined} onPointerDown={() => onView(item.id)} onClick={() => onView(item.id)} className={navButton(active)}>
-              <span className="w-7 text-center text-base">{item.icon}</span>
-              <span>{item.title}</span>
-            </button>
-          );
-        })}
-        <div className="my-3 border-t border-white/10" />
-        {categories.map((category) => {
-          const active = view === "category" && activeCategoryId === category.id;
-          return (
-            <button key={category.id} type="button" aria-current={active ? "page" : undefined} onPointerDown={() => onCategory(category.id)} onClick={() => onCategory(category.id)} className={navButton(active)}>
-              <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-[10px]">{category.icon}</span>
-              <span>{category.title}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <MarketMiniCard />
-    </aside>
-  );
-}
-
 function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: ViewId; activeCategoryId: string; onView: (id: ViewId) => void; onCategory: (id: string) => void }) {
   return (
-    <nav className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-3">
-      <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+    <nav className="nimbus-card-3d flex flex-col gap-3 rounded-lg border border-white/10 bg-slate-950/62 p-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:pb-0">
         {navItems.map((item) => {
           const active = view === item.id;
           return (
@@ -402,7 +371,7 @@ function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: V
               aria-current={active ? "page" : undefined}
               onPointerDown={() => onView(item.id)}
               onClick={() => onView(item.id)}
-              className={cn("shrink-0 rounded-xl border px-4 py-2.5 text-sm font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-blue-300/45 bg-blue-600/55 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]" : "border-white/10 bg-white/[0.045] text-slate-300 hover:border-cyan-300/30 hover:text-white")}
+              className={cn("shrink-0 rounded-lg border px-4 py-2.5 text-sm font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-cyan-300/40 bg-cyan-300/12 text-white" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/30 hover:text-white")}
             >
               <span className="mr-2">{item.icon}</span>
               {item.title}
@@ -410,23 +379,20 @@ function StockQuickNav({ view, activeCategoryId, onView, onCategory }: { view: V
           );
         })}
       </div>
-      <div className="mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
-        {categories.map((category) => {
-          const active = view === "category" && activeCategoryId === category.id;
-          return (
-            <button
-              key={category.id}
-              type="button"
-              aria-current={active ? "page" : undefined}
-              onPointerDown={() => onCategory(category.id)}
-              onClick={() => onCategory(category.id)}
-              className={cn("shrink-0 rounded-xl border px-4 py-2 text-xs font-extrabold transition duration-150 active:scale-[0.99]", active ? "border-cyan-300/45 bg-cyan-300/16 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.18)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}
-            >
-              {category.icon} {category.title}
-            </button>
-          );
-        })}
-      </div>
+      <label className="flex min-w-0 items-center gap-3 text-xs font-bold text-slate-400 lg:w-80">
+        <span className="shrink-0">หมวดหุ้น</span>
+        <select
+          aria-label="เลือกหมวดหุ้น"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-950/80 px-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/45"
+          value={view === "category" ? activeCategoryId : ""}
+          onChange={(event) => {
+            if (event.target.value) onCategory(event.target.value);
+          }}
+        >
+          <option value="">เลือกหมวด</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.title}</option>)}
+        </select>
+      </label>
     </nav>
   );
 }
@@ -442,6 +408,7 @@ function StockTopbar({
   quoteError,
   quoteLoading,
   quoteSource,
+  marketState,
   onRefresh,
 }: {
   view: ViewId;
@@ -454,6 +421,7 @@ function StockTopbar({
   quoteError: string;
   quoteLoading: boolean;
   quoteSource: string;
+  marketState?: string;
   onRefresh: () => void;
 }) {
   const titleMap: Record<ViewId, string> = {
@@ -467,22 +435,24 @@ function StockTopbar({
     freshness.status === "new" ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100"
     : freshness.status === "expired" ? "border-rose-300/30 bg-rose-300/12 text-rose-100"
     : "border-slate-300/20 bg-white/[0.06] text-slate-200";
+  const market = getMarketStateCopy(marketState);
 
   return (
-    <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <header className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <div>
-        <h1 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">{titleMap[view]}</h1>
-        <p className="mt-2 text-lg font-medium text-slate-300">{view === "category" ? category.subtitle : "ภาพรวมตลาด หุ้นเด่น และราคาหลังตลาดปิดในหน้าเดียว"}</p>
+        <h1 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">{titleMap[view]}</h1>
+        <p className="mt-2 text-sm font-medium text-slate-300 sm:text-base">{view === "category" ? category.subtitle : "ติดตามราคา แนวโน้ม และสถานะข้อมูลของสินทรัพย์ทั้งหมดในหน้าเดียว"}</p>
         <label className="relative mt-4 block">
+          <span className="sr-only">ค้นหาหุ้น</span>
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/55 pl-12 pr-4 text-base font-semibold text-white shadow-inner shadow-black/20 transition focus:border-cyan-300/45" placeholder="ค้นหาหุ้น, Ticker, หรือหมวดหมู่..." />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-12 w-full rounded-lg border border-white/10 bg-slate-950/55 pl-12 pr-4 text-sm font-semibold text-white transition focus:border-cyan-300/45" placeholder="ค้นหาหุ้น, Ticker, บริษัท หรือหมวดหมู่..." />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
         <div className={cn("nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/60 p-4", getFreshnessClass(freshness.status))}>
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-slate-400">ตลาดสหรัฐ</p>
-            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-extrabold text-emerald-200">เปิดทำการ</span>
+            <span className={cn("rounded-md border px-3 py-1 text-xs font-extrabold", market.className)}>{market.label}</span>
           </div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -511,34 +481,23 @@ function StockTopbar({
 
 function OverviewBoard({
   stocks,
-  setView,
-  onCategory,
   freshSymbols,
   staleSymbols,
 }: {
   stocks: StockItem[];
-  setView: (view: ViewId) => void;
-  onCategory: (id: string) => void;
   freshSymbols?: Set<string>;
   staleSymbols?: Set<string>;
 }) {
-  const gainers = stocks.filter((item) => change(item.quote) >= 0);
-  const losers = stocks.length - gainers.length;
+  const gainers = stocks.filter((item) => change(item.quote) > 0);
+  const losers = stocks.filter((item) => change(item.quote) < 0);
   const afterMovers = stocks.filter((item) => afterChange(item.quote) !== 0).length;
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="จำนวนหุ้นที่ติดตาม" value={stocks.length.toString()} sub="รวมทุกหมวด" icon="☆" tone="blue" />
-        <MetricCard title="หุ้นบวกวันนี้" value={gainers.length.toString()} sub={`${Math.round((gainers.length / stocks.length) * 100)}% ของทั้งหมด`} icon="↗" tone="green" />
-        <MetricCard title="หุ้นลบวันนี้" value={losers.toString()} sub={`${Math.round((losers / stocks.length) * 100)}% ของทั้งหมด`} icon="↘" tone="red" />
+        <MetricCard title="หุ้นบวกวันนี้" value={gainers.length.toString()} sub={`${stocks.length ? Math.round((gainers.length / stocks.length) * 100) : 0}% ของทั้งหมด`} icon="↗" tone="green" />
+        <MetricCard title="หุ้นลบวันนี้" value={losers.length.toString()} sub={`${stocks.length ? Math.round((losers.length / stocks.length) * 100) : 0}% ของทั้งหมด`} icon="↘" tone="red" />
         <MetricCard title="After Hours เด่น" value={afterMovers.toString()} sub="มีราคาเปลี่ยนแปลง" icon="☾" tone="violet" />
-      </div>
-      <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
-        <button type="button" onPointerDown={() => setView("overview")} onClick={() => setView("overview")} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white">All</button>
-        {categories.map((category) => (
-          <button key={category.id} type="button" onPointerDown={() => onCategory(category.id)} onClick={() => onCategory(category.id)} className="rounded-xl border border-white/10 bg-slate-950/55 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/30 hover:text-white">{category.title}</button>
-        ))}
-        <button type="button" onPointerDown={() => setView("heatmap")} onClick={() => setView("heatmap")} className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15">Heatmap</button>
       </div>
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_21rem]">
         <PriceTable title="Stock Overview Board" stocks={stocks} compact={false} freshSymbols={freshSymbols} staleSymbols={staleSymbols} />
@@ -568,12 +527,21 @@ function CategoryResearch({ category, stocks, freshSymbols, staleSymbols }: { ca
 
 function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { title: string; stocks: StockItem[]; compact: boolean; freshSymbols?: Set<string>; staleSymbols?: Set<string> }) {
   return (
-    <article className="nimbus-card-3d overflow-hidden rounded-2xl border border-white/10 bg-slate-950/62">
+    <article className="nimbus-card-3d overflow-hidden rounded-lg border border-white/10 bg-slate-950/62">
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-        <h2 className="text-2xl font-extrabold text-white">{title}</h2>
-        <span className="text-sm font-bold text-slate-400">Today / Prev Close / After Hours</span>
+        <div>
+          <h2 className="text-xl font-extrabold text-white sm:text-2xl">{title}</h2>
+          <p className="mt-1 text-xs font-semibold text-slate-500">พบ {stocks.length} สินทรัพย์</p>
+        </div>
+        <span className="hidden text-sm font-bold text-slate-400 sm:block">Today / Prev Close / After Hours</span>
       </div>
-      <div className="overflow-x-auto">
+      {stocks.length === 0 ? (
+        <div className="px-5 py-12 text-center">
+          <p className="text-lg font-extrabold text-white">ไม่พบหุ้นที่ตรงกับคำค้น</p>
+          <p className="mt-2 text-sm text-slate-400">ลองค้นหาด้วย Ticker ชื่อบริษัท หรือเลือกหมวดอื่น</p>
+        </div>
+      ) : null}
+      <div className={cn("hidden overflow-x-auto lg:block", stocks.length === 0 && "lg:hidden")}>
         <table className="w-full min-w-[1120px] text-left">
           <thead className="text-xs font-bold uppercase text-slate-500">
             <tr>
@@ -629,16 +597,49 @@ function PriceTable({ title, stocks, compact, freshSymbols, staleSymbols }: { ti
           </tbody>
         </table>
       </div>
+      {stocks.length > 0 ? (
+        <div className="divide-y divide-white/8 lg:hidden">
+          {stocks.map((item) => {
+            const daily = change(item.quote);
+            const dailyPct = changePct(item.quote);
+            const after = afterChangePct(item.quote);
+            return (
+              <article key={`${item.ticker}-${title}-mobile`} className={cn("p-4", freshSymbols?.has(item.ticker) && "nimbus-live-new-row")}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <LogoBadge item={item} />
+                    <div className="min-w-0">
+                      <p className="text-lg font-extrabold text-white">{item.ticker}</p>
+                      <p className="truncate text-xs font-semibold text-slate-400">{item.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right tabular-nums">
+                    <p className="text-lg font-extrabold text-white">{formatPrice(item.quote.price)}</p>
+                    <p className={cn("text-sm font-extrabold", daily > 0 ? "text-emerald-300" : daily < 0 ? "text-rose-300" : "text-slate-400")}>{signedPct(dailyPct)}</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-md bg-white/[0.04] p-2"><p className="text-slate-500">ปิดก่อนหน้า</p><p className="mt-1 font-bold text-slate-200 tabular-nums">{formatPrice(item.quote.prevClose)}</p></div>
+                  <div className="rounded-md bg-white/[0.04] p-2"><p className="text-slate-500">เปลี่ยน</p><p className="mt-1 font-bold text-slate-200 tabular-nums">{signed(daily)}</p></div>
+                  <div className="rounded-md bg-white/[0.04] p-2"><p className="text-slate-500">After Hours</p><p className={cn("mt-1 font-bold tabular-nums", after > 0 ? "text-emerald-300" : after < 0 ? "text-rose-300" : "text-slate-300")}>{signedPct(after)}</p></div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">{item.tags.slice(0, 2).map((tag) => <span key={tag} className="rounded-md bg-cyan-300/8 px-2 py-1 text-[11px] font-bold text-cyan-100">{tag}</span>)}</div>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
     </article>
   );
 }
 
-function MarketStatus({ lastUpdated, lastUpdatedAt }: { lastUpdated: string; lastUpdatedAt: string | null }) {
+function MarketStatus({ lastUpdated, lastUpdatedAt, marketState }: { lastUpdated: string; lastUpdatedAt: string | null; marketState?: string }) {
   const freshness = getContentFreshness({ kind: "stock", updatedAt: lastUpdatedAt });
   const freshnessTone =
     freshness.status === "new" ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100"
     : freshness.status === "expired" ? "border-rose-300/30 bg-rose-300/12 text-rose-100"
     : "border-slate-300/20 bg-white/[0.06] text-slate-200";
+  const market = getMarketStateCopy(marketState);
 
   return (
     <div className="space-y-5">
@@ -651,8 +652,8 @@ function MarketStatus({ lastUpdated, lastUpdatedAt }: { lastUpdated: string; las
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-300">ตลาดสหรัฐ:</p>
-            <p className="mt-2 text-6xl font-extrabold text-emerald-300">เปิดทำการ</p>
-            <span className="mt-3 inline-flex rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-sm font-extrabold text-emerald-200">LIVE</span>
+            <p className="mt-2 text-4xl font-extrabold text-white sm:text-5xl">{market.label}</p>
+            <span className={cn("mt-3 inline-flex rounded-md border px-4 py-2 text-sm font-extrabold", market.className)}>{market.shortLabel}</span>
           </div>
         </div>
         <div className="space-y-5 border-white/10 lg:border-l lg:pl-8">
@@ -693,7 +694,7 @@ function Heatmap({ stocks, freshSymbols, staleSymbols }: { stocks: StockItem[]; 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <main className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5">
         <div className="mb-4 flex flex-wrap gap-2">
-          {["Heatmap", "S&P 500", "Watchlist", "AI Theme", "Semiconductor", "ETF Heatmap"].map((item) => (
+          {["Heatmap", "S&P 500", "AI Theme", "Semiconductor", "ETF Heatmap"].map((item) => (
             <button
               key={item}
               type="button"
@@ -815,10 +816,6 @@ function MarketSummary() {
   return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><h2 className="text-xl font-extrabold text-white">สรุปภาพรวมตลาด</h2><div className="mt-4 space-y-4">{marketIndexes.slice(1).map((item) => <MarketLine key={item.label} item={item} />)}</div></article>;
 }
 
-function MarketMiniCard() {
-  return <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-slate-900/70 p-4"><p className="font-bold text-white">ตลาดวันนี้</p><p className="text-sm font-semibold text-emerald-300">● เปิดทำการ</p><div className="mt-3 space-y-2">{marketIndexes.slice(1, 4).map((item) => <MarketLine key={item.label} item={item} mini />)}</div></div>;
-}
-
 function MarketIndexCard({ item }: { item: (typeof marketIndexes)[number] }) {
   return <article className="nimbus-card-3d rounded-2xl border border-white/10 bg-slate-950/62 p-5"><p className="font-bold text-slate-300">{item.label}</p><p className="mt-1 text-2xl font-extrabold text-white">{item.value}</p><span className={item.change >= 0 ? "font-bold text-emerald-300" : "font-bold text-rose-300"}>{signedPct(item.change)}</span><div className="mt-2 h-12"><Sparkline values={item.spark} violet={item.change < 0} /></div></article>;
 }
@@ -915,10 +912,6 @@ const marketIndexes = [
   { label: "VIX", value: "12.68", change: -1.02, spark: [28, 27, 23, 22, 18, 16, 12] },
 ];
 
-function navButton(active: boolean) {
-  return cn("relative z-10 flex min-h-12 w-full cursor-pointer select-none items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm font-bold transition duration-200", active ? "border-blue-300/35 bg-blue-600/35 text-white shadow-[0_0_22px_rgba(59,130,246,0.18)]" : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[0.05] hover:text-white");
-}
-
 function tagTone(index: number) {
   const tones = ["border-violet-300/25 bg-violet-400/12 text-violet-200", "border-blue-300/25 bg-blue-400/12 text-blue-200", "border-cyan-300/25 bg-cyan-400/12 text-cyan-200", "border-emerald-300/25 bg-emerald-400/12 text-emerald-200", "border-amber-300/25 bg-amber-400/12 text-amber-200"];
   return tones[index % tones.length];
@@ -938,6 +931,15 @@ function afterChange(quote: Quote) {
 
 function afterChangePct(quote: Quote) {
   return quote.price ? ((quote.afterHours - quote.price) / quote.price) * 100 : 0;
+}
+
+function getMarketStateCopy(state?: string) {
+  const normalized = state?.toUpperCase();
+  if (normalized === "REGULAR") return { label: "กำลังซื้อขาย", shortLabel: "LIVE", className: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100" };
+  if (normalized === "PRE" || normalized === "PREPRE") return { label: "ก่อนเปิดตลาด", shortLabel: "PRE-MARKET", className: "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" };
+  if (normalized === "POST" || normalized === "POSTPOST") return { label: "หลังตลาดปิด", shortLabel: "AFTER HOURS", className: "border-violet-300/30 bg-violet-300/10 text-violet-100" };
+  if (normalized === "CLOSED") return { label: "ตลาดปิด", shortLabel: "CLOSED", className: "border-slate-300/20 bg-white/[0.06] text-slate-200" };
+  return { label: "สถานะตลาดไม่พร้อมใช้งาน", shortLabel: "UNAVAILABLE", className: "border-amber-300/25 bg-amber-300/10 text-amber-100" };
 }
 
 function formatPrice(value: number) {
