@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { isScheduledItemActive } from "@/lib/event-date";
+import { concertSeeds, formatSeedDateRange, getSeedMonthId } from "@/data/schedule-seeds";
 import { cn } from "@/lib/utils";
 
 type ConcertMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -19,6 +20,8 @@ type FestivalEvent = {
   title: string;
   dateTh: string;
   dateEn: string;
+  startDate?: string;
+  endDate?: string;
   time?: string;
   venueTh: string;
   venueEn: string;
@@ -27,6 +30,7 @@ type FestivalEvent = {
   priceEn?: string;
   sourceTh: string;
   sourceEn: string;
+  sourceUrl?: string;
   poster: string;
   isPlaceholder?: boolean;
 };
@@ -46,7 +50,7 @@ type FestivalMonth = {
   events: FestivalEvent[];
 };
 
-const festivalMonths: FestivalMonth[] = [
+const legacyFestivalMonths: FestivalMonth[] = [
   {
     id: "july-2026",
     labelTh: "กรกฎาคม 2026",
@@ -573,6 +577,40 @@ const festivalMonths: FestivalMonth[] = [
   },
 ];
 
+function getConcertCategory(category: string, venue: string): EventCategory {
+  const outdoorSignals = /เทศกาล|festival|outdoor|open-air|waterfall|wonderfruit/i;
+  const indoorSignals = /hall|arena|theatre|theater|โรงละคร|อารีน่า|ศูนย์|impact|bitec|qsncc/i;
+  return outdoorSignals.test(category) && !indoorSignals.test(venue) ? "outdoor" : "indoor";
+}
+
+function getConcertPosterLabel(title: string) {
+  return title.split(/\s+/).filter(Boolean).slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+}
+
+const festivalMonths: FestivalMonth[] = legacyFestivalMonths.map((month) => ({
+  ...month,
+  updatedTh: "ตรวจสอบชุดข้อมูล 15 ก.ค. 2026",
+  updatedEn: "Dataset verified Jul 15, 2026",
+  events: concertSeeds
+    .filter((event) => getSeedMonthId(event.startDate) === month.id)
+    .map((event) => ({
+      id: event.id,
+      category: getConcertCategory(event.category, event.venue),
+      title: event.title,
+      dateTh: formatSeedDateRange(event.startDate, event.endDate, "th"),
+      dateEn: formatSeedDateRange(event.startDate, event.endDate, "en"),
+      startDate: event.startDate,
+      endDate: event.endDate,
+      venueTh: `${event.venue} · ${event.province}`,
+      venueEn: `${event.venue} · ${event.province}`,
+      highlights: [event.category, event.ticketStatus],
+      sourceTh: event.sourceName,
+      sourceEn: event.sourceName,
+      sourceUrl: event.sourceUrl,
+      poster: getConcertPosterLabel(event.title),
+    })),
+}));
+
 const eventLinks: Partial<Record<string, string>> = {
   "vol-72-volume-phase-7": "https://www.zipeventapp.com/e/volume-livehouse-vol72",
   "colorists-music-festival-5": "https://www.eventpop.me/s/colorists-5",
@@ -616,7 +654,7 @@ const expoFairEventIds = new Set([
 ]);
 
 function isConcertVisible(event: FestivalEvent, now = new Date()) {
-  return !expoFairEventIds.has(event.id) && (event.isPlaceholder || isScheduledItemActive(event.dateEn, now));
+  return !expoFairEventIds.has(event.id) && (event.isPlaceholder || isScheduledItemActive(event.endDate ?? event.dateEn, now, "concert"));
 }
 
 const sectionMeta = {
@@ -656,7 +694,7 @@ function concertPosterSrc(event: FestivalEvent, detailUrl: string) {
 
 function Poster({ event, index, category }: { event: FestivalEvent; index: number; category: EventCategory }) {
   const meta = sectionMeta[category];
-  const detailUrl = eventLinks[event.id];
+  const detailUrl = event.sourceUrl ?? eventLinks[event.id];
   const [failed, setFailed] = useState(false);
   const showRemotePoster = Boolean(detailUrl && !event.isPlaceholder && !failed);
 
@@ -702,18 +740,19 @@ function DetailRow({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-function EventCard({ event, index, isThai }: { event: FestivalEvent; index: number; isThai: boolean }) {
+function EventCard({ event, index, isThai, isNew }: { event: FestivalEvent; index: number; isThai: boolean; isNew: boolean }) {
   const meta = sectionMeta[event.category];
   const highlightLabel = event.category === "indoor" ? "ศิลปิน / ไฮไลต์" : "ไฮไลต์ / รูปแบบงาน";
-  const detailUrl = eventLinks[event.id];
+  const detailUrl = event.sourceUrl ?? eventLinks[event.id];
   const freshness = getContentFreshness({ kind: "event", date: event.dateEn });
-  const freshnessTone = freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray";
+  const scheduleStatus = isNew ? "new" : freshness.status === "expired" && isConcertVisible(event) ? "active" : freshness.status;
+  const freshnessTone = scheduleStatus === "new" ? "green" : scheduleStatus === "expiring" ? "yellow" : scheduleStatus === "expired" ? "red" : "gray";
 
   return (
     <article
       className={cn(
         "concert-card nimbus-card-3d rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,12,27,0.94))] p-4 shadow-[0_18px_46px_rgba(0,0,0,0.25)] transition hover:border-fuchsia-300/45 hover:bg-slate-900/90 sm:flex sm:gap-5",
-        getFreshnessClass(freshness.status),
+        getFreshnessClass(scheduleStatus),
         event.isPlaceholder && "border-dashed bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(2,12,27,0.72))]",
       )}
     >
@@ -724,7 +763,7 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
           <span className={cn("concert-chip rounded-full border px-3 py-1 text-xs font-black", meta.chip)}>
             {event.isPlaceholder ? (isThai ? "รออัปเดต" : "Watch") : meta.title}
           </span>
-          <Badge tone={freshnessTone}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</Badge>
+          <Badge tone={freshnessTone}>{getFreshnessLabel(scheduleStatus, isThai ? "th" : "en")}</Badge>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           <DetailRow icon="📅" label={isThai ? event.dateTh : event.dateEn} />
@@ -759,7 +798,7 @@ function EventCard({ event, index, isThai }: { event: FestivalEvent; index: numb
   );
 }
 
-function EventSection({ category, events, isThai }: { category: EventCategory; events: FestivalEvent[]; isThai: boolean }) {
+function EventSection({ category, events, isThai, newItemIds }: { category: EventCategory; events: FestivalEvent[]; isThai: boolean; newItemIds: Set<string> }) {
   const meta = sectionMeta[category];
   const realCount = events.filter((event) => !event.isPlaceholder).length;
 
@@ -780,7 +819,7 @@ function EventSection({ category, events, isThai }: { category: EventCategory; e
         </div>
         <div className="grid gap-4 bg-slate-950/72 p-4 xl:grid-cols-2">
           {events.map((event, index) => (
-            <EventCard key={event.id} event={event} index={index} isThai={isThai} />
+            <EventCard key={event.id} event={event} index={index} isThai={isThai} isNew={newItemIds.has(event.id)} />
           ))}
         </div>
       </div>
@@ -791,10 +830,15 @@ function EventSection({ category, events, isThai }: { category: EventCategory; e
 export function ConcertScheduleView() {
   const { lang } = useLanguage();
   const [activeMonthId, setActiveMonthId] = useState<ConcertMonthId>("july-2026");
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [, setRefreshVersion] = useState(0);
   useEffect(() => {
     const handleRefresh = (event: Event) => {
-      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/concerts") setRefreshVersion((value) => value + 1);
+      const detail = (event as CustomEvent<{ href?: string; itemIds?: string[] }>).detail;
+      if (detail?.href === "/concerts") {
+        setRefreshVersion((value) => value + 1);
+        setNewItemIds(new Set(detail.itemIds ?? []));
+      }
     };
     window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
     return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
@@ -882,8 +926,8 @@ export function ConcertScheduleView() {
       </div>
 
       <div className="space-y-6 px-5 py-5 sm:px-8 lg:px-10">
-        <EventSection category="indoor" events={indoorEvents} isThai={isThai} />
-        <EventSection category="outdoor" events={outdoorEvents} isThai={isThai} />
+        <EventSection category="indoor" events={indoorEvents} isThai={isThai} newItemIds={newItemIds} />
+        <EventSection category="outdoor" events={outdoorEvents} isThai={isThai} newItemIds={newItemIds} />
 
         <div className="concert-note rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-semibold text-slate-400">
           <p><span className="font-black text-fuchsia-200">{isThai ? "หมายเหตุ:" : "Note:"}</span> {isThai ? activeMonth.noteTh : activeMonth.noteEn}</p>

@@ -7,6 +7,7 @@ import { DataFreshnessIndicator } from "@/components/ui/DataFreshnessIndicator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getDataFreshnessStatus, selectFreshnessTimestamp } from "@/lib/data-freshness";
+import { hasUsableNewsImage } from "@/lib/news-image";
 import { cn } from "@/lib/utils";
 import type { DailyBriefApiResponse, DailyBriefItem } from "@/types/daily-brief";
 import type { WebNotification } from "@/types/notification";
@@ -63,9 +64,32 @@ function getNewsSummary(item: DailyBriefItem, lang: "th" | "en") {
 }
 
 function newsImage(item: DailyBriefItem) {
-  if (!item.imageUrl || !/^https?:\/\//i.test(item.imageUrl)) return null;
-  const params = new URLSearchParams({ url: item.imageUrl, title: item.title, kind: "news", strict: "1" });
+  const imageUrl = item.imageUrl;
+  if (!imageUrl || !hasUsableNewsImage(item)) return null;
+  const params = new URLSearchParams({ url: imageUrl, title: item.title, kind: "news", strict: "1" });
   return `/api/poster-image?${params.toString()}`;
+}
+
+function DashboardGlobalStoryCard({ item, lang }: { item: DailyBriefItem; lang: "th" | "en" }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [item.id, item.imageUrl]);
+  const image = imageFailed ? null : newsImage(item);
+
+  return (
+    <article data-news-card="dashboard-global" data-image-layout={image ? "image" : "text-only"} className={cn("flex min-w-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-slate-950/50", !image && "p-4")}>
+      {image ? <div className="relative aspect-[16/7] w-full"><Image src={image} alt="" fill sizes="(min-width: 1280px) 30vw, 50vw" className="object-cover" unoptimized onError={() => setImageFailed(true)} /></div> : null}
+      <div className={cn("flex min-w-0 flex-1 flex-col", image && "p-4")}>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+          <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-cyan-100">{item.category}</span>
+          {item.sourceMetadata?.addedInCurrentUpgrade ? <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-emerald-100">{lang === "th" ? "แหล่งข้อมูลใหม่" : "New source"}</span> : null}
+          {item.relatedSources.length ? <span className="text-slate-500">+{item.relatedSources.length} sources</span> : null}
+        </div>
+        <h3 className={cn("mt-3 font-extrabold leading-6 text-white", image ? "line-clamp-2 text-base" : "text-lg")}><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-cyan-100">{getNewsTitle(item, lang)}</a></h3>
+        <p className={cn("mt-2 text-sm leading-6 text-slate-400", image && "line-clamp-2")}>{getNewsSummary(item, lang)}</p>
+        <p className="mt-auto pt-3 text-xs text-slate-500">{item.sourceName}</p>
+      </div>
+    </article>
+  );
 }
 
 function percentage(quote: StockQuote) {
@@ -256,24 +280,7 @@ export function DashboardOverviewView() {
             <DataFreshnessIndicator updatedAt={newsTimestamp} status={newsStatus} sourceNames={sourceNames} label={lang === "th" ? "ข่าว" : "News"} lang={lang} />
             {globalStories.length ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {globalStories.slice(0, 6).map((item) => {
-                  const image = newsImage(item);
-                  return (
-                    <article key={item.id} className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/50">
-                      {image ? <div className="relative aspect-[16/7] w-full"><Image src={image} alt="" fill sizes="(min-width: 1280px) 30vw, 50vw" className="object-cover" unoptimized /></div> : null}
-                      <div className="p-4">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                          <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-cyan-100">{item.category}</span>
-                          {item.sourceMetadata?.addedInCurrentUpgrade ? <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-emerald-100">{lang === "th" ? "แหล่งข้อมูลใหม่" : "New source"}</span> : null}
-                          {item.relatedSources.length ? <span className="text-slate-500">+{item.relatedSources.length} sources</span> : null}
-                        </div>
-                        <h3 className="mt-3 line-clamp-2 text-base font-extrabold leading-6 text-white"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-cyan-100">{getNewsTitle(item, lang)}</a></h3>
-                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{getNewsSummary(item, lang)}</p>
-                        <p className="mt-3 text-xs text-slate-500">{item.sourceName}</p>
-                      </div>
-                    </article>
-                  );
-                })}
+                {globalStories.slice(0, 6).map((item) => <DashboardGlobalStoryCard key={item.id} item={item} lang={lang} />)}
               </div>
             ) : <p className="mt-3 rounded-lg border border-dashed border-white/10 p-6 text-sm text-slate-400">{errors.news ?? (lang === "th" ? "ยังไม่มีข่าวทั่วโลกที่ผ่านเงื่อนไข 48 ชั่วโมง" : "No qualifying global stories in the last 48 hours.")}</p>}
           </div>

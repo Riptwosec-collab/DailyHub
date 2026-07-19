@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { hasUsableNewsImage } from "@/lib/news-image";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { clampScore, cn, formatDateTime } from "@/lib/utils";
 import type { Lang } from "@/lib/translations";
@@ -487,7 +488,7 @@ type NewsSnapshotCard = {
 };
 
 function hasRealDashboardNewsImage(item: DailyBriefItem) {
-  return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
+  return hasUsableNewsImage(item);
 }
 
 function isExpiredDashboardNewsItem(item: DailyBriefItem) {

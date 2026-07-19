@@ -1,9 +1,13 @@
+import { concertSeeds, eventSeeds, formatSeedDateRange } from "@/data/schedule-seeds";
+
 export type TopicRefreshItem = {
   id: string;
   group: string;
   title: string;
   dateTh: string;
   dateEn: string;
+  startDate?: string;
+  endDate?: string;
   detailTh: string;
   detailEn: string;
   sourceLabel: string;
@@ -21,6 +25,34 @@ export type TopicRefreshCatalog = {
 
 const majorMovieSource = "https://www.majorcineplex.com/movie";
 const netflixSource = "https://www.netflix.com/tudum";
+
+const concertTopicItems: TopicRefreshItem[] = concertSeeds.map((item) => ({
+  id: item.id,
+  group: /เทศกาล|festival/i.test(item.category) ? "outdoor" : "indoor",
+  title: item.title,
+  dateTh: formatSeedDateRange(item.startDate, item.endDate, "th"),
+  dateEn: formatSeedDateRange(item.startDate, item.endDate, "en"),
+  startDate: item.startDate,
+  endDate: item.endDate,
+  detailTh: `${item.venue} · ${item.province}`,
+  detailEn: `${item.venue} · ${item.province}`,
+  sourceLabel: item.sourceName,
+  sourceUrl: item.sourceUrl,
+}));
+
+const eventTopicItems: TopicRefreshItem[] = eventSeeds.map((item) => ({
+  id: item.id,
+  group: /fair|แฟร์|มหกรรม/i.test(`${item.title} ${item.categories.join(" ")}`) ? "fair" : "expo",
+  title: item.title,
+  dateTh: formatSeedDateRange(item.startDate, item.endDate, "th"),
+  dateEn: formatSeedDateRange(item.startDate, item.endDate, "en"),
+  startDate: item.startDate,
+  endDate: item.endDate,
+  detailTh: `${item.venue} · ${item.shortDescription}`,
+  detailEn: `${item.venue} · ${item.titleEnglish || item.shortDescription}`,
+  sourceLabel: item.sourceName,
+  sourceUrl: item.sourceUrl,
+}));
 
 export const topicRefreshCatalog: Record<TopicRefreshCatalog["topic"], TopicRefreshCatalog> = {
   movies: {
@@ -74,11 +106,7 @@ export const topicRefreshCatalog: Record<TopicRefreshCatalog["topic"], TopicRefr
     labelEn: "Concert schedule",
     noteTh: "ดึงสถานะแหล่งข้อมูลคอนเสิร์ตพร้อมรายการเด่นที่ใช้ในหน้าตารางคอนเสิร์ต",
     noteEn: "Checks live concert sources and returns highlighted schedule items.",
-    items: [
-      { id: "volume-72", group: "indoor", title: "VOL.72 - VOLUME PHASE 7", dateTh: "4 ก.ค. 2026", dateEn: "Jul 4, 2026", detailTh: "The Street Hall ชั้น 5", detailEn: "The Street Hall 5F", sourceLabel: "The Street Ratchada", sourceUrl: "https://www.thestreetratchada.com/" },
-      { id: "gfest-marathon-concert-2026", group: "indoor", title: "GFEST Marathon Concert 2026", dateTh: "29-30 ส.ค. 2026", dateEn: "Aug 29-30, 2026", detailTh: "IMPACT Arena", detailEn: "IMPACT Arena", sourceLabel: "ThaiTicketMajor", sourceUrl: "https://www.thaiticketmajor.com/concert/gfest-marathon-concert-2026.html" },
-      { id: "wonderfruit-2026", group: "outdoor", title: "Wonderfruit 2026", dateTh: "3-7 ธ.ค. 2026", dateEn: "Dec 3-7, 2026", detailTh: "The Fields at Siam Country Club, Chonburi", detailEn: "The Fields at Siam Country Club, Chonburi", sourceLabel: "Wonderfruit", sourceUrl: "https://wonderfruit.co/" },
-    ],
+    items: concertTopicItems,
   },
   events: {
     topic: "events",
@@ -86,11 +114,7 @@ export const topicRefreshCatalog: Record<TopicRefreshCatalog["topic"], TopicRefr
     labelEn: "Events / Expo / Fair",
     noteTh: "ดึงสถานะแหล่งข้อมูลอีเวนต์ พร้อมรายการเด่นที่ไม่ซ้ำกับคอนเสิร์ต",
     noteEn: "Checks live event sources and returns curated non-duplicate event items.",
-    items: [
-      { id: "y-book-fair-11", group: "fair", title: "Y BOOK FAIR #11", dateTh: "11-12 ก.ค. 2026", dateEn: "Jul 11-12, 2026", detailTh: "QSNCC Event Hall B2", detailEn: "QSNCC Event Hall B2", sourceLabel: "QSNCC", sourceUrl: "https://www.qsncc.com/" },
-      { id: "impact-speed-fest-2", group: "expo", title: "IMPACT Speed Fest ครั้งที่ 2", dateTh: "17-19 ก.ค. 2026", dateEn: "Jul 17-19, 2026", detailTh: "IMPACT Challenger", detailEn: "IMPACT Challenger", sourceLabel: "IMPACT", sourceUrl: "https://www.impact.co.th/" },
-      { id: "awakening-song-wat-2026", group: "outdoor", title: "Awakening Song Wat 2026", dateTh: "3-12 ก.ค. 2026", dateEn: "Jul 3-12, 2026", detailTh: "Song Wat Road, Bangkok", detailEn: "Song Wat Road, Bangkok", sourceLabel: "Eventpop", sourceUrl: "https://www.eventpop.me/" },
-    ],
+    items: eventTopicItems,
   },
 };
 

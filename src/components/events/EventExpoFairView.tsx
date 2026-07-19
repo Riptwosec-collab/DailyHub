@@ -9,6 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { isScheduledItemActive } from "@/lib/event-date";
 import type { TopicRefreshItem } from "@/data/topic-refresh-catalog";
+import { eventSeeds, formatSeedDateRange, getSeedMonthId } from "@/data/schedule-seeds";
 import { cn } from "@/lib/utils";
 
 type EventMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -20,6 +21,8 @@ type ExpoEvent = {
   title: string;
   dateTh: string;
   dateEn: string;
+  startDate?: string;
+  endDate?: string;
   venueTh: string;
   venueEn: string;
   highlights: string[];
@@ -47,7 +50,7 @@ const kindMeta = {
   outdoor: { labelTh: "Outdoor", labelEn: "Outdoor", icon: "⛺", tone: "green", className: "border-emerald-300/28 bg-emerald-300/[0.065]" },
 } satisfies Record<EventKind, { labelTh: string; labelEn: string; icon: string; tone: "blue" | "purple" | "green"; className: string }>;
 
-const eventMonths: EventMonth[] = [
+const legacyEventMonths: EventMonth[] = [
   {
     id: "july-2026",
     labelTh: "กรกฎาคม 2026",
@@ -298,6 +301,36 @@ const eventMonths: EventMonth[] = [
   },
 ];
 
+function getEventKind(title: string, categories: string[]): EventKind {
+  const searchable = `${title} ${categories.join(" ")}`;
+  if (/outdoor|กลางแจ้ง/i.test(searchable)) return "outdoor";
+  if (/festival|เทศกาล/i.test(searchable)) return "festival";
+  if (/fair|แฟร์|ตลาดนัด|มหกรรม/i.test(searchable)) return "fair";
+  return "expo";
+}
+
+const eventMonths: EventMonth[] = legacyEventMonths.map((month) => ({
+  ...month,
+  events: eventSeeds
+    .filter((event) => getSeedMonthId(event.startDate) === month.id)
+    .map((event) => ({
+      id: event.id,
+      kind: getEventKind(event.title, event.categories),
+      title: event.title,
+      dateTh: formatSeedDateRange(event.startDate, event.endDate, "th"),
+      dateEn: formatSeedDateRange(event.startDate, event.endDate, "en"),
+      startDate: event.startDate,
+      endDate: event.endDate,
+      venueTh: [event.venue, event.hall, event.province].filter(Boolean).join(" · "),
+      venueEn: [event.venue, event.hall, event.province].filter(Boolean).join(" · "),
+      highlights: [...event.categories.slice(0, 3), event.admissionType],
+      sourceTh: event.sourceName,
+      sourceEn: event.sourceName,
+      sourceUrl: event.sourceUrl,
+      imageTitle: event.titleEnglish || event.title,
+    })),
+}));
+
 function eventImageSrc(event: ExpoEvent) {
   const params = new URLSearchParams({
     url: event.sourceUrl,
@@ -347,7 +380,7 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
 
 function EventCard({ event, index, isThai, isNew }: { event: ExpoEvent; index: number; isThai: boolean; isNew: boolean }) {
   const meta = kindMeta[event.kind];
-  const dateStatus = isScheduledItemActive(event.dateEn) ? "active" : "expired";
+  const dateStatus = isScheduledItemActive(event.endDate ?? event.dateEn, new Date(), "event") ? "active" : "expired";
   const freshnessStatus = isNew ? "new" : dateStatus;
   const freshnessTone = freshnessStatus === "new" ? "green" : freshnessStatus === "expired" ? "red" : "gray";
 
@@ -430,6 +463,8 @@ export function EventExpoFairView() {
     title: item.title,
     dateTh: item.dateTh,
     dateEn: item.dateEn,
+    startDate: item.startDate,
+    endDate: item.endDate,
     venueTh: item.detailTh,
     venueEn: item.detailEn,
     highlights: [item.sourceLabel],
@@ -438,9 +473,11 @@ export function EventExpoFairView() {
     sourceUrl: item.sourceUrl,
     imageTitle: item.title,
   }));
-  const sourceEvents = apiEvents.length ? apiEvents : activeMonth.events;
-  const events = sourceEvents.filter((event) => isScheduledItemActive(event.dateEn, refreshedNow) && (kind === "all" || event.kind === kind) && (!location.trim() || `${event.title} ${event.venueTh} ${event.venueEn}`.toLowerCase().includes(location.trim().toLowerCase())));
-  const total = eventMonths.reduce((sum, month) => sum + month.events.filter((event) => isScheduledItemActive(event.dateEn, refreshedNow)).length, 0);
+  const sourceEvents = apiEvents.length
+    ? apiEvents.filter((event) => !event.startDate || getSeedMonthId(event.startDate) === activeMonth.id)
+    : activeMonth.events;
+  const events = sourceEvents.filter((event) => isScheduledItemActive(event.endDate ?? event.dateEn, refreshedNow, "event") && (kind === "all" || event.kind === kind) && (!location.trim() || `${event.title} ${event.venueTh} ${event.venueEn}`.toLowerCase().includes(location.trim().toLowerCase())));
+  const total = eventMonths.reduce((sum, month) => sum + month.events.filter((event) => isScheduledItemActive(event.endDate ?? event.dateEn, refreshedNow, "event")).length, 0);
 
   return (
     <section className="nimbus-card-3d relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-slate-950/72 p-4 shadow-2xl shadow-emerald-950/20 sm:p-6">

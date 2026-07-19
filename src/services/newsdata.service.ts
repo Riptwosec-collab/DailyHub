@@ -278,7 +278,7 @@ async function mapGoogleNewsItem(
     tags: [category, item.sourceName, "Google News"].filter(Boolean).slice(0, 5),
     sourceName: item.sourceName,
     sourceUrl,
-    imageUrl: item.imageUrl || item.sourceUrl || undefined,
+    imageUrl: item.imageUrl || undefined,
     publishedAt,
     fetchedAt,
     publishedAtSource: hasPublishedAt ? "published" : "fetched",

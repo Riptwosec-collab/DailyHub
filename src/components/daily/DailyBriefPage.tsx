@@ -10,6 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
 import { getDataFreshnessStatus, selectFreshnessTimestamp } from "@/lib/data-freshness";
+import { hasUsableNewsImage } from "@/lib/news-image";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { cn } from "@/lib/utils";
 import type { DailyBriefApiResponse, DailyBriefCategory, DailyBriefCategoryKey, DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
@@ -374,7 +375,7 @@ function NewsStatusBadge({ item, lang }: { item: DailyBriefItem; lang: Lang }) {
 }
 
 function hasRealNewsImage(item: DailyBriefItem) {
-  return Boolean(item.imageUrl && /^https?:\/\//i.test(item.imageUrl) && !/(placeholder|mock|dummy|fallback|unsplash-source)/i.test(item.imageUrl));
+  return hasUsableNewsImage(item);
 }
 
 function isExpiredNewsItem(item: DailyBriefItem) {
@@ -395,6 +396,15 @@ function newsImageSrc(item: DailyBriefItem) {
   return `/api/poster-image?${params.toString()}`;
 }
 
+function useNewsImageAvailability(item: DailyBriefItem) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [item.id, item.imageUrl]);
+  return {
+    hasImage: hasRealNewsImage(item) && !failed,
+    markFailed: () => setFailed(true),
+  };
+}
+
 function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem; onSent: (message: string) => void; lang: Lang }) {
   const [sending, setSending] = useState(false);
   const text = copy[lang];
@@ -412,10 +422,9 @@ function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem
   return <Button size="sm" variant="secondary" disabled={sending} onClick={send}>{sending ? text.sendingNews : text.sendNews}</Button>;
 }
 
-function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: boolean }) {
+function StoryVisual({ item, large = false, onImageError }: { item: DailyBriefItem; large?: boolean; onImageError: () => void }) {
   const detail = getDailyBriefTopicDetail(item.category);
-  const [failed, setFailed] = useState(false);
-  if (!hasRealNewsImage(item) || failed) return null;
+  if (!hasRealNewsImage(item)) return null;
   const freshness = newsFreshness(item);
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28", getFreshnessClass(freshness.status))}>
@@ -427,7 +436,7 @@ function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: bo
         sizes={large ? "(min-width: 1024px) 288px, 100vw" : "180px"}
         unoptimized
         loading="lazy"
-        onError={() => setFailed(true)}
+        onError={onImageError}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.10),rgba(2,6,23,0.96)_100%)]" />
       <div className="relative flex h-full flex-col justify-end p-5">
@@ -449,13 +458,13 @@ function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
   lang: Lang;
 }) {
   const text = copy[lang];
-  const hasImage = hasRealNewsImage(item);
+  const { hasImage, markFailed } = useNewsImageAvailability(item);
   const freshness = newsFreshness(item);
   return (
-    <Card className={cn("overflow-hidden border-cyan-300/25 p-0", !hasImage && getFreshnessClass(freshness.status))}>
+    <Card data-news-card="featured" data-image-layout={hasImage ? "image" : "text-only"} className={cn("overflow-hidden border-cyan-300/25 p-0", !hasImage && getFreshnessClass(freshness.status))}>
       <div className={cn("grid gap-0", hasImage && "lg:grid-cols-[18rem_minmax(0,1fr)]")}>
         {hasImage && <div className="p-4">
-          <StoryVisual item={item} large />
+          <StoryVisual item={item} large onImageError={markFailed} />
         </div>}
         <div className="flex min-w-0 flex-col p-5">
           <div className="flex flex-wrap items-center gap-2">
@@ -501,11 +510,11 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
   lang: Lang;
 }) {
   const text = copy[lang];
-  const hasImage = hasRealNewsImage(item);
+  const { hasImage, markFailed } = useNewsImageAvailability(item);
   const freshness = newsFreshness(item);
   return (
-    <Card className={cn("group gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "grid md:grid-cols-[10rem_minmax(0,1fr)]" : "flex min-h-0 w-full flex-col p-5 sm:p-6", !hasImage && getFreshnessClass(freshness.status))}>
-      {hasImage && <StoryVisual item={item} />}
+    <Card data-news-card="feed" data-image-layout={hasImage ? "image" : "text-only"} className={cn("group gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]", hasImage ? "grid md:grid-cols-[10rem_minmax(0,1fr)]" : "flex min-h-0 w-full flex-col p-5 sm:p-6", !hasImage && getFreshnessClass(freshness.status))}>
+      {hasImage && <StoryVisual item={item} onImageError={markFailed} />}
       <div className={cn("min-w-0", !hasImage && "flex w-full flex-1 flex-col")}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
@@ -532,6 +541,24 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
         </div>
       </div>
     </Card>
+  );
+}
+
+function GlobalTopStoryCard({ item, lang }: { item: DailyBriefItem; lang: Lang }) {
+  const { hasImage, markFailed } = useNewsImageAvailability(item);
+  return (
+    <article data-news-card="global" data-image-layout={hasImage ? "image" : "text-only"} className={cn("flex min-w-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-slate-950/50", !hasImage && "p-4")}>
+      {hasImage ? <StoryVisual item={item} onImageError={markFailed} /> : null}
+      <div className={cn("flex min-w-0 flex-1 flex-col", hasImage && "p-4")}>
+        <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+          <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-cyan-100">{item.category}</span>
+          {item.sourceMetadata?.addedInCurrentUpgrade ? <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-emerald-100">{lang === "th" ? "แหล่งข้อมูลใหม่" : "New source"}</span> : null}
+        </div>
+        <h3 className={cn("mt-3 font-black leading-6 text-white", hasImage ? "line-clamp-2 text-sm" : "text-base")}><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-cyan-100">{itemTitle(item, lang)}</a></h3>
+        {!hasImage ? <p className="mt-2 text-sm leading-6 text-slate-300">{itemSummary(item, lang)}</p> : null}
+        <p className="mt-auto pt-3 text-xs text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
+      </div>
+    </article>
   );
 }
 
@@ -778,17 +805,7 @@ export function DailyBriefPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {data.summary.globalTopStories.slice(0, 4).map((item) => (
-              <article key={`global-${item.id}`} className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/50">
-                {hasRealNewsImage(item) ? <StoryVisual item={item} /> : null}
-                <div className="p-4">
-                  <div className="flex flex-wrap gap-2 text-[11px] font-bold">
-                    <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-cyan-100">{item.category}</span>
-                    {item.sourceMetadata?.addedInCurrentUpgrade ? <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-emerald-100">{lang === "th" ? "แหล่งข้อมูลใหม่" : "New source"}</span> : null}
-                  </div>
-                  <h3 className="mt-3 line-clamp-2 text-sm font-black leading-6 text-white"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-cyan-100">{itemTitle(item, lang)}</a></h3>
-                  <p className="mt-2 text-xs text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
-                </div>
-              </article>
+              <GlobalTopStoryCard key={`global-${item.id}`} item={item} lang={lang} />
             ))}
           </div>
         </section>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { summarizeTopicCatalog, topicRefreshCatalog } from "@/data/topic-refresh-catalog";
-import { isScheduledItemActive } from "@/lib/event-date";
+import { isScheduledItemActive, type ScheduleRetention } from "@/lib/event-date";
 import { readLiveTopicItems, saveLiveTopicItems } from "@/lib/live-topic-store";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +55,10 @@ export async function GET(request: Request) {
   const reachable = results.filter((result) => result.ok).length;
   const catalog = topicRefreshCatalog[topic];
   const sourceItems = storedItems.length ? storedItems : catalog.items;
-  const activeItems = sourceItems.filter((item) => isScheduledItemActive(item.dateEn));
+  const activeItems = sourceItems.filter((item) => {
+    const retention: ScheduleRetention = topic === "movies" ? (item.group === "cinema" ? "cinema" : "streaming") : topic === "concerts" ? "concert" : "event";
+    return isScheduledItemActive(item.endDate ?? item.dateEn, new Date(), retention);
+  });
   const expiredCount = sourceItems.length - activeItems.length;
   const summary = summarizeTopicCatalog(topic, activeItems);
   const storage = shouldRefresh ? await saveLiveTopicItems(topic, activeItems) : storedItems.length ? "supabase" : "catalog";

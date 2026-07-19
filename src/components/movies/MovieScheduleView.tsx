@@ -244,17 +244,18 @@ function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
   );
 }
 
-function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isThai: boolean }) {
+function WatchRow({ item, index, isThai, isNew }: { item: WatchItem; index: number; isThai: boolean; isNew: boolean }) {
   const freshness = getContentFreshness({ kind: "movie", date: item.dateEn });
+  const scheduleStatus = isNew ? "new" : freshness.status === "expired" && isScheduledItemActive(item.dateEn, new Date(), item.platform) ? "active" : freshness.status;
   return (
-    <div className={cn("grid gap-3 border-b border-white/10 px-3 py-3 transition hover:bg-white/[0.045] last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center", getFreshnessClass(freshness.status))}>
+    <div className={cn("grid gap-3 border-b border-white/10 px-3 py-3 transition hover:bg-white/[0.045] last:border-b-0 sm:grid-cols-[3.25rem_5rem_minmax(0,1.15fr)_11rem_minmax(0,1fr)_auto] sm:items-center", getFreshnessClass(scheduleStatus))}>
       <span className="grid h-10 w-10 place-items-center rounded-xl border border-fuchsia-300/35 bg-fuchsia-400/10 text-lg font-black text-white shadow-[0_0_18px_rgba(217,70,239,0.28)]">{index + 1}</span>
       <MoviePoster item={item} isThai={isThai} />
       <div className="min-w-0">
         <p className="line-clamp-2 text-base font-black leading-snug text-white sm:text-lg">{item.title}</p>
         <div className="mt-1 flex flex-wrap gap-2 text-xs font-bold text-slate-400">
           <span>{item.sourceLabel} · {isThai ? "โปสเตอร์จาก TMDB" : "Poster via TMDB"}</span>
-          <span className={cn("rounded-lg border px-2 py-0.5", freshness.status === "new" && "border-emerald-300/30 bg-emerald-300/10 text-emerald-100", freshness.status === "active" && "border-slate-300/20 bg-slate-300/10 text-slate-300", freshness.status === "expiring" && "border-amber-300/30 bg-amber-300/10 text-amber-100", freshness.status === "expired" && "border-rose-300/30 bg-rose-300/10 text-rose-100")}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</span>
+          <span className={cn("rounded-lg border px-2 py-0.5", scheduleStatus === "new" && "border-emerald-300/30 bg-emerald-300/10 text-emerald-100", scheduleStatus === "active" && "border-slate-300/20 bg-slate-300/10 text-slate-300", scheduleStatus === "expiring" && "border-amber-300/30 bg-amber-300/10 text-amber-100", scheduleStatus === "expired" && "border-rose-300/30 bg-rose-300/10 text-rose-100")}>{getFreshnessLabel(scheduleStatus, isThai ? "th" : "en")}</span>
         </div>
       </div>
       <p className="text-sm font-black text-fuchsia-100">📅 {isThai ? item.dateTh : item.dateEn}</p>
@@ -266,7 +267,7 @@ function WatchRow({ item, index, isThai }: { item: WatchItem; index: number; isT
   );
 }
 
-function PlatformSection({ platform, items, isThai }: { platform: MoviePlatform; items: WatchItem[]; isThai: boolean }) {
+function PlatformSection({ platform, items, isThai, newItemIds }: { platform: MoviePlatform; items: WatchItem[]; isThai: boolean; newItemIds: Set<string> }) {
   const meta = platformMeta[platform];
   return (
     <section className={cn("nimbus-card-3d rounded-3xl border bg-slate-950/52 p-3 shadow-[0_0_42px_rgba(37,99,235,0.18)] sm:p-4", meta.border)}>
@@ -274,7 +275,7 @@ function PlatformSection({ platform, items, isThai }: { platform: MoviePlatform;
         <PlatformArt platform={platform} items={items} />
         {items.length ? (
           <div className="overflow-hidden rounded-2xl border border-white/12 bg-slate-950/42">
-            {items.map((item, index) => <WatchRow key={item.id} item={item} index={index} isThai={isThai} />)}
+            {items.map((item, index) => <WatchRow key={item.id} item={item} index={index} isThai={isThai} isNew={newItemIds.has(item.id)} />)}
           </div>
         ) : (
           <div className="flex min-h-40 items-center rounded-2xl border border-dashed border-white/15 bg-white/[0.035] p-6">
@@ -294,17 +295,22 @@ export function MovieScheduleView() {
   const isThai = lang === "th";
   const [activeMonthId, setActiveMonthId] = useState(months[0].id);
   const [platform, setPlatform] = useState<PlatformKey>("all");
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [, setRefreshVersion] = useState(0);
   useEffect(() => {
     const handleRefresh = (event: Event) => {
-      if ((event as CustomEvent<{ href?: string }>).detail?.href === "/movies") setRefreshVersion((value) => value + 1);
+      const detail = (event as CustomEvent<{ href?: string; itemIds?: string[] }>).detail;
+      if (detail?.href === "/movies") {
+        setRefreshVersion((value) => value + 1);
+        setNewItemIds(new Set(detail.itemIds ?? []));
+      }
     };
     window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
     return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
   }, []);
   const activeMonth = months.find((month) => month.id === activeMonthId) ?? months[0];
   const refreshedNow = new Date();
-  const filteredItems = activeMonth.items.filter((item) => isScheduledItemActive(item.dateEn, refreshedNow) && (platform === "all" || item.platform === platform));
+  const filteredItems = activeMonth.items.filter((item) => isScheduledItemActive(item.dateEn, refreshedNow, item.platform) && (platform === "all" || item.platform === platform));
   const countLabel = isThai ? `รวม ${filteredItems.length} เรื่อง` : `${filteredItems.length} titles`;
   const platformKeys: PlatformKey[] = ["all", "cinema", "streaming"];
 
@@ -359,8 +365,8 @@ export function MovieScheduleView() {
         </div>
 
         <main className="mt-6 space-y-4">
-          {(platform === "all" || platform === "cinema") && <PlatformSection platform="cinema" items={filteredItems.filter((item) => item.platform === "cinema")} isThai={isThai} />}
-          {(platform === "all" || platform === "streaming") && <PlatformSection platform="streaming" items={filteredItems.filter((item) => item.platform === "streaming")} isThai={isThai} />}
+          {(platform === "all" || platform === "cinema") && <PlatformSection platform="cinema" items={filteredItems.filter((item) => item.platform === "cinema")} isThai={isThai} newItemIds={newItemIds} />}
+          {(platform === "all" || platform === "streaming") && <PlatformSection platform="streaming" items={filteredItems.filter((item) => item.platform === "streaming")} isThai={isThai} newItemIds={newItemIds} />}
           <div className="rounded-2xl border border-fuchsia-300/25 bg-slate-950/52 p-4 text-center text-sm font-semibold leading-7 text-slate-300">
             ⓘ {isThai ? "ข้อมูลอาจมีการเปลี่ยนแปลง โปรดตรวจสอบ Major / Netflix อีกครั้งก่อนซื้อตั๋วหรือวางแผนรับชม" : "Details may change. Please verify Major / Netflix before buying tickets or planning your watchlist."}
           </div>
