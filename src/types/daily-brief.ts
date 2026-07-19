@@ -48,6 +48,9 @@ export interface DailyBriefItem {
   sourceUrl: string;
   imageUrl?: string;
   publishedAt: string;
+  fetchedAt?: string;
+  publishedAtSource?: "published" | "fetched";
+  sourceMetadata?: import("@/types/data-freshness").SourceMetadata;
   language: "th" | "en" | "unknown";
   priorityScore: number;
   relatedSources: NewsSource[];
@@ -58,9 +61,37 @@ export interface DailyBriefItem {
   telegramStatus: TelegramStatus;
 }
 
+export interface DailyBriefCategoryReport {
+  category: DailyBriefCategoryKey;
+  beforeCount: number;
+  addedFromNewSources: number;
+  removedExpired: number;
+  removedDuplicates: number;
+  removedInvalid: number;
+  netCount: number;
+  newSourceNames: string[];
+}
+
+export interface DailyBriefProcessingReport {
+  beforeCount: number;
+  addedFromNewSources: number;
+  removedExpired: number;
+  removedDuplicates: number;
+  removedInvalid: number;
+  netCount: number;
+  fetchedAt: string;
+  processedAt: string;
+  cacheStatus: "hit" | "miss" | "stale-fallback";
+  sourceNames: string[];
+  newSourceNames: string[];
+  partialFailures: string[];
+  categories: DailyBriefCategoryReport[];
+}
+
 export interface DailyBriefSummary {
   date: string;
   topStories: DailyBriefItem[];
+  globalTopStories?: DailyBriefItem[];
   categorySummaries: Record<string, string>;
   watchItems: string[];
   totalItems: number;
@@ -104,4 +135,6 @@ export interface DailyBriefApiResponse {
   categories: DailyBriefCategory[];
   settings: DailyBriefSettings;
   logs: DailyBriefRunLog[];
+  freshness?: import("@/types/data-freshness").DataFreshness;
+  processingReport?: DailyBriefProcessingReport;
 }

@@ -66,6 +66,21 @@ type NormalizedQuote = {
   name?: string;
 };
 
+type QuotePayload = {
+  success: boolean;
+  fallback?: boolean;
+  source: string;
+  sourceId: string;
+  delayed: boolean;
+  updatedAt?: string;
+  fetchedAt: string;
+  quotes: NormalizedQuote[];
+  error?: string;
+};
+
+const QUOTE_CACHE_TTL_MS = 30_000;
+const quoteCache = new Map<string, { expiresAt: number; payload: QuotePayload }>();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbols = (searchParams.get("symbols") ?? "")
@@ -76,6 +91,13 @@ export async function GET(request: Request) {
 
   if (symbols.length === 0) {
     return NextResponse.json({ success: false, error: "No symbols provided", quotes: [] }, { status: 400 });
+  }
+
+  const cacheKey = symbols.slice().sort().join(",");
+  const forceRefresh = searchParams.has("refresh");
+  const cached = quoteCache.get(cacheKey);
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json({ ...cached.payload, cacheStatus: "hit" });
   }
 
   try {
@@ -100,27 +122,57 @@ export async function GET(request: Request) {
       throw new Error("Yahoo quote endpoint returned no quotes");
     }
 
-    return NextResponse.json({
+    const fetchedAt = new Date().toISOString();
+    const quotePayload = {
       success: true,
       source: "Yahoo Finance quote endpoint",
+      sourceId: "yahoo-finance-quote",
       delayed: true,
-      updatedAt: new Date().toISOString(),
+      updatedAt: latestQuoteTimestamp(quotes),
+      fetchedAt,
       quotes,
-    });
+    } satisfies QuotePayload;
+    quoteCache.set(cacheKey, { expiresAt: Date.now() + QUOTE_CACHE_TTL_MS, payload: quotePayload });
+    return NextResponse.json({ ...quotePayload, cacheStatus: "miss" });
   } catch (quoteError) {
-    const chartQuotes = await Promise.all(symbols.map((symbol) => fetchChartQuote(symbol)));
+    const chartQuotes = await mapWithConcurrency(symbols, 8, fetchChartQuote);
     const quotes = chartQuotes.filter((item): item is NormalizedQuote => Boolean(item));
-
-    return NextResponse.json({
+    const fetchedAt = new Date().toISOString();
+    const quotePayload = {
       success: quotes.length > 0,
       fallback: quotes.length === 0,
       source: quotes.length > 0 ? "Yahoo Finance chart endpoint" : "local sample fallback required",
+      sourceId: quotes.length > 0 ? "yahoo-finance-chart" : "local-sample",
       error: quotes.length > 0 ? undefined : quoteError instanceof Error ? quoteError.message : "Unknown quote error",
       delayed: true,
-      updatedAt: new Date().toISOString(),
+      updatedAt: latestQuoteTimestamp(quotes),
+      fetchedAt,
       quotes,
-    });
+    } satisfies QuotePayload;
+    if (quotes.length > 0) quoteCache.set(cacheKey, { expiresAt: Date.now() + QUOTE_CACHE_TTL_MS, payload: quotePayload });
+    return NextResponse.json({ ...quotePayload, cacheStatus: "miss" });
   }
+}
+
+function latestQuoteTimestamp(quotes: NormalizedQuote[]) {
+  return quotes
+    .map((quote) => quote.updatedAt)
+    .filter((value): value is string => Boolean(value && Number.isFinite(new Date(value).getTime())))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+}
+
+async function mapWithConcurrency<T, TResult>(items: T[], concurrency: number, worker: (item: T) => Promise<TResult>) {
+  const results = new Array<TResult>(items.length);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await worker(items[index]);
+    }
+  });
+  await Promise.all(runners);
+  return results;
 }
 
 function normalizeQuoteResult(item: YahooQuote): NormalizedQuote {

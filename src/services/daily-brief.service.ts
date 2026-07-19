@@ -1,8 +1,25 @@
 import { dailyBriefCategories, defaultDailyBriefSettings, mockDailyBriefItems, mockDailyBriefLogs } from "@/data/daily-brief.mock";
-import { dedupeDailyBriefItems } from "@/services/news-dedup.service";
+import { dataSourceRegistry } from "@/lib/data-source-registry";
+import { rankGlobalTopStories } from "@/services/global-news-ranking.service";
+import { processDailyBriefItems } from "@/services/news-processing.service";
 import { summarizeDailyBriefItems, summarizeSingleNews } from "@/services/news-summary.service";
 import { fetchNewsDataLatest } from "@/services/newsdata.service";
-import type { DailyBriefApiResponse, DailyBriefCategoryKey, DailyBriefItem, DailyBriefRunLog } from "@/types/daily-brief";
+import type { DailyBriefApiResponse, DailyBriefCategoryKey, DailyBriefItem, DailyBriefProcessingReport, DailyBriefRunLog } from "@/types/daily-brief";
+
+type DailyBriefCache = {
+  items: DailyBriefItem[];
+  fetchedAt: string;
+  expiresAt: number;
+  message: string;
+  mode: "mock" | "real" | "fallback";
+  partialFailures: string[];
+};
+
+declare global {
+  var nimbusDailyBriefCache: DailyBriefCache | undefined;
+}
+
+const NEWS_CACHE_TTL_MS = dataSourceRegistry.googleNewsThailand.cacheTtlMs;
 
 function parseCategory(value: string | null): DailyBriefCategoryKey | undefined {
   if (!value || value === "all") return undefined;
@@ -20,24 +37,56 @@ function filterItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, 
   });
 }
 
-export async function getLatestDailyBrief(params?: { category?: string | null; search?: string | null }): Promise<DailyBriefApiResponse> {
+export async function getLatestDailyBrief(params?: { category?: string | null; search?: string | null; forceRefresh?: boolean }): Promise<DailyBriefApiResponse> {
   const category = parseCategory(params?.category || null);
   let items: DailyBriefItem[] = [];
   let mode: "mock" | "real" | "fallback" = "real";
   let message = "Using real Daily Brief feeds";
   const useRealNews = process.env.USE_REAL_NEWS !== "false";
+  const now = new Date();
+  let fetchedAt = now.toISOString();
+  let cacheStatus: DailyBriefProcessingReport["cacheStatus"] = "miss";
+  let partialFailures: string[] = [];
+  const cached = globalThis.nimbusDailyBriefCache;
 
-  if (useRealNews) {
+  if (useRealNews && cached && !params?.forceRefresh && cached.expiresAt > now.getTime()) {
+    items = cached.items;
+    mode = cached.mode;
+    message = cached.message;
+    fetchedAt = cached.fetchedAt;
+    partialFailures = cached.partialFailures;
+    cacheStatus = "hit";
+  } else if (useRealNews) {
     try {
-      const result = await fetchNewsDataLatest(category);
+      const result = await fetchNewsDataLatest();
       if (result.items.length > 0) {
         items = result.items;
         mode = "real";
       }
       message = result.message;
+      partialFailures = result.partialFailures ?? [];
+      fetchedAt = new Date().toISOString();
+      globalThis.nimbusDailyBriefCache = {
+        items,
+        fetchedAt,
+        expiresAt: Date.now() + NEWS_CACHE_TTL_MS,
+        message,
+        mode,
+        partialFailures,
+      };
     } catch (error) {
-      mode = "fallback";
-      message = error instanceof Error ? error.message : "News provider fallback activated";
+      if (cached?.items.length) {
+        items = cached.items;
+        fetchedAt = cached.fetchedAt;
+        mode = "fallback";
+        cacheStatus = "stale-fallback";
+        partialFailures = [...cached.partialFailures, "live-refresh"];
+        message = `${cached.message}; live refresh failed`;
+      } else {
+        mode = "fallback";
+        partialFailures = ["all-news-sources"];
+        message = error instanceof Error ? error.message : "News provider fallback activated";
+      }
     }
   }
 
@@ -50,15 +99,23 @@ export async function getLatestDailyBrief(params?: { category?: string | null; s
     message = `${message}; real feeds returned no usable news`;
   }
 
-  const prepared = dedupeDailyBriefItems(filterItems(items, category, params?.search).map(summarizeSingleNews));
+  const processed = processDailyBriefItems(items.map(summarizeSingleNews), { now, fetchedAt, cacheStatus, partialFailures });
+  if (globalThis.nimbusDailyBriefCache) globalThis.nimbusDailyBriefCache.items = processed.items;
+  const prepared = filterItems(processed.items, category, params?.search);
+  const summary = summarizeDailyBriefItems(prepared, mode);
+  summary.globalTopStories = rankGlobalTopStories(processed.items, 6, now);
+  const latestPublishedAt = processed.items
+    .map((item) => item.publishedAt)
+    .filter((value) => Number.isFinite(new Date(value).getTime()))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
   const logs: DailyBriefRunLog[] = [
-    { id: `brief_log_${Date.now()}`, runAt: new Date().toISOString(), status: "success", fetchedItems: items.length, summarizedItems: prepared.length, telegramParts: 0, message },
-    ...mockDailyBriefLogs,
+    { id: `brief_log_${processed.report.processedAt}`, runAt: processed.report.processedAt, status: partialFailures.length ? "skipped" : "success", fetchedItems: items.length, summarizedItems: prepared.length, telegramParts: 0, message },
+    ...(mode === "mock" ? mockDailyBriefLogs : []),
   ];
 
   return {
     items: prepared,
-    summary: summarizeDailyBriefItems(prepared, mode),
+    summary,
     categories: dailyBriefCategories,
     settings: {
       ...defaultDailyBriefSettings,
@@ -68,12 +125,18 @@ export async function getLatestDailyBrief(params?: { category?: string | null; s
       telegramTime: process.env.DAILY_BRIEF_TIME || defaultDailyBriefSettings.telegramTime,
     },
     logs,
+    freshness: {
+      sourcePublishedAt: latestPublishedAt,
+      fetchedAt,
+      processedAt: processed.report.processedAt,
+    },
+    processingReport: processed.report,
   };
 }
 
 export async function summarizeDailyBriefPayload(items?: DailyBriefItem[]) {
   const data = items?.length ? items.map(summarizeSingleNews) : (await getLatestDailyBrief()).items;
-  return summarizeDailyBriefItems(dedupeDailyBriefItems(data), items?.length ? "fallback" : "mock");
+  return summarizeDailyBriefItems(processDailyBriefItems(data).items, items?.length ? "fallback" : "mock");
 }
 
 export function getDailyBriefSchedulerPreview() {

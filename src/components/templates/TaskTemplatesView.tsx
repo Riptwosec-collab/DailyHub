@@ -18,7 +18,7 @@ const categories = ["All", "Daily Brief", "Email Monitor", "Sale Monitor", "Worl
 
 const copy = {
   th: {
-    badge: "เฟส 27",
+    badge: "คลังขั้นตอนงาน",
     title: "เทมเพลตงาน",
     desc: "เลือก workflow สำเร็จรูปแล้วสร้าง Scheduled Task ได้ทันที เหมาะสำหรับ Daily Brief, Email Monitor, Sale Monitor, ประกาศรัฐ และโปรเดินทาง",
     createdTitle: "สร้าง Task สำเร็จแล้ว",
@@ -44,7 +44,7 @@ const copy = {
     toastFailed: "สร้างงานไม่สำเร็จ",
   },
   en: {
-    badge: "Phase 27",
+    badge: "Workflow library",
     title: "Task Templates",
     desc: "Pick a ready-made workflow and create a Scheduled Task instantly for Daily Brief, Email Monitor, Sale Monitor, public alerts, and travel deals.",
     createdTitle: "Task created",

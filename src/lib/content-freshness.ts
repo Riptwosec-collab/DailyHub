@@ -57,18 +57,18 @@ export function getContentFreshness(input: FreshnessInput) {
 
   if (!time) {
     return {
-      status: "active" as ContentFreshnessStatus,
+      status: (input.kind === "news" ? "expired" : "active") as ContentFreshnessStatus,
       ageMs: 0,
-      isVisible: true,
+      isVisible: input.kind !== "news",
     };
   }
 
   const ageMs = now - time;
 
   if (input.kind === "news") {
-    if (ageMs > 3 * DAY_MS) return { status: "expired" as const, ageMs, isVisible: false };
+    if (ageMs < 0 || ageMs >= 2 * DAY_MS) return { status: "expired" as const, ageMs, isVisible: false };
     if (ageMs <= 10 * 60 * 60 * 1000) return { status: "new" as const, ageMs, isVisible: true };
-    if (ageMs >= 2 * DAY_MS) return { status: "expiring" as const, ageMs, isVisible: true };
+    if (ageMs >= 36 * 60 * 60 * 1000) return { status: "expiring" as const, ageMs, isVisible: true };
     return { status: "active" as const, ageMs, isVisible: true };
   }
 

@@ -1,5 +1,8 @@
 import type { DailyBriefCategoryKey, DailyBriefItem } from "@/types/daily-brief";
+import { dataSourceRegistry } from "@/lib/data-source-registry";
+import { buildGoogleNewsItemId } from "@/lib/news-item-id";
 import { translateToThai } from "@/services/translation.service";
+import type { DataSourceDefinition, SourceMetadata } from "@/types/data-freshness";
 
 interface NewsDataArticle {
   article_id?: string;
@@ -54,6 +57,7 @@ type GoogleNewsRssItem = {
 
 const REAL_NEWS_TARGET_COUNT = Math.max(10, Number(process.env.NEWS_ITEMS_PER_CATEGORY || "10"));
 const GOOGLE_NEWS_TIMEOUT_MS = Math.max(2500, Number(process.env.GOOGLE_NEWS_TIMEOUT_MS || "8500"));
+const GLOBAL_NEWS_QUERY = "(world news OR geopolitics OR global economy OR technology OR energy OR science) when:2d";
 
 const GOOGLE_NEWS_CATEGORIES: FetchableDailyBriefCategory[] = [
   "thai",
@@ -167,21 +171,21 @@ function parseGoogleNewsRss(xml: string): GoogleNewsRssItem[] {
     .filter((item) => item.title && item.link);
 }
 
-function buildGoogleNewsRssUrl(query: string) {
+function buildGoogleNewsRssUrl(query: string, locale?: { hl: string; gl: string; ceid: string }) {
   const url = new URL("https://news.google.com/rss/search");
   url.searchParams.set("q", query);
-  url.searchParams.set("hl", process.env.GOOGLE_NEWS_HL || "th");
-  url.searchParams.set("gl", process.env.GOOGLE_NEWS_GL || "TH");
-  url.searchParams.set("ceid", process.env.GOOGLE_NEWS_CEID || "TH:th");
+  url.searchParams.set("hl", locale?.hl ?? process.env.GOOGLE_NEWS_HL ?? "th");
+  url.searchParams.set("gl", locale?.gl ?? process.env.GOOGLE_NEWS_GL ?? "TH");
+  url.searchParams.set("ceid", locale?.ceid ?? process.env.GOOGLE_NEWS_CEID ?? "TH:th");
   return url.toString();
 }
 
-async function fetchGoogleNewsXml(query: string) {
+async function fetchGoogleNewsXml(query: string, locale?: { hl: string; gl: string; ceid: string }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GOOGLE_NEWS_TIMEOUT_MS);
 
   try {
-    const response = await fetch(buildGoogleNewsRssUrl(query), {
+    const response = await fetch(buildGoogleNewsRssUrl(query, locale), {
       cache: "no-store",
       signal: controller.signal,
       headers: {
@@ -208,10 +212,6 @@ function buildThaiFallbackFromRealSource(item: GoogleNewsRssItem, category: Dail
   );
 }
 
-function getGoogleNewsId(item: GoogleNewsRssItem, category: DailyBriefCategoryKey, index: number) {
-  return `gnews_${category}_${index}_${Buffer.from(item.link).toString("base64url").slice(0, 16)}`;
-}
-
 function scoreGoogleNewsItem(category: DailyBriefCategoryKey, item: GoogleNewsRssItem, index: number) {
   const freshnessBoost = Math.max(0, 12 - index * 2);
   const urgentBoost = category === "cybersecurity" || category === "publicAlerts" || category === "traffic" ? 8 : 0;
@@ -219,10 +219,25 @@ function scoreGoogleNewsItem(category: DailyBriefCategoryKey, item: GoogleNewsRs
   return Math.min(98, 66 + freshnessBoost + urgentBoost + textBoost);
 }
 
-async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCategoryKey, index: number): Promise<DailyBriefItem> {
+async function mapGoogleNewsItem(
+  item: GoogleNewsRssItem,
+  category: DailyBriefCategoryKey,
+  index: number,
+  sourceDefinition: DataSourceDefinition = dataSourceRegistry.googleNewsThailand,
+): Promise<DailyBriefItem> {
   const rawDescription = item.description || item.title;
   const sourceUrl = item.link;
-  const publishedAt = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+  const fetchedAt = new Date().toISOString();
+  const parsedPublishedAt = item.pubDate ? new Date(item.pubDate) : null;
+  const hasPublishedAt = Boolean(parsedPublishedAt && Number.isFinite(parsedPublishedAt.getTime()));
+  const publishedAt = hasPublishedAt ? parsedPublishedAt!.toISOString() : fetchedAt;
+  const sourceMetadata: SourceMetadata = {
+    sourceId: sourceDefinition.id,
+    sourceName: sourceDefinition.name,
+    addedInCurrentUpgrade: sourceDefinition.isNew,
+    fetchedAt,
+    priority: sourceDefinition.priority,
+  };
   const fallbackSummary = buildThaiFallbackFromRealSource(item, category);
   const translation = await translateToThai({
     title: item.title,
@@ -248,7 +263,7 @@ async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCa
     .map((bullet) => hasThaiText(bullet) ? bullet : `ประเด็นจากต้นฉบับ: ${bullet}`);
 
   return {
-    id: getGoogleNewsId(item, category, index),
+    id: buildGoogleNewsItemId(sourceDefinition.id, category, item.link),
     title: item.title,
     titleTh: truncate(translatedTitle, 180),
     summaryTh: truncate(translatedSummary, 620),
@@ -263,8 +278,11 @@ async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCa
     tags: [category, item.sourceName, "Google News"].filter(Boolean).slice(0, 5),
     sourceName: item.sourceName,
     sourceUrl,
-    imageUrl: item.imageUrl || item.sourceUrl || undefined,
+    imageUrl: item.imageUrl || undefined,
     publishedAt,
+    fetchedAt,
+    publishedAtSource: hasPublishedAt ? "published" : "fetched",
+    sourceMetadata,
     language: hasThaiText(`${item.title} ${rawDescription}`) ? "th" : "en",
     priorityScore: scoreGoogleNewsItem(category, item, index),
     relatedSources: item.sourceUrl && item.sourceUrl !== sourceUrl ? [{ name: item.sourceName, url: item.sourceUrl, publishedAt }] : [],
@@ -291,6 +309,19 @@ async function fetchGoogleNewsCategory(category: FetchableDailyBriefCategory) {
   const rssItems = uniqueRssItems(settled.flatMap((result) => result.status === "fulfilled" ? parseGoogleNewsRss(result.value) : []))
     .slice(0, REAL_NEWS_TARGET_COUNT);
   return Promise.all(rssItems.map((item, index) => mapGoogleNewsItem(item, category, index)));
+}
+
+export async function fetchGlobalTopStories() {
+  const settled = await Promise.allSettled([
+    fetchGoogleNewsXml(GLOBAL_NEWS_QUERY, { hl: "en-US", gl: "US", ceid: "US:en" }),
+  ]);
+  const rssItems = uniqueRssItems(settled.flatMap((result) => result.status === "fulfilled" ? parseGoogleNewsRss(result.value) : []))
+    .slice(0, REAL_NEWS_TARGET_COUNT);
+  const items = await Promise.all(rssItems.map((item, index) => mapGoogleNewsItem(item, "world", index, dataSourceRegistry.googleNewsGlobal)));
+  return {
+    items,
+    failed: settled.filter((result) => result.status === "rejected").length,
+  };
 }
 
 function mergeDailyBriefItems(items: DailyBriefItem[]) {
@@ -353,7 +384,10 @@ export async function mapNewsDataArticle(article: NewsDataArticle, index: number
   const sourceUrl = article.link || "https://newsdata.io/";
   const sourceName = getSourceName(article);
   const language = asLanguage(article.language);
-  const publishedAt = article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString();
+  const fetchedAt = new Date().toISOString();
+  const parsedPublishedAt = article.pubDate ? new Date(article.pubDate) : null;
+  const hasPublishedAt = Boolean(parsedPublishedAt && Number.isFinite(parsedPublishedAt.getTime()));
+  const publishedAt = hasPublishedAt ? parsedPublishedAt!.toISOString() : fetchedAt;
   const translation = await translateToThai({
     title,
     source: sourceName,
@@ -390,6 +424,15 @@ export async function mapNewsDataArticle(article: NewsDataArticle, index: number
     sourceUrl,
     imageUrl: article.image_url || undefined,
     publishedAt,
+    fetchedAt,
+    publishedAtSource: hasPublishedAt ? "published" : "fetched",
+    sourceMetadata: {
+      sourceId: dataSourceRegistry.newsData.id,
+      sourceName: dataSourceRegistry.newsData.name,
+      addedInCurrentUpgrade: dataSourceRegistry.newsData.isNew,
+      fetchedAt,
+      priority: dataSourceRegistry.newsData.priority,
+    },
     language,
     priorityScore: 68 + Math.min(24, Math.max(0, Math.round(description.length / 90))) + (category === "cybersecurity" || category === "aiTech" ? 4 : 0),
     relatedSources: [],
@@ -415,11 +458,20 @@ function buildNewsDataUrl(category?: DailyBriefCategoryKey) {
 
 export async function fetchNewsDataLatest(category?: DailyBriefCategoryKey) {
   const url = buildNewsDataUrl(category);
-  if (!url) {
-    return fetchGoogleNewsLatest(category);
-  }
+  const [googleNewsResult, globalNewsResult] = await Promise.all([
+    fetchGoogleNewsLatest(category),
+    category && category !== "all" && category !== "world" ? Promise.resolve({ items: [], failed: 0 }) : fetchGlobalTopStories(),
+  ]);
+  const baseItems = mergeDailyBriefItems([...globalNewsResult.items, ...googleNewsResult.items]);
 
-  const googleNewsResult = await fetchGoogleNewsLatest(category);
+  if (!url) {
+    return {
+      ...googleNewsResult,
+      items: baseItems,
+      message: `${googleNewsResult.message}; ${globalNewsResult.items.length} item(s) from Google News Global RSS`,
+      partialFailures: globalNewsResult.failed ? [dataSourceRegistry.googleNewsGlobal.name] : [],
+    };
+  }
 
   try {
     const response = await fetch(url.toString(), { cache: "no-store" });
@@ -430,17 +482,20 @@ export async function fetchNewsDataLatest(category?: DailyBriefCategoryKey) {
     }
 
     const newsDataItems = await Promise.all((payload.results || []).map(mapNewsDataArticle));
-    const items = mergeDailyBriefItems([...newsDataItems, ...googleNewsResult.items]);
+    const items = mergeDailyBriefItems([...newsDataItems, ...baseItems]);
 
     return {
       mode: "real" as const,
       items,
-      message: `Fetched ${newsDataItems.length} item(s) from NewsData.io and ${googleNewsResult.items.length} real item(s) from Google News RSS`,
+      message: `Fetched ${newsDataItems.length} item(s) from NewsData.io, ${googleNewsResult.items.length} from Google News Thailand RSS, and ${globalNewsResult.items.length} from Google News Global RSS`,
+      partialFailures: globalNewsResult.failed ? [dataSourceRegistry.googleNewsGlobal.name] : [],
     };
   } catch (error) {
     return {
       ...googleNewsResult,
+      items: baseItems,
       message: `${googleNewsResult.message}; NewsData.io skipped: ${error instanceof Error ? error.message : "unknown error"}`,
+      partialFailures: [dataSourceRegistry.newsData.name, ...(globalNewsResult.failed ? [dataSourceRegistry.googleNewsGlobal.name] : [])],
     };
   }
 }

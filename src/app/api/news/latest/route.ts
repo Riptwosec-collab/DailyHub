@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const data = await getLatestDailyBrief({
       category: url.searchParams.get("category"),
       search: url.searchParams.get("search"),
+      forceRefresh: url.searchParams.has("refresh"),
     });
 
     return Response.json({ success: true, data });

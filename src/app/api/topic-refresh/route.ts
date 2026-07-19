@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { summarizeTopicCatalog, topicRefreshCatalog } from "@/data/topic-refresh-catalog";
+import { isScheduledItemActive, type ScheduleRetention } from "@/lib/event-date";
+import { readLiveTopicItems, saveLiveTopicItems } from "@/lib/live-topic-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -41,17 +43,26 @@ type SourceResult = {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const topic = searchParams.get("topic") as TopicKey | null;
+  const shouldRefresh = searchParams.has("refresh");
 
   if (!topic || !(topic in topicSources)) {
     return NextResponse.json({ success: false, error: "Unsupported topic", checked: 0, reachable: 0, sources: [] }, { status: 400 });
   }
 
   const sources = topicSources[topic];
-  const results = await Promise.all(sources.map(checkSource));
+  const storedItems = shouldRefresh ? [] : await readLiveTopicItems(topic);
+  const results = shouldRefresh ? await Promise.all(sources.map(checkSource)) : [];
   const reachable = results.filter((result) => result.ok).length;
   const catalog = topicRefreshCatalog[topic];
-  const summary = summarizeTopicCatalog(topic);
-  const success = reachable > 0 || summary.totalItems > 0;
+  const sourceItems = storedItems.length ? storedItems : catalog.items;
+  const activeItems = sourceItems.filter((item) => {
+    const retention: ScheduleRetention = topic === "movies" ? (item.group === "cinema" ? "cinema" : "streaming") : topic === "concerts" ? "concert" : "event";
+    return isScheduledItemActive(item.endDate ?? item.dateEn, new Date(), retention);
+  });
+  const expiredCount = sourceItems.length - activeItems.length;
+  const summary = summarizeTopicCatalog(topic, activeItems);
+  const storage = shouldRefresh ? await saveLiveTopicItems(topic, activeItems) : storedItems.length ? "supabase" : "catalog";
+  const success = !shouldRefresh || reachable > 0 || summary.totalItems > 0;
 
   return NextResponse.json(
     {
@@ -65,7 +76,9 @@ export async function GET(request: Request) {
       noteTh: catalog.noteTh,
       noteEn: catalog.noteEn,
       summary,
-      items: catalog.items,
+      items: activeItems,
+      expiredCount,
+      storage,
       sources: results,
       error: success ? undefined : "No live source responded and no catalog items available",
     },

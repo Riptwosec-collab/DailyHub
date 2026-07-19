@@ -23,9 +23,9 @@ export const translations = {
     topbar_live: "API ทำงานอยู่",
     topbar_search: "ค้นหาใน NimbusDaily...",
     // Sidebar
-    sidebar_phase: "เฟส 27",
-    sidebar_desc: "ข่าวประจำวัน, ตารางคอนเสิร์ต, หนังโรงไทย + Netflix, งานอีเวนต์ / Expo / Fair, API, Settings, Admin และ Deploy พร้อมใช้งาน",
-    sidebar_build_label: "Production MVP",
+    sidebar_phase: "อัปเดตข้อมูล",
+    sidebar_desc: "ตรวจข่าว กิจกรรม หุ้น และข้อมูลสำคัญให้เป็นปัจจุบันจากจุดเดียว",
+    sidebar_build_label: "Daily Intelligence",
     // Common
     common_refresh: "รีเฟรช",
     common_save: "บันทึก",
@@ -136,9 +136,9 @@ export const translations = {
     topbar_live: "API Live",
     topbar_search: "Search NimbusDaily...",
     // Sidebar
-    sidebar_phase: "Phase 27",
-    sidebar_desc: "Daily Brief, concerts, movies + Netflix, events / expo / fair, API, Settings, Admin & Deploy ready.",
-    sidebar_build_label: "Production MVP",
+    sidebar_phase: "Data refresh",
+    sidebar_desc: "Keep news, events, stocks, and essential data current from one place.",
+    sidebar_build_label: "Daily Intelligence",
     // Common
     common_refresh: "Refresh",
     common_save: "Save",

@@ -38,7 +38,7 @@ export function AdminErrorsView() {
   return (
     <div className="space-y-6">
       <Card className="p-6 sm:p-8">
-        <Badge tone="red">Phase 20 Error QA</Badge>
+        <Badge tone="red">Error monitoring</Badge>
         <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Errors & Failed Runs</h1>
         <p className="mt-4 text-sm leading-7 text-slate-300">ดู failed task trend และ error log เพื่อเตรียม production QA</p>
       </Card>

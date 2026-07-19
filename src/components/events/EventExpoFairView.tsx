@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getContentFreshness, getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { getFreshnessClass, getFreshnessLabel } from "@/lib/content-freshness";
+import { isScheduledItemActive } from "@/lib/event-date";
+import type { TopicRefreshItem } from "@/data/topic-refresh-catalog";
+import { eventSeeds, formatSeedDateRange, getSeedMonthId } from "@/data/schedule-seeds";
 import { cn } from "@/lib/utils";
 
 type EventMonthId = "july-2026" | "august-2026" | "september-2026" | "october-2026" | "november-2026" | "december-2026";
@@ -18,6 +21,8 @@ type ExpoEvent = {
   title: string;
   dateTh: string;
   dateEn: string;
+  startDate?: string;
+  endDate?: string;
   venueTh: string;
   venueEn: string;
   highlights: string[];
@@ -45,7 +50,7 @@ const kindMeta = {
   outdoor: { labelTh: "Outdoor", labelEn: "Outdoor", icon: "⛺", tone: "green", className: "border-emerald-300/28 bg-emerald-300/[0.065]" },
 } satisfies Record<EventKind, { labelTh: string; labelEn: string; icon: string; tone: "blue" | "purple" | "green"; className: string }>;
 
-const eventMonths: EventMonth[] = [
+const legacyEventMonths: EventMonth[] = [
   {
     id: "july-2026",
     labelTh: "กรกฎาคม 2026",
@@ -296,6 +301,36 @@ const eventMonths: EventMonth[] = [
   },
 ];
 
+function getEventKind(title: string, categories: string[]): EventKind {
+  const searchable = `${title} ${categories.join(" ")}`;
+  if (/outdoor|กลางแจ้ง/i.test(searchable)) return "outdoor";
+  if (/festival|เทศกาล/i.test(searchable)) return "festival";
+  if (/fair|แฟร์|ตลาดนัด|มหกรรม/i.test(searchable)) return "fair";
+  return "expo";
+}
+
+const eventMonths: EventMonth[] = legacyEventMonths.map((month) => ({
+  ...month,
+  events: eventSeeds
+    .filter((event) => getSeedMonthId(event.startDate) === month.id)
+    .map((event) => ({
+      id: event.id,
+      kind: getEventKind(event.title, event.categories),
+      title: event.title,
+      dateTh: formatSeedDateRange(event.startDate, event.endDate, "th"),
+      dateEn: formatSeedDateRange(event.startDate, event.endDate, "en"),
+      startDate: event.startDate,
+      endDate: event.endDate,
+      venueTh: [event.venue, event.hall, event.province].filter(Boolean).join(" · "),
+      venueEn: [event.venue, event.hall, event.province].filter(Boolean).join(" · "),
+      highlights: [...event.categories.slice(0, 3), event.admissionType],
+      sourceTh: event.sourceName,
+      sourceEn: event.sourceName,
+      sourceUrl: event.sourceUrl,
+      imageTitle: event.titleEnglish || event.title,
+    })),
+}));
+
 function eventImageSrc(event: ExpoEvent) {
   const params = new URLSearchParams({
     url: event.sourceUrl,
@@ -343,13 +378,14 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
   );
 }
 
-function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; isThai: boolean }) {
+function EventCard({ event, index, isThai, isNew }: { event: ExpoEvent; index: number; isThai: boolean; isNew: boolean }) {
   const meta = kindMeta[event.kind];
-  const freshness = getContentFreshness({ kind: "event", date: event.dateEn });
-  const freshnessTone = freshness.status === "new" ? "green" : freshness.status === "expiring" ? "yellow" : freshness.status === "expired" ? "red" : "gray";
+  const dateStatus = isScheduledItemActive(event.endDate ?? event.dateEn, new Date(), "event") ? "active" : "expired";
+  const freshnessStatus = isNew ? "new" : dateStatus;
+  const freshnessTone = freshnessStatus === "new" ? "green" : freshnessStatus === "expired" ? "red" : "gray";
 
   return (
-    <Card className={cn("overflow-hidden p-0", getFreshnessClass(freshness.status))}>
+    <Card className={cn("overflow-hidden p-0", getFreshnessClass(freshnessStatus))}>
       <div className="grid gap-0 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <EventArtwork event={event} />
         <div className="flex min-w-0 flex-col p-5">
@@ -357,7 +393,7 @@ function EventCard({ event, index, isThai }: { event: ExpoEvent; index: number; 
             <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.08] text-sm font-black text-white">{index + 1}</span>
             <Badge tone={meta.tone}>{isThai ? meta.labelTh : meta.labelEn}</Badge>
             <Badge tone="gray">{isThai ? event.sourceTh : event.sourceEn}</Badge>
-            <Badge tone={freshnessTone}>{getFreshnessLabel(freshness.status, isThai ? "th" : "en")}</Badge>
+            <Badge tone={freshnessTone}>{getFreshnessLabel(freshnessStatus, isThai ? "th" : "en")}</Badge>
           </div>
           <h3 className="mt-4 text-2xl font-black leading-tight text-white">{event.title}</h3>
           <div className="mt-4 grid gap-3 text-sm font-semibold text-slate-300 md:grid-cols-2">
@@ -389,9 +425,59 @@ export function EventExpoFairView() {
   const isThai = lang === "th";
   const [activeMonthId, setActiveMonthId] = useState<EventMonthId>(eventMonths[0].id);
   const [kind, setKind] = useState<EventKind | "all">("all");
+  const [location, setLocation] = useState("");
+  const [liveItems, setLiveItems] = useState<TopicRefreshItem[]>([]);
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const [, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    const searchFromUrl = new URLSearchParams(window.location.search).get("search");
+    if (searchFromUrl) setLocation(searchFromUrl);
+  }, []);
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ href?: string; itemIds?: string[] }>).detail;
+      if (detail?.href === "/events") {
+        setRefreshVersion((value) => value + 1);
+        setNewItemIds(new Set(detail.itemIds ?? []));
+      }
+    };
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
+  useEffect(() => {
+    const loadLiveItems = async () => {
+      const response = await fetch("/api/topic-refresh?topic=events", { cache: "no-store" });
+      const payload = await response.json() as { items?: TopicRefreshItem[] };
+      if (response.ok && payload.items) setLiveItems(payload.items);
+    };
+    void loadLiveItems();
+    const handleRefresh = () => void loadLiveItems();
+    window.addEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+    return () => window.removeEventListener("nimbusdaily:topic-refreshed", handleRefresh);
+  }, []);
   const activeMonth = eventMonths.find((month) => month.id === activeMonthId) ?? eventMonths[0];
-  const events = useMemo(() => activeMonth.events.filter((event) => kind === "all" || event.kind === kind), [activeMonth, kind]);
-  const total = eventMonths.reduce((sum, month) => sum + month.events.length, 0);
+  const refreshedNow = new Date();
+  const apiEvents: ExpoEvent[] = liveItems.map((item) => ({
+    id: item.id,
+    kind: (["expo", "fair", "festival", "outdoor"].includes(item.group) ? item.group : "festival") as EventKind,
+    title: item.title,
+    dateTh: item.dateTh,
+    dateEn: item.dateEn,
+    startDate: item.startDate,
+    endDate: item.endDate,
+    venueTh: item.detailTh,
+    venueEn: item.detailEn,
+    highlights: [item.sourceLabel],
+    sourceTh: item.sourceLabel,
+    sourceEn: item.sourceLabel,
+    sourceUrl: item.sourceUrl,
+    imageTitle: item.title,
+  }));
+  const sourceEvents = apiEvents.length
+    ? apiEvents.filter((event) => !event.startDate || getSeedMonthId(event.startDate) === activeMonth.id)
+    : activeMonth.events;
+  const events = sourceEvents.filter((event) => isScheduledItemActive(event.endDate ?? event.dateEn, refreshedNow, "event") && (kind === "all" || event.kind === kind) && (!location.trim() || `${event.title} ${event.venueTh} ${event.venueEn}`.toLowerCase().includes(location.trim().toLowerCase())));
+  const total = eventMonths.reduce((sum, month) => sum + month.events.filter((event) => isScheduledItemActive(event.endDate ?? event.dateEn, refreshedNow, "event")).length, 0);
 
   return (
     <section className="nimbus-card-3d relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-slate-950/72 p-4 shadow-2xl shadow-emerald-950/20 sm:p-6">
@@ -423,6 +509,10 @@ export function EventExpoFairView() {
         </header>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-3">
+          <label className="rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-sm font-bold text-slate-200">
+            <span className="sr-only">ค้นหาสถานที่</span>
+            <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder={isThai ? "ค้นหาสถานที่หรืองาน" : "Search place or event"} className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+          </label>
           <div className="rounded-2xl border border-emerald-300/28 bg-emerald-300/[0.07] p-4 text-sm font-bold text-slate-200">📅 <span className="text-emerald-200">{isThai ? "เดือน:" : "Month:"}</span> {isThai ? activeMonth.labelTh : activeMonth.labelEn}</div>
           <div className="rounded-2xl border border-fuchsia-300/28 bg-fuchsia-300/[0.07] p-4 text-sm font-bold text-slate-200">🏷 <span className="text-fuchsia-200">{isThai ? "ประเภท:" : "Type:"}</span> {kind === "all" ? (isThai ? "ทั้งหมด" : "All") : (isThai ? kindMeta[kind].labelTh : kindMeta[kind].labelEn)}</div>
           <div className="rounded-2xl border border-cyan-300/28 bg-cyan-300/[0.07] p-4 text-sm font-bold text-slate-200">ⓘ {isThai ? activeMonth.noteTh : activeMonth.noteEn}</div>
@@ -446,7 +536,7 @@ export function EventExpoFairView() {
         </div>
 
         <main className="mt-6 grid gap-4 2xl:grid-cols-2">
-          {events.map((event, index) => <EventCard key={event.id} event={event} index={index} isThai={isThai} />)}
+          {events.map((event, index) => <EventCard key={event.id} event={event} index={index} isThai={isThai} isNew={newItemIds.has(event.id)} />)}
           {!events.length && (
             <Card className="p-8 text-center 2xl:col-span-2">
               <p className="text-3xl">🔎</p>

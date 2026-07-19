@@ -9,7 +9,7 @@ import type { TranslationKey } from "@/lib/translations";
 import { ThemeToggle } from "./ThemeToggle";
 
 type UpdateCopy = {
-  updatedAt: string;
+  updatedAt?: string;
   th: string;
   en: string;
 };
@@ -26,6 +26,11 @@ type NavItem = {
 type ManualUpdateEntry = {
   updatedAt: string;
   count: number;
+  newItems?: number;
+  expiredItems?: number;
+  duplicateItems?: number;
+  invalidItems?: number;
+  itemIds?: string[];
   status?: "success" | "error";
   th?: string;
   en?: string;
@@ -34,6 +39,32 @@ type ManualUpdateEntry = {
 type ManualUpdateState = Record<string, ManualUpdateEntry>;
 
 const UPDATE_STORAGE_KEY = "nimbusdaily-menu-updates";
+const REFRESH_SNAPSHOT_STORAGE_KEY = "nimbusdaily-menu-refresh-snapshots";
+
+function getNewItemIds(href: string, itemIds: string[]) {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const snapshots = JSON.parse(window.localStorage.getItem(REFRESH_SNAPSHOT_STORAGE_KEY) ?? "{}") as Record<string, string[]>;
+    const previous = snapshots[href] ?? [];
+    const newItems = previous.length === 0 ? itemIds : itemIds.filter((item) => !previous.includes(item));
+    window.localStorage.setItem(REFRESH_SNAPSHOT_STORAGE_KEY, JSON.stringify({ ...snapshots, [href]: itemIds }));
+    return newItems;
+  } catch {
+    return itemIds;
+  }
+}
+
+function countNewItems(href: string, itemIds: string[]) {
+  return getNewItemIds(href, itemIds).length;
+}
+
+function newItemText(newItems: number, expiredItems = 0) {
+  return {
+    th: `เพิ่มใหม่ ${newItems} รายการ${expiredItems ? ` · ตัดรายการหมดอายุ ${expiredItems} รายการ` : ""}`,
+    en: `${newItems} new item${newItems === 1 ? "" : "s"}${expiredItems ? ` · removed ${expiredItems} expired` : ""}`,
+  };
+}
 const STOCK_REFRESH_SYMBOLS = [
   "NVDA",
   "MSFT",
@@ -97,7 +128,7 @@ const navItems: NavItem[] = [
     key: "nav_home",
     icon: "HM",
     update: {
-      updatedAt: "2026-07-04T01:00:00.000Z",
+      updatedAt: "",
       th: "ตั้งค่าเริ่มต้นเป็นธีมมืดและปรับหน้าแรกให้อ่านสบายขึ้น",
       en: "Default dark theme and refined landing readability",
     },
@@ -107,7 +138,7 @@ const navItems: NavItem[] = [
     key: "nav_dashboard",
     icon: "DB",
     update: {
-      updatedAt: "2026-07-04T01:15:00.000Z",
+      updatedAt: "",
       th: "เพิ่มภาพรวม Daily Brief, API, Telegram และสถานะระบบ",
       en: "Daily Brief, API, Telegram, and system status overview updated",
     },
@@ -117,7 +148,7 @@ const navItems: NavItem[] = [
     key: "nav_daily",
     icon: "DY",
     update: {
-      updatedAt: "2026-07-04T01:30:00.000Z",
+      updatedAt: "",
       th: "ข่าวทุกหมวดมีรูปจริง ลิงก์ต้นทาง และข้อมูลพร้อมส่ง Telegram",
       en: "Every news topic includes real images, source links, and Telegram-ready briefs",
     },
@@ -127,9 +158,9 @@ const navItems: NavItem[] = [
     key: "nav_stocks",
     icon: "ST",
     update: {
-      updatedAt: "2026-07-04T01:45:00.000Z",
-      th: "เพิ่มราคาวันนี้ ปิดเมื่อวาน After Hours, Heatmap และ Watchlist",
-      en: "Added today, previous close, after-hours, heatmap, and watchlists",
+      updatedAt: "",
+      th: "รวมราคาวันนี้ ปิดเมื่อวาน After Hours และ Heatmap ไว้ในหน้าเดียว",
+      en: "Today, previous close, after-hours, and heatmap are in one view",
     },
   },
   {
@@ -137,7 +168,7 @@ const navItems: NavItem[] = [
     key: "nav_concerts",
     icon: "CN",
     update: {
-      updatedAt: "2026-07-04T02:00:00.000Z",
+      updatedAt: "",
       th: "ตารางคอนเสิร์ตแยกเดือน พร้อมรูปจริงและลิงก์ซื้อบัตร",
       en: "Monthly concert schedule with real posters and ticket links",
     },
@@ -147,7 +178,7 @@ const navItems: NavItem[] = [
     key: "nav_movies",
     icon: "MV",
     update: {
-      updatedAt: "2026-07-04T02:15:00.000Z",
+      updatedAt: "",
       th: "หนังโรงไทยและ Netflix / ซีรีส์มีโปสเตอร์เต็มกรอบและแยกแพลตฟอร์ม",
       en: "Thai cinema and Netflix/series now show full posters by platform",
     },
@@ -157,39 +188,9 @@ const navItems: NavItem[] = [
     key: "nav_events",
     icon: "EV",
     update: {
-      updatedAt: "2026-07-04T02:30:00.000Z",
+      updatedAt: "",
       th: "เพิ่มงานอีเวนต์ / Expo / Fair พร้อมแยกหมวดและตัดข้อมูลซ้ำ",
       en: "Added Event / Expo / Fair categories with duplicate cleanup",
-    },
-  },
-  {
-    href: "/notifications",
-    key: "nav_notifications",
-    icon: "NT",
-    update: {
-      updatedAt: "2026-07-04T02:45:00.000Z",
-      th: "อัปเดตแจ้งเตือนสำคัญและสถานะอ่านแล้ว",
-      en: "Important alerts and read states refreshed",
-    },
-  },
-  {
-    href: "/settings",
-    key: "nav_settings",
-    icon: "SE",
-    update: {
-      updatedAt: "2026-07-04T03:00:00.000Z",
-      th: "ปรับภาษา ธีม และค่าการส่ง Telegram ให้ชัดขึ้น",
-      en: "Language, theme, and Telegram preferences refined",
-    },
-  },
-  {
-    href: "/admin",
-    key: "nav_admin",
-    icon: "AD",
-    update: {
-      updatedAt: "2026-07-04T03:15:00.000Z",
-      th: "เพิ่มภาพรวมผู้ใช้ สถานะระบบ และข้อมูลตรวจสอบ",
-      en: "User overview, system health, and audit details updated",
     },
   },
 ];
@@ -216,6 +217,7 @@ function formatUpdateTime(value: string, lang: string) {
 
 function updateEntryIsNewer(entry: ManualUpdateEntry | undefined, fallback: UpdateCopy) {
   if (!entry?.updatedAt) return false;
+  if (!fallback.updatedAt) return true;
   return new Date(entry.updatedAt).getTime() >= new Date(fallback.updatedAt).getTime();
 }
 
@@ -243,7 +245,7 @@ function formatTopicGroups(groups: Record<string, number> | undefined, lang: "th
     .join(" / ");
 }
 
-async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en">> {
+async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "status" | "th" | "en" | "newItems" | "expiredItems" | "duplicateItems" | "invalidItems" | "itemIds"> & { updatedAt?: string }> {
   const now = Date.now();
 
   try {
@@ -256,13 +258,17 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
         },
       });
       if (!response.ok) throw new Error(`stocks ${response.status}`);
-      const payload = (await response.json()) as { quotes?: unknown[]; source?: string; error?: string };
+      const payload = (await response.json()) as { quotes?: Array<{ symbol?: string; price?: number; prevClose?: number; afterHours?: number }>; source?: string; updatedAt?: string; fetchedAt?: string; error?: string };
       const count = payload.quotes?.length ?? 0;
       if (count === 0) throw new Error(payload.error || "no stock quotes");
+      const newItems = countNewItems(href, (payload.quotes ?? []).map((quote) => `${quote.symbol ?? "unknown"}:${quote.price ?? ""}:${quote.prevClose ?? ""}:${quote.afterHours ?? ""}`));
+      const newText = newItemText(newItems);
       return {
         status: "success",
-        th: `ดึงราคาหุ้นสดได้ ${count} ตัว จาก ${payload.source || "Yahoo Finance"}`,
-        en: `Fetched ${count} live stock quotes from ${payload.source || "Yahoo Finance"}`,
+        updatedAt: payload.updatedAt ?? payload.fetchedAt,
+        newItems,
+        th: `ดึงราคาหุ้นสดได้ ${count} ตัว จาก ${payload.source || "Yahoo Finance"} · ${newText.th}`,
+        en: `Fetched ${count} live stock quotes from ${payload.source || "Yahoo Finance"} · ${newText.en}`,
       };
     }
 
@@ -280,19 +286,31 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
         success?: boolean;
         error?: string;
         summary?: { totalItems?: number; groups?: Record<string, number>; latestTitles?: string[] };
+        items?: Array<{ id?: string; title?: string }>;
+        expiredCount?: number;
+        updatedAt?: string;
       };
       const checked = payload.checked ?? 0;
       const reachable = payload.reachable ?? 0;
       const totalItems = payload.summary?.totalItems ?? 0;
-      if (!response.ok || !payload.success || totalItems === 0) throw new Error(payload.error || `live sources ${reachable}/${checked}`);
+      if (!response.ok || !payload.success) throw new Error(payload.error || `live sources ${reachable}/${checked}`);
       const label = LIVE_TOPIC_LABELS[href];
       const groupTextTh = formatTopicGroups(payload.summary?.groups, "th");
       const groupTextEn = formatTopicGroups(payload.summary?.groups, "en");
       const latestTh = payload.summary?.latestTitles?.slice(0, 3).join(" / ");
+      const expiredItems = payload.expiredCount ?? 0;
+      const itemIds = (payload.items ?? []).map((item, index) => item.id ?? item.title ?? String(index));
+      const newItemIds = getNewItemIds(href, itemIds);
+      const newItems = newItemIds.length;
+      const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
-        th: `อัปเดต${label.th}ได้ ${totalItems} รายการ${groupTextTh ? ` (${groupTextTh})` : ""} · แหล่งข้อมูลตอบ ${reachable}/${checked}${latestTh ? ` · ใหม่: ${latestTh}` : ""}`,
-        en: `Updated ${totalItems} ${label.en} items${groupTextEn ? ` (${groupTextEn})` : ""}; live sources ${reachable}/${checked}`,
+        updatedAt: payload.updatedAt,
+        newItems,
+        expiredItems,
+        itemIds: newItemIds,
+        th: `อัปเดต${label.th} ${totalItems} รายการ · ${newText.th}${groupTextTh ? ` (${groupTextTh})` : ""} · แหล่งข้อมูลตอบ ${reachable}/${checked}${latestTh ? ` · ล่าสุด: ${latestTh}` : ""}`,
+        en: `Updated ${totalItems} ${label.en} items · ${newText.en}${groupTextEn ? ` (${groupTextEn})` : ""}; live sources ${reachable}/${checked}`,
       };
     }
 
@@ -306,28 +324,48 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       });
       if (!response.ok) throw new Error(`news ${response.status}`);
       const payload = (await response.json()) as {
-        data?: { items?: unknown[]; summary?: { totalItems?: number; mode?: string } };
-        items?: unknown[];
+        data?: { items?: Array<{ id?: string; title?: string }>; summary?: { totalItems?: number; mode?: string }; freshness?: { sourceUpdatedAt?: string; sourcePublishedAt?: string; fetchedAt?: string }; processingReport?: { addedFromNewSources?: number; removedExpired?: number; removedDuplicates?: number; removedInvalid?: number } };
+        items?: Array<{ id?: string; title?: string }>;
         summary?: { totalItems?: number; mode?: string };
       };
-      const data = payload.data ?? payload;
+      const data = (payload.data ?? payload) as {
+        items?: Array<{ id?: string; title?: string }>;
+        summary?: { totalItems?: number; mode?: string };
+        freshness?: { sourceUpdatedAt?: string; sourcePublishedAt?: string; fetchedAt?: string };
+        processingReport?: { addedFromNewSources?: number; removedExpired?: number; removedDuplicates?: number; removedInvalid?: number };
+      };
       const count = data.summary?.totalItems ?? data.items?.length ?? 0;
+      const detectedNewItems = countNewItems(href, (data.items ?? []).map((item, index) => item.id ?? item.title ?? String(index)));
+      const newItems = data.processingReport?.addedFromNewSources ?? detectedNewItems;
+      const expiredItems = data.processingReport?.removedExpired ?? 0;
+      const duplicateItems = data.processingReport?.removedDuplicates ?? 0;
+      const invalidItems = data.processingReport?.removedInvalid ?? 0;
+      const newText = newItemText(newItems, expiredItems);
       return {
         status: "success",
-        th: `ดึงข่าวล่าสุดได้ ${count} รายการ โหมด ${data.summary?.mode || "live"}`,
-        en: `Fetched ${count} latest news items in ${data.summary?.mode || "live"} mode`,
+        updatedAt: data.freshness?.sourceUpdatedAt ?? data.freshness?.sourcePublishedAt ?? data.freshness?.fetchedAt,
+        newItems,
+        expiredItems,
+        duplicateItems,
+        invalidItems,
+        th: `ดึงข่าวล่าสุดได้ ${count} รายการ · ${newText.th} · ซ้ำ ${duplicateItems} · ไม่ผ่าน ${invalidItems} · โหมด ${data.summary?.mode || "live"}`,
+        en: `Fetched ${count} latest news items · ${newText.en} · ${duplicateItems} duplicate · ${invalidItems} invalid in ${data.summary?.mode || "live"} mode`,
       };
     }
 
     if (href === "/notifications") {
       const response = await fetch(`/api/notifications?refresh=${now}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`notifications ${response.status}`);
-      const payload = (await response.json()) as unknown[] | { data?: unknown[]; notifications?: unknown[]; meta?: { total?: number } };
-      const count = Array.isArray(payload) ? payload.length : payload.meta?.total ?? payload.data?.length ?? payload.notifications?.length ?? 0;
+      const payload = (await response.json()) as Array<{ id?: string; title?: string }> | { data?: Array<{ id?: string; title?: string }>; notifications?: Array<{ id?: string; title?: string }>; meta?: { total?: number } };
+      const items = Array.isArray(payload) ? payload : payload.data ?? payload.notifications ?? [];
+      const count = Array.isArray(payload) ? payload.length : payload.meta?.total ?? items.length;
+      const newItems = countNewItems(href, items.map((item, index) => item.id ?? item.title ?? String(index)));
+      const newText = newItemText(newItems);
       return {
         status: "success",
-        th: `รีเฟรชการแจ้งเตือนล่าสุด ${count} รายการ`,
-        en: `Refreshed ${count} notifications`,
+        newItems,
+        th: `รีเฟรชการแจ้งเตือนล่าสุด ${count} รายการ · ${newText.th}`,
+        en: `Refreshed ${count} notifications · ${newText.en}`,
       };
     }
 
@@ -338,8 +376,9 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       const checks = Object.keys(payload.checks ?? payload.data ?? {}).length;
       return {
         status: "success",
-        th: `ตรวจสถานะระบบสำหรับหน้าตั้งค่าแล้ว ${checks || 1} จุด`,
-        en: `Checked ${checks || 1} system setting signals`,
+        newItems: 0,
+        th: `ตรวจสถานะระบบสำหรับหน้าตั้งค่าแล้ว ${checks || 1} จุด · เพิ่มใหม่ 0 รายการ`,
+        en: `Checked ${checks || 1} system setting signals · 0 new items`,
       };
     }
 
@@ -353,8 +392,9 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
       const totalSignals = Object.values(payload.data?.totals ?? {}).filter((value) => typeof value === "number").length;
       return {
         status: "success",
-        th: `รีเฟรชสถานะแอดมินและระบบแล้ว ${totalSignals || 1} สัญญาณ`,
-        en: `Refreshed ${totalSignals || 1} admin/system signals`,
+        newItems: 0,
+        th: `รีเฟรชสถานะแอดมินและระบบแล้ว ${totalSignals || 1} สัญญาณ · เพิ่มใหม่ 0 รายการ`,
+        en: `Refreshed ${totalSignals || 1} admin/system signals · 0 new items`,
       };
     }
 
@@ -362,13 +402,15 @@ async function refreshMenuTopic(href: string): Promise<Pick<ManualUpdateEntry, "
     if (!response.ok) throw new Error(`page ${response.status}`);
     return {
       status: "success",
-      th: "ตรวจข้อมูลหน้าเว็บล่าสุดแล้ว",
-      en: "Checked the latest page data",
+      newItems: 0,
+      th: "ตรวจข้อมูลหน้าเว็บล่าสุดแล้ว · เพิ่มใหม่ 0 รายการ",
+      en: "Checked the latest page data · 0 new items",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "refresh failed";
     return {
       status: "error",
+      newItems: 0,
       th: `อัปเดตจริงไม่สำเร็จ: ${message}`,
       en: `Live refresh failed: ${message}`,
     };
@@ -382,6 +424,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const [hydratedUpdates, setHydratedUpdates] = useState(false);
   const [updatingHref, setUpdatingHref] = useState<string | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [batchSummary, setBatchSummary] = useState<{ news: number; events: number; expired: number; duplicates: number; invalid: number } | null>(null);
 
   useEffect(() => {
     try {
@@ -411,28 +454,38 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     setManualUpdates((current) => ({
       ...current,
       [href]: {
-        updatedAt: new Date().toISOString(),
-        count: (current[href]?.count ?? 0) + 1,
         ...result,
+        updatedAt: result.status === "success" ? result.updatedAt ?? current[href]?.updatedAt ?? "" : current[href]?.updatedAt ?? "",
+        count: (current[href]?.count ?? 0) + 1,
       },
     }));
+    if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
     setUpdatingHref(null);
   };
 
   const handleUpdateAllTopics = async () => {
-    const now = new Date().toISOString();
     setUpdatingHref("__all__");
     const results = await Promise.all(navItems.map(async (item) => [item.href, await refreshMenuTopic(item.href)] as const));
     setManualUpdates((current) => {
       const next = { ...current };
       for (const [href, result] of results) {
         next[href] = {
-          updatedAt: now,
-          count: (current[href]?.count ?? 0) + 1,
           ...result,
+          updatedAt: result.status === "success" ? result.updatedAt ?? current[href]?.updatedAt ?? "" : current[href]?.updatedAt ?? "",
+          count: (current[href]?.count ?? 0) + 1,
         };
       }
       return next;
+    });
+    for (const [href, result] of results) {
+      if (result.status === "success") window.dispatchEvent(new CustomEvent("nimbusdaily:topic-refreshed", { detail: { href, itemIds: result.itemIds ?? [] } }));
+    }
+    setBatchSummary({
+      news: results.filter(([href]) => href === "/daily").reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
+      events: results.filter(([href]) => ["/concerts", "/movies", "/events"].includes(href)).reduce((sum, [, result]) => sum + (result.newItems ?? 0), 0),
+      expired: results.reduce((sum, [, result]) => sum + (result.expiredItems ?? 0), 0),
+      duplicates: results.reduce((sum, [, result]) => sum + (result.duplicateItems ?? 0), 0),
+      invalid: results.reduce((sum, [, result]) => sum + (result.invalidItems ?? 0), 0),
     });
     setUpdatingHref(null);
   };
@@ -441,7 +494,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
     <aside
       className={cn(
         "daily-sidebar border-r border-white/10 bg-slate-950/80 backdrop-blur-2xl",
-        mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-5 lg:flex",
+        mobile ? "flex h-full w-full flex-col p-4" : "fixed left-0 top-0 hidden h-screen w-72 flex-col p-4 lg:flex",
       )}
     >
       <Link href="/dashboard" className="flex min-h-14 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]" onClick={onNavigate}>
@@ -457,30 +510,33 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         </div>
       </Link>
 
-      <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.065] p-4">
+      <div className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.055] p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase text-cyan-200">{t("sidebar_phase")}</p>
           <button
             type="button"
             disabled={updatingHref !== null}
             onClick={() => void handleUpdateAllTopics()}
-            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-[11px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {updatingHref === "__all__" ? (lang === "th" ? "กำลังดึง..." : "Updating...") : (lang === "th" ? "อัปเดตทั้งหมด" : "Update all")}
           </button>
         </div>
-        <p className="mt-2 text-sm leading-7 text-slate-300">{t("sidebar_desc")}</p>
+        <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-400">{t("sidebar_desc")}</p>
+        {batchSummary ? <p className="mt-3 rounded-md border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-xs font-extrabold text-emerald-100">{lang === "th" ? `สรุปรอบล่าสุด: ข่าวใหม่ ${batchSummary.news} · กิจกรรมใหม่ ${batchSummary.events} · หมดอายุ ${batchSummary.expired} · ซ้ำ ${batchSummary.duplicates} · ไม่ผ่าน ${batchSummary.invalid}` : `Latest: ${batchSummary.news} news · ${batchSummary.events} events · ${batchSummary.expired} expired · ${batchSummary.duplicates} duplicate · ${batchSummary.invalid} invalid`}</p> : null}
       </div>
 
-      <nav className="mt-7 flex-1 space-y-2 overflow-y-auto pr-1">
+      <nav className="mt-4 flex-1 space-y-1 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const pathIsActive = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isActive = pendingHref ? item.href === pendingHref : pathIsActive;
           const label = item.key ? t(item.key) : lang === "th" ? item.th : item.en;
           const storedUpdate = manualUpdates[item.href];
           const manualUpdate = updateEntryIsNewer(storedUpdate, item.update) ? storedUpdate : undefined;
-          const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt;
+          const updatedAt = manualUpdate?.updatedAt ?? item.update.updatedAt ?? "";
           const updateCount = manualUpdate?.count ?? 0;
+          const newItems = manualUpdate?.newItems ?? 0;
+          const expiredItems = manualUpdate?.expiredItems ?? 0;
           const isFreshUpdate = manualUpdate?.status === "success" && updateCount > 0 && isSameBangkokDay(updatedAt);
           const isStaleUpdate = manualUpdate?.status === "error" || !isSameBangkokDay(updatedAt);
 
@@ -488,7 +544,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             <div
               key={item.href}
               className={cn(
-                "group rounded-xl border transition-all duration-200",
+                "group rounded-lg border transition-all duration-200",
                 isFreshUpdate && "nimbus-live-new",
                 isStaleUpdate && !isFreshUpdate && "nimbus-live-stale",
                 isActive
@@ -506,7 +562,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                   onNavigate?.();
                 }}
                 className={cn(
-                  "flex min-h-12 items-center gap-3 px-3.5 pb-2 pt-2.5 text-sm font-semibold transition-all",
+                  "flex min-h-13 items-center gap-3 px-3.5 py-3 text-sm font-semibold transition-all",
                   isActive ? "text-white" : "text-slate-400 group-hover:text-white",
                 )}
               >
@@ -523,12 +579,26 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                 <span className="truncate">{label}</span>
               </Link>
 
-              <div className="px-3.5 pb-3">
-                <div className="rounded-lg border border-white/10 bg-slate-950/35 p-2.5">
+              {(isActive || updatingHref === item.href) && <div className="px-3.5 pb-3">
+                <div className="rounded-md border border-white/10 bg-slate-950/35 p-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-[11px] font-bold text-cyan-100/80">
-                      {lang === "th" ? "อัปเดตล่าสุด" : "Last updated"}: {formatUpdateTime(updatedAt, lang)}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-bold text-cyan-100/80">
+                        {lang === "th" ? "อัปเดตล่าสุด" : "Last updated"}: {formatUpdateTime(updatedAt, lang)}
+                      </p>
+                      {manualUpdate?.status === "success" ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          <span className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-100">
+                            {lang === "th" ? `เพิ่มใหม่ ${newItems}` : `New ${newItems}`}
+                          </span>
+                          {expiredItems > 0 ? (
+                            <span className="rounded-md border border-amber-300/25 bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-100">
+                              {lang === "th" ? `ล้างหมดอายุ ${expiredItems}` : `Expired ${expiredItems}`}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                     <button
                       type="button"
                       disabled={updatingHref !== null}
@@ -537,13 +607,14 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                         event.stopPropagation();
                         void handleUpdateTopic(item.href);
                       }}
-                      className="shrink-0 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-cyan-300/25 bg-cyan-300/10 text-sm font-extrabold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label={`${lang === "th" ? "อัปเดต" : "Update"} ${label}`}
+                      title={`${lang === "th" ? "อัปเดต" : "Update"} ${label}`}
                     >
-                      {updatingHref === item.href ? (lang === "th" ? "ดึง..." : "Live...") : (lang === "th" ? "อัปเดต" : "Update")}
+                      {updatingHref === item.href ? "…" : "↻"}
                     </button>
                   </div>
-                  <p className={cn("mt-1 line-clamp-2 text-[11px] leading-5", manualUpdate?.status === "error" ? "text-amber-100" : "text-slate-300")}>
+                  <p className={cn("mt-1.5 line-clamp-2 text-[11px] leading-5", manualUpdate?.status === "error" ? "text-amber-100" : "text-slate-300")}>
                     {(lang === "th" ? manualUpdate?.th : manualUpdate?.en) || getUpdateText(item, lang)}
                     {updateCount > 0 ? (
                       <span className={cn("font-bold", manualUpdate?.status === "error" ? "text-amber-200" : "text-cyan-200")}>
@@ -553,7 +624,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
                     ) : null}
                   </p>
                 </div>
-              </div>
+              </div>}
             </div>
           );
         })}
