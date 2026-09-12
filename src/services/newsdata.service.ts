@@ -27,20 +27,25 @@ interface NewsDataResponse {
 }
 
 const CATEGORY_QUERY: Partial<Record<DailyBriefCategoryKey, string>> = {
-  thai: "Thailand politics economy society",
-  world: "world geopolitics economy",
-  aiTech: "OpenAI Google Apple Microsoft AI startup developer tools",
-  cybersecurity: "cybersecurity vulnerability data breach malware phishing security advisory",
+  thai: "Thailand politics economy society breaking news",
+  world: "world geopolitics economy international news",
+  aiTech: "OpenAI Anthropic Google AI Microsoft AI developer tools artificial intelligence",
+  cybersecurity: "cybersecurity vulnerability CVE data breach malware phishing security advisory",
   networkCloud: "Cisco Fortinet Palo Alto Cloudflare AWS Azure Google Cloud Vercel GitHub outage infrastructure",
-  market: "US stock market bitcoin crypto gold dollar semiconductor AI space stocks",
-  sports: "football soccer match fixture result",
-  events: "concert event product launch Thailand",
-  deals: "Shopee Lazada gadget software domain hosting promotion",
+  market: "US stock market bitcoin crypto gold dollar semiconductor earnings stocks",
+  weatherPm25: "Thailand weather rain PM2.5 Bangkok forecast",
+  traffic: "Bangkok traffic BTS MRT disruption flood road closure",
+  todayTasks: "GitHub Vercel automation scheduler DevOps outage cloud workflow",
+  importantEmail: "email security phishing Gmail invoice scam alert",
+  sports: "football soccer Thai League Premier League fixture result score",
+  events: "concert event product launch exhibition Thailand Bangkok",
+  deals: "Shopee Lazada gadget software domain hosting promotion discount",
   publicAlerts: "Thailand government announcement public alert BTS MRT disruption public service",
   travelDeals: "Thailand flight deals airfare hotel room rate travel promotion resort package",
+  lifestyle: "Thailand restaurant cafe buffet weekend activities lifestyle travel food",
 };
 
-type FetchableDailyBriefCategory = Exclude<DailyBriefCategoryKey, "all" | "lifestyle">;
+type FetchableDailyBriefCategory = Exclude<DailyBriefCategoryKey, "all">;
 
 type GoogleNewsRssItem = {
   title: string;
@@ -52,8 +57,14 @@ type GoogleNewsRssItem = {
   imageUrl?: string;
 };
 
-const REAL_NEWS_TARGET_COUNT = Math.max(10, Number(process.env.NEWS_ITEMS_PER_CATEGORY || "10"));
+const REAL_NEWS_TARGET_COUNT = Math.max(8, Number(process.env.NEWS_ITEMS_PER_CATEGORY || "10"));
 const GOOGLE_NEWS_TIMEOUT_MS = Math.max(2500, Number(process.env.GOOGLE_NEWS_TIMEOUT_MS || "8500"));
+const NEWS_MAX_AGE_HOURS = Math.max(12, Number(process.env.NEWS_MAX_AGE_HOURS || "72"));
+const NEWS_MAX_AGE_MS = NEWS_MAX_AGE_HOURS * 60 * 60 * 1000;
+
+const BLOCKED_NEWS_PATTERN = /(คาสิโน|พนัน|การพนัน|เดิมพัน|แทงบอล|บาคาร่า|สล็อต|เครดิตฟรี|โบนัส|หวย|casino|gambling|betting|bookmaker|wager|jackpot|free\s*bet|odds)/i;
+const PAID_ONLY_PATTERN = /(only available in paid plans|subscribe to read|subscription required|paywall|sign in to read)/i;
+const LOW_QUALITY_SOURCE_PATTERN = /(facebook\.com|today\.line\.me|4tamilmedia|portal imbiara)/i;
 
 const GOOGLE_NEWS_CATEGORIES: FetchableDailyBriefCategory[] = [
   "thai",
@@ -71,24 +82,26 @@ const GOOGLE_NEWS_CATEGORIES: FetchableDailyBriefCategory[] = [
   "deals",
   "publicAlerts",
   "travelDeals",
+  "lifestyle",
 ];
 
 const GOOGLE_NEWS_QUERY: Record<FetchableDailyBriefCategory, string[]> = {
-  thai: ["ข่าวไทยวันนี้ OR การเมือง OR เศรษฐกิจไทย OR สังคม OR อุบัติเหตุ"],
-  world: ["ข่าวต่างประเทศ OR ข่าวโลก OR เศรษฐกิจโลก OR สงคราม OR ภูมิรัฐศาสตร์"],
-  aiTech: ["OpenAI OR Google AI OR Apple AI OR Microsoft AI OR เทคโนโลยี", "AI tools OR developer tools OR startup OR software", "artificial intelligence OR generative AI OR machine learning OR developer platform"],
-  cybersecurity: ["ความปลอดภัยไซเบอร์ OR ข้อมูลรั่ว OR มัลแวร์ OR phishing OR CVE", "cybersecurity OR vulnerability OR CVE OR malware OR phishing OR security advisory"],
-  networkCloud: ["Cloudflare OR AWS OR Azure OR Google Cloud OR GitHub outage", "Cisco OR Fortinet OR Palo Alto OR network outage OR infrastructure outage"],
-  market: ["ตลาดหุ้นสหรัฐ OR Bitcoin OR crypto OR ทอง OR ดอลลาร์ OR semiconductor", "NVDA OR semiconductor stocks OR stock market OR bitcoin OR gold"],
+  thai: ["ข่าวไทยวันนี้ การเมือง เศรษฐกิจไทย สังคม อุบัติเหตุ"],
+  world: ["ข่าวต่างประเทศ ข่าวโลก เศรษฐกิจโลก สงคราม ภูมิรัฐศาสตร์"],
+  aiTech: ["OpenAI OR Anthropic OR Claude OR ChatGPT OR Gemini OR Google AI OR Microsoft Copilot", "artificial intelligence OR generative AI OR developer tools OR startup"],
+  cybersecurity: ["ความปลอดภัยไซเบอร์ ข้อมูลรั่ว มัลแวร์ phishing CVE", "cybersecurity vulnerability CVE malware phishing security advisory"],
+  networkCloud: ["Cloudflare AWS Azure Google Cloud GitHub Vercel outage", "Cisco Fortinet Palo Alto network outage infrastructure"],
+  market: ["ตลาดหุ้นสหรัฐ Bitcoin crypto ทอง ดอลลาร์ semiconductor", "NVDA semiconductor stocks stock market bitcoin gold"],
   weatherPm25: ["สภาพอากาศวันนี้ ฝน อุณหภูมิ PM2.5 กรุงเทพ ประเทศไทย"],
-  traffic: ["จราจร OR รถติด OR BTS OR MRT OR น้ำท่วม OR เส้นทางสำคัญ", "Bangkok traffic OR BTS disruption OR MRT disruption OR flood"],
-  todayTasks: ["GitHub Actions OR Vercel OR cron OR scheduler outage OR automation", "scheduled task OR job failure OR automation outage OR cloud outage", "GitHub OR Vercel OR cloud outage OR DevOps automation"],
-  importantEmail: ["อีเมลหลอกลวง OR phishing OR Gmail security alert OR invoice", "Gmail phishing OR invoice scam OR email security warning"],
-  sports: ["ผลบอล OR ตารางแข่ง OR ข่าวฟุตบอล OR สรุปหลังเกม"],
-  events: ["คอนเสิร์ต OR อีเวนต์ OR สินค้าใหม่ OR เปิดตัวสินค้า OR ศิลปิน", "Thailand event OR concert OR product launch OR new product", "Bangkok event OR music festival OR concert Thailand OR exhibition"],
-  deals: ["Shopee OR Lazada OR gadget OR software OR domain hosting OR โปรโมชั่น", "promotion OR discount OR gadget deals OR software deals OR hosting deal"],
-  publicAlerts: ["ประกาศสำคัญ OR แจ้งเตือนรัฐ OR BTS ขัดข้อง OR MRT ขัดข้อง OR ปิดถนน", "government notice OR public alert OR BTS disruption OR MRT disruption Thailand"],
-  travelDeals: ["โปรตั๋วเครื่องบิน OR โปรโมชั่นโรงแรม OR เที่ยวไทย OR flight deals OR hotel deals", "airline sale OR hotel promotion OR Thailand travel deals"],
+  traffic: ["จราจร รถติด BTS MRT น้ำท่วม เส้นทางสำคัญ", "Bangkok traffic BTS disruption MRT disruption flood"],
+  todayTasks: ["GitHub Actions Vercel cron scheduler automation", "scheduled task job failure automation outage cloud outage DevOps"],
+  importantEmail: ["อีเมลหลอกลวง phishing Gmail security alert invoice", "Gmail phishing invoice scam email security warning"],
+  sports: ["ผลบอล ตารางแข่ง ข่าวฟุตบอล ไทยลีก พรีเมียร์ลีก", "football soccer match fixture result Thai League Premier League"],
+  events: ["คอนเสิร์ต อีเวนต์ เปิดตัวสินค้า ศิลปิน กรุงเทพ", "Thailand event concert product launch exhibition Bangkok"],
+  deals: ["Shopee Lazada gadget software domain hosting โปรโมชั่น", "promotion discount gadget deals software deals hosting deal"],
+  publicAlerts: ["ประกาศสำคัญ แจ้งเตือนรัฐ BTS ขัดข้อง MRT ขัดข้อง ปิดถนน", "government notice public alert BTS disruption MRT disruption Thailand"],
+  travelDeals: ["โปรตั๋วเครื่องบิน โปรโมชั่นโรงแรม เที่ยวไทย flight deals hotel deals", "airline sale hotel promotion Thailand travel deals"],
+  lifestyle: ["ร้านอาหาร คาเฟ่ บุฟเฟ่ต์ ที่เที่ยว กิจกรรมวันหยุด กรุงเทพ", "Thailand restaurant cafe buffet weekend activities lifestyle"],
 };
 
 function truncate(value: string, max = 620) {
@@ -169,7 +182,8 @@ function parseGoogleNewsRss(xml: string): GoogleNewsRssItem[] {
 
 function buildGoogleNewsRssUrl(query: string) {
   const url = new URL("https://news.google.com/rss/search");
-  url.searchParams.set("q", query);
+  const days = Math.max(1, Math.ceil(NEWS_MAX_AGE_HOURS / 24));
+  url.searchParams.set("q", `${query} when:${days}d`);
   url.searchParams.set("hl", process.env.GOOGLE_NEWS_HL || "th");
   url.searchParams.set("gl", process.env.GOOGLE_NEWS_GL || "TH");
   url.searchParams.set("ceid", process.env.GOOGLE_NEWS_CEID || "TH:th");
@@ -194,6 +208,90 @@ async function fetchGoogleNewsXml(query: string) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function isRecentDate(value?: string | null) {
+  if (!value) return true;
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return true;
+  const age = Date.now() - time;
+  return age >= -6 * 60 * 60 * 1000 && age <= NEWS_MAX_AGE_MS;
+}
+
+function textFromRssItem(item: GoogleNewsRssItem) {
+  return [item.title, item.description, item.sourceName].filter(Boolean).join(" ");
+}
+
+function textFromDailyItem(item: DailyBriefItem) {
+  return [item.title, item.titleTh, item.summaryTh, item.rawDescription, item.extractedText, item.sourceName, item.tags.join(" ")].filter(Boolean).join(" ");
+}
+
+function articleCategoryText(article: NewsDataArticle) {
+  return Array.isArray(article.category) ? article.category.join(" ") : article.category || "";
+}
+
+function articleText(article: NewsDataArticle) {
+  return [article.title, article.description, article.content, articleCategoryText(article), article.keywords?.join(" "), getSourceName(article)].filter(Boolean).join(" ");
+}
+
+function isBlockedSource(source?: string | null) {
+  return Boolean(source && LOW_QUALITY_SOURCE_PATTERN.test(source));
+}
+
+function isBlockedText(text: string) {
+  return BLOCKED_NEWS_PATTERN.test(text) || PAID_ONLY_PATTERN.test(text);
+}
+
+function hasUsefulText(text: string) {
+  const compact = text.replace(/\s+/g, " ").trim();
+  return compact.length >= 28 && !isBlockedText(compact);
+}
+
+function categoryMatchesText(category: DailyBriefCategoryKey, text: string) {
+  if (category === "all") return true;
+  if (category === "thai") return /ข่าวไทย|ไทย|thailand|bangkok|กรุงเทพ|รัฐบาล|เศรษฐกิจไทย|สังคม|อุบัติเหตุ/i.test(text);
+  if (category === "world") return true;
+  if (category === "cybersecurity") return /cybersecurity|security advisory|vulnerability|\bcve\b|malware|phishing|ransomware|data breach|ข้อมูลรั่ว|มัลแวร์|ฟิชชิ่ง|ไซเบอร์/i.test(text);
+  if (category === "networkCloud") return /cisco|fortinet|palo alto|cloudflare|\baws\b|azure|google cloud|vercel|github|network|infrastructure|outage|คลาวด์|ระบบล่ม/i.test(text);
+  if (category === "market") return /stock|nasdaq|nyse|bitcoin|crypto|gold|dollar|semiconductor|nvda|amd|tsm|earnings|ตลาดหุ้น|ราคาทอง|หุ้น|คริปโต|บิตคอยน์|ดอลลาร์/i.test(text);
+  if (category === "weatherPm25") return /weather|forecast|rain|temperature|pm2\.5|air quality|สภาพอากาศ|ฝน|อุณหภูมิ|ฝุ่น/i.test(text);
+  if (category === "traffic") return /traffic|commute|road|flood|bts|mrt|transit|รถติด|จราจร|น้ำท่วม|ปิดถนน|รถไฟฟ้า/i.test(text);
+  if (category === "todayTasks") return /github actions|vercel|cron|scheduler|automation|workflow|devops|job failure|scheduled task|งานวันนี้|ระบบอัตโนมัติ/i.test(text);
+  if (category === "importantEmail") return /email|gmail|inbox|invoice|phishing|scam|security alert|อีเมล|ใบแจ้งหนี้|หลอกลวง/i.test(text);
+  if (category === "sports") return /football|soccer|match|fixture|score|premier league|thai league|fifa|uefa|afc|nfl|quarterback|ผลบอล|ฟุตบอล|ไทยลีก|พรีเมียร์ลีก|ตารางแข่ง|สรุปหลังเกม/i.test(text);
+  if (category === "events") return /concert|event|exhibition|festival|artist|ticket|product launch|คอนเสิร์ต|อีเวนต์|นิทรรศการ|ศิลปิน|เปิดตัวสินค้า/i.test(text);
+  if (category === "deals") return /deal|discount|promotion|sale|shopee|lazada|gadget|software|hosting|domain|โปร|โปรโมชั่น|ลดราคา/i.test(text);
+  if (category === "publicAlerts") return /government|public alert|official notice|announcement|bts|mrt|train disruption|road closure|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง|ปิดถนน|บริการสาธารณะ/i.test(text);
+  if (category === "travelDeals") return /flight|airfare|airline|hotel|resort|room rate|travel promotion|travel deal|package tour|ตั๋วเครื่องบิน|โปรบิน|สายการบิน|โรงแรม|ห้องพัก|รีสอร์ต|แพ็กเกจเที่ยว|โปรท่องเที่ยว|เที่ยวไทย/i.test(text);
+  if (category === "lifestyle") return /restaurant|cafe|coffee|buffet|food|weekend|lifestyle|travel|hidden gem|ร้านอาหาร|คาเฟ่|กาแฟ|บุฟเฟ่ต์|ที่เที่ยว|วันหยุด|ไลฟ์สไตล์|กิน/i.test(text);
+  if (category === "aiTech") return /\bai\b|artificial intelligence|generative ai|machine learning|openai|anthropic|claude|chatgpt|gemini|microsoft copilot|google ai|developer tools?|software platform|startup|ปัญญาประดิษฐ์|เทคโนโลยี/i.test(text);
+  return true;
+}
+
+function isUsableRssItem(category: DailyBriefCategoryKey, item: GoogleNewsRssItem) {
+  const text = textFromRssItem(item);
+  return isRecentDate(item.pubDate)
+    && hasUsefulText(text)
+    && !isBlockedSource(item.sourceName)
+    && !isBlockedSource(item.sourceUrl)
+    && categoryMatchesText(category, text);
+}
+
+function isUsableNewsDataArticle(article: NewsDataArticle) {
+  const text = articleText(article);
+  return isRecentDate(article.pubDate)
+    && hasUsefulText(text)
+    && !isBlockedSource(getSourceName(article))
+    && !isBlockedSource(article.link);
+}
+
+function isUsableDailyBriefItem(item: DailyBriefItem) {
+  const text = textFromDailyItem(item);
+  return isRecentDate(item.publishedAt)
+    && hasUsefulText(text)
+    && !isBlockedSource(item.sourceName)
+    && !isBlockedSource(item.sourceUrl)
+    && categoryMatchesText(item.category, text);
 }
 
 function buildThaiFallbackFromRealSource(item: GoogleNewsRssItem, category: DailyBriefCategoryKey) {
@@ -222,7 +320,7 @@ function scoreGoogleNewsItem(category: DailyBriefCategoryKey, item: GoogleNewsRs
 async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCategoryKey, index: number): Promise<DailyBriefItem> {
   const rawDescription = item.description || item.title;
   const sourceUrl = item.link;
-  const publishedAt = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+  const publishedAt = item.pubDate && Number.isFinite(new Date(item.pubDate).getTime()) ? new Date(item.pubDate).toISOString() : new Date().toISOString();
   const fallbackSummary = buildThaiFallbackFromRealSource(item, category);
   const translation = await translateToThai({
     title: item.title,
@@ -263,7 +361,7 @@ async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCa
     tags: [category, item.sourceName, "Google News"].filter(Boolean).slice(0, 5),
     sourceName: item.sourceName,
     sourceUrl,
-    imageUrl: item.imageUrl || item.sourceUrl || undefined,
+    imageUrl: item.imageUrl || undefined,
     publishedAt,
     language: hasThaiText(`${item.title} ${rawDescription}`) ? "th" : "en",
     priorityScore: scoreGoogleNewsItem(category, item, index),
@@ -289,14 +387,15 @@ function uniqueRssItems(items: GoogleNewsRssItem[]) {
 async function fetchGoogleNewsCategory(category: FetchableDailyBriefCategory) {
   const settled = await Promise.allSettled(GOOGLE_NEWS_QUERY[category].map((query) => fetchGoogleNewsXml(query)));
   const rssItems = uniqueRssItems(settled.flatMap((result) => result.status === "fulfilled" ? parseGoogleNewsRss(result.value) : []))
+    .filter((item) => isUsableRssItem(category, item))
     .slice(0, REAL_NEWS_TARGET_COUNT);
   return Promise.all(rssItems.map((item, index) => mapGoogleNewsItem(item, category, index)));
 }
 
 function mergeDailyBriefItems(items: DailyBriefItem[]) {
   const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = `${item.category}::${item.sourceUrl.toLowerCase()}::${item.title.toLowerCase()}`;
+  return items.filter(isUsableDailyBriefItem).filter((item) => {
+    const key = `${item.sourceUrl.toLowerCase()}::${item.title.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -312,22 +411,25 @@ export async function fetchGoogleNewsLatest(category?: DailyBriefCategoryKey) {
   return {
     mode: "real" as const,
     items: mergeDailyBriefItems(items),
-    message: `Fetched ${items.length} real item(s) from Google News RSS${failed ? `; ${failed} topic feed(s) failed` : ""}`,
+    message: `Fetched ${items.length} fresh, filtered real item(s) from Google News RSS${failed ? `; ${failed} topic feed(s) failed` : ""}`,
   };
 }
 
 function detectCategory(article: NewsDataArticle): DailyBriefCategoryKey {
-  const text = [article.title, article.description, article.content, article.category, article.keywords?.join(" ")].flat().filter(Boolean).join(" ").toLowerCase();
-  if (/cyber|vulnerability|cve|malware|phishing|breach|ransomware|security/.test(text)) return "cybersecurity";
-  if (/openai|google|apple|microsoft|ai|startup|software|developer|เครื่องมือ/.test(text)) return "aiTech";
-  if (/cisco|fortinet|palo alto|cloudflare|aws|azure|google cloud|vercel|github|network|outage|cloud/.test(text)) return "networkCloud";
-  if (/stock|nasdaq|nyse|bitcoin|crypto|gold|dollar|semiconductor|nvda|amd|tsm|ตลาดหุ้น|หุ้น/.test(text)) return "market";
-  if (/football|soccer|match|fixture|ผลบอล|ฟุตบอล|กีฬา/.test(text)) return "sports";
-  if (/government|public alert|official notice|announcement|bts|mrt|train disruption|transit disruption|road closure|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง|ปิดถนน|บริการสาธารณะ/.test(text)) return "publicAlerts";
-  if (/flight deal|airfare|airline|hotel|resort|room rate|travel promotion|travel deal|package tour|ตั๋วเครื่องบิน|โปรบิน|สายการบิน|โรงแรม|ห้องพัก|รีสอร์ต|แพ็กเกจเที่ยว|โปรท่องเที่ยว|เที่ยวไทย/.test(text)) return "travelDeals";
-  if (/concert|ticket|artist|event|product launch|คอนเสิร์ต|อีเวนต์|สินค้าใหม่/.test(text)) return "events";
-  if (/deal|discount|promotion|shopee|lazada|hosting|domain|โปร|ลดราคา/.test(text)) return "deals";
-  if (/thailand|thai|bangkok|รัฐบาล|เศรษฐกิจไทย|กรุงเทพ/.test(text)) return "thai";
+  const text = articleText(article).toLowerCase();
+  if (categoryMatchesText("cybersecurity", text)) return "cybersecurity";
+  if (categoryMatchesText("publicAlerts", text)) return "publicAlerts";
+  if (categoryMatchesText("weatherPm25", text)) return "weatherPm25";
+  if (categoryMatchesText("traffic", text)) return "traffic";
+  if (categoryMatchesText("sports", text)) return "sports";
+  if (categoryMatchesText("travelDeals", text)) return "travelDeals";
+  if (categoryMatchesText("lifestyle", text)) return "lifestyle";
+  if (categoryMatchesText("events", text)) return "events";
+  if (categoryMatchesText("deals", text)) return "deals";
+  if (categoryMatchesText("market", text)) return "market";
+  if (categoryMatchesText("networkCloud", text)) return "networkCloud";
+  if (categoryMatchesText("aiTech", text)) return "aiTech";
+  if (categoryMatchesText("thai", text)) return "thai";
   return "world";
 }
 
@@ -349,11 +451,11 @@ function asLanguage(value?: string): DailyBriefItem["language"] {
 export async function mapNewsDataArticle(article: NewsDataArticle, index: number): Promise<DailyBriefItem> {
   const category = detectCategory(article);
   const title = article.title || "Untitled news";
-  const description = article.description || article.content || title;
+  const description = [article.description, article.content, title].find((value) => value && hasUsefulText(value)) || title;
   const sourceUrl = article.link || "https://newsdata.io/";
   const sourceName = getSourceName(article);
   const language = asLanguage(article.language);
-  const publishedAt = article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString();
+  const publishedAt = article.pubDate && Number.isFinite(new Date(article.pubDate).getTime()) ? new Date(article.pubDate).toISOString() : new Date().toISOString();
   const translation = await translateToThai({
     title,
     source: sourceName,
@@ -375,10 +477,10 @@ export async function mapNewsDataArticle(article: NewsDataArticle, index: number
   return {
     id: article.article_id || `newsdata_${index}_${Buffer.from(sourceUrl).toString("base64url").slice(0, 16)}`,
     title,
-    titleTh: translation.translatedTitle,
-    summaryTh: translation.translatedSummary.slice(0, 620),
+    titleTh: truncate(translation.translatedTitle || title, 180),
+    summaryTh: truncate(translation.translatedSummary || description, 620),
     bulletPoints: translation.translatedBullets.length ? translation.translatedBullets.slice(0, 3) : [
-      translation.translatedSummary.slice(0, 150),
+      truncate(translation.translatedSummary || description, 150),
       `แหล่งข่าว: ${sourceName}`,
       `หมวด: ${category}`,
     ],
@@ -391,10 +493,10 @@ export async function mapNewsDataArticle(article: NewsDataArticle, index: number
     imageUrl: article.image_url || undefined,
     publishedAt,
     language,
-    priorityScore: 68 + Math.min(24, Math.max(0, Math.round(description.length / 90))) + (category === "cybersecurity" || category === "aiTech" ? 4 : 0),
+    priorityScore: Math.min(98, 68 + Math.min(24, Math.max(0, Math.round(description.length / 90))) + (category === "cybersecurity" || category === "aiTech" ? 4 : 0)),
     relatedSources: [],
     rawDescription: description,
-    extractedText: article.content || translation.originalContent || undefined,
+    extractedText: article.content && hasUsefulText(article.content) ? article.content : translation.originalContent || undefined,
     isSaved: false,
     isHidden: false,
     telegramStatus: "idle",
@@ -429,13 +531,14 @@ export async function fetchNewsDataLatest(category?: DailyBriefCategoryKey) {
       throw new Error(payload.message || `NewsData request failed: ${response.status}`);
     }
 
-    const newsDataItems = await Promise.all((payload.results || []).map(mapNewsDataArticle));
+    const freshNewsData = (payload.results || []).filter(isUsableNewsDataArticle);
+    const newsDataItems = await Promise.all(freshNewsData.map(mapNewsDataArticle));
     const items = mergeDailyBriefItems([...newsDataItems, ...googleNewsResult.items]);
 
     return {
       mode: "real" as const,
       items,
-      message: `Fetched ${newsDataItems.length} item(s) from NewsData.io and ${googleNewsResult.items.length} real item(s) from Google News RSS`,
+      message: `Fetched ${newsDataItems.length} fresh item(s) from NewsData.io and ${googleNewsResult.items.length} fresh real item(s) from Google News RSS`,
     };
   } catch (error) {
     return {
