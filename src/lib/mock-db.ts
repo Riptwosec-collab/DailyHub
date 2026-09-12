@@ -1,3 +1,4 @@
+import { mergeDefaultScheduledTasks } from "@/lib/default-scheduled-tasks";
 import { scheduledTasks, taskRuns, webNotifications } from "@/lib/mock-data";
 import type { WebNotification } from "@/types/notification";
 import type { ScheduledTask, ScheduledTaskStatus } from "@/types/scheduled-task";
@@ -26,10 +27,14 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function buildSeededScheduledTasks() {
+  return mergeDefaultScheduledTasks(clone(scheduledTasks), "user_001");
+}
+
 export function getMockDb(): NimbusDailyMockDb {
   if (!globalThis.nimbusDailyMockDb) {
     globalThis.nimbusDailyMockDb = {
-      scheduledTasks: clone(scheduledTasks),
+      scheduledTasks: buildSeededScheduledTasks(),
       taskRuns: clone(taskRuns),
       webNotifications: clone(webNotifications),
     };
@@ -40,7 +45,7 @@ export function getMockDb(): NimbusDailyMockDb {
 
 export function resetMockDb() {
   globalThis.nimbusDailyMockDb = {
-    scheduledTasks: clone(scheduledTasks),
+    scheduledTasks: buildSeededScheduledTasks(),
     taskRuns: clone(taskRuns),
     webNotifications: clone(webNotifications),
   };
