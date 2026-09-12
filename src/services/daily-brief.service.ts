@@ -2,11 +2,24 @@ import { dailyBriefCategories, defaultDailyBriefSettings, mockDailyBriefItems, m
 import { dedupeDailyBriefItems } from "@/services/news-dedup.service";
 import { summarizeDailyBriefItems, summarizeSingleNews } from "@/services/news-summary.service";
 import { fetchNewsDataLatest } from "@/services/newsdata.service";
-import type { DailyBriefApiResponse, DailyBriefCategoryKey, DailyBriefItem, DailyBriefRunLog } from "@/types/daily-brief";
+import type { DailyBriefApiResponse, DailyBriefCategory, DailyBriefCategoryKey, DailyBriefItem, DailyBriefRunLog } from "@/types/daily-brief";
+
+const lifestyleCategory: DailyBriefCategory = {
+  key: "lifestyle",
+  labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์",
+  labelEn: "Lifestyle Ideas",
+  icon: "💡",
+  color: "amber",
+  enabled: true,
+};
+
+const dailyBriefCategoriesWithLifestyle: DailyBriefCategory[] = dailyBriefCategories.some((category) => category.key === "lifestyle")
+  ? dailyBriefCategories
+  : [...dailyBriefCategories, lifestyleCategory];
 
 function parseCategory(value: string | null): DailyBriefCategoryKey | undefined {
   if (!value || value === "all") return undefined;
-  const found = dailyBriefCategories.find((category) => category.key === value);
+  const found = dailyBriefCategoriesWithLifestyle.find((category) => category.key === value);
   return found?.key === "all" ? undefined : found?.key;
 }
 
@@ -21,6 +34,12 @@ function filterItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, 
 
 function prepareItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, search?: string | null) {
   return dedupeDailyBriefItems(filterItems(items, category, search).map(summarizeSingleNews));
+}
+
+function enabledCategoriesWithLifestyle() {
+  const categories = new Set(defaultDailyBriefSettings.enabledCategories);
+  categories.add("lifestyle");
+  return Array.from(categories);
 }
 
 export async function getLatestDailyBrief(params?: { category?: string | null; search?: string | null }): Promise<DailyBriefApiResponse> {
@@ -69,13 +88,14 @@ export async function getLatestDailyBrief(params?: { category?: string | null; s
   return {
     items: prepared,
     summary: summarizeDailyBriefItems(prepared, mode),
-    categories: dailyBriefCategories,
+    categories: dailyBriefCategoriesWithLifestyle,
     settings: {
       ...defaultDailyBriefSettings,
       useRealNews,
       newsProvider: process.env.NEWSDATA_API_KEY && useRealNews ? "hybrid" : "googleNewsRss",
       autoSendTelegram: process.env.DAILY_BRIEF_AUTO_SEND === "true",
       telegramTime: process.env.DAILY_BRIEF_TIME || defaultDailyBriefSettings.telegramTime,
+      enabledCategories: enabledCategoriesWithLifestyle(),
     },
     logs,
   };
@@ -96,7 +116,7 @@ export function getDailyBriefSchedulerPreview() {
     enabled: process.env.DAILY_BRIEF_AUTO_SEND === "true",
     time,
     timezone: "Asia/Bangkok",
-    categories: defaultDailyBriefSettings.enabledCategories,
+    categories: enabledCategoriesWithLifestyle(),
     maxItemsPerCategory: defaultDailyBriefSettings.maxItemsPerCategory,
     lastSent: mockDailyBriefLogs[0]?.runAt || null,
     nextRun: nextRun.toISOString(),
