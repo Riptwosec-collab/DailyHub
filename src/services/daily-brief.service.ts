@@ -13,11 +13,14 @@ function parseCategory(value: string | null): DailyBriefCategoryKey | undefined 
 function filterItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, search?: string | null) {
   const query = (search || "").trim().toLowerCase();
   return items.filter((item) => {
-    if (item.category === "lifestyle") return false;
     const matchesCategory = !category || item.category === category;
     const matchesSearch = !query || [item.title, item.titleTh, item.summaryTh, item.sourceName, item.tags.join(" ")].join(" ").toLowerCase().includes(query);
     return matchesCategory && matchesSearch && !item.isHidden;
   });
+}
+
+function prepareItems(items: DailyBriefItem[], category?: DailyBriefCategoryKey, search?: string | null) {
+  return dedupeDailyBriefItems(filterItems(items, category, search).map(summarizeSingleNews));
 }
 
 export async function getLatestDailyBrief(params?: { category?: string | null; search?: string | null }): Promise<DailyBriefApiResponse> {
@@ -46,11 +49,18 @@ export async function getLatestDailyBrief(params?: { category?: string | null; s
     mode = "mock";
     message = "USE_REAL_NEWS=false; using mock data";
   } else if (!items.length) {
+    items = mockDailyBriefItems;
     mode = "fallback";
-    message = `${message}; real feeds returned no usable news`;
+    message = `${message}; real feeds returned no usable news, fallback mock activated`;
   }
 
-  const prepared = dedupeDailyBriefItems(filterItems(items, category, params?.search).map(summarizeSingleNews));
+  let prepared = prepareItems(items, category, params?.search);
+  if (!prepared.length && mode === "real") {
+    prepared = prepareItems(mockDailyBriefItems, category, params?.search);
+    mode = "fallback";
+    message = `${message}; real feeds were filtered out, fallback mock activated`;
+  }
+
   const logs: DailyBriefRunLog[] = [
     { id: `brief_log_${Date.now()}`, runAt: new Date().toISOString(), status: "success", fetchedItems: items.length, summarizedItems: prepared.length, telegramParts: 0, message },
     ...mockDailyBriefLogs,
