@@ -2,6 +2,7 @@ import { getMockDb, createId, calculateMockNextRun } from "@/lib/mock-db";
 import {
   DEFAULT_TASK_SEEDS,
   buildDefaultScheduledTask,
+  getMissingDefaultTaskSeeds,
   isLegacyLongReadTask,
   matchesDefaultTaskSeed,
   mergeDefaultScheduledTasks,
@@ -50,7 +51,7 @@ async function ensureSupabaseDefaultTasks(userId: string, existingTasks: Schedul
   const cleanTasks = existingTasks.filter((task) => !isLegacyLongReadTask(task));
   if (!supabase) return mergeDefaultScheduledTasks(cleanTasks, userId);
 
-  const missingSeeds = DEFAULT_TASK_SEEDS.filter((seed) => !cleanTasks.some((task) => matchesDefaultTaskSeed(task, seed)));
+  const missingSeeds = getMissingDefaultTaskSeeds(cleanTasks);
   if (!missingSeeds.length) {
     return mergeDefaultScheduledTasks(cleanTasks, userId);
   }
