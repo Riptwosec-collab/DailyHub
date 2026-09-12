@@ -100,6 +100,23 @@ export function matchesDefaultTaskSeed(task: Pick<ScheduledTask, "name" | "type"
   return false;
 }
 
+export function findMatchingDefaultTask(tasks: ScheduledTask[], seed: TaskSeed, usedIds = new Set<string>()) {
+  return tasks.find((task) => !usedIds.has(task.id) && matchesDefaultTaskSeed(task, seed));
+}
+
+export function getMissingDefaultTaskSeeds(tasks: ScheduledTask[]) {
+  const usedIds = new Set<string>();
+  const missing: TaskSeed[] = [];
+
+  for (const seed of DEFAULT_TASK_SEEDS) {
+    const match = findMatchingDefaultTask(tasks, seed, usedIds);
+    if (match) usedIds.add(match.id);
+    else missing.push(seed);
+  }
+
+  return missing;
+}
+
 function nextRunFor(scheduleType: ScheduledTask["scheduleType"], time: string | null) {
   const now = new Date();
   if (scheduleType === "One Time") return null;
@@ -166,15 +183,21 @@ export function normalizeDefaultTask(task: ScheduledTask, seed: TaskSeed): Sched
 
 export function mergeDefaultScheduledTasks(tasks: ScheduledTask[], userId = "user_001") {
   const cleanTasks = tasks.filter((task) => !isLegacyLongReadTask(task));
+  const usedIds = new Set<string>();
   const result: ScheduledTask[] = [];
 
   for (const seed of DEFAULT_TASK_SEEDS) {
-    const existing = cleanTasks.find((task) => matchesDefaultTaskSeed(task, seed));
-    result.push(existing ? normalizeDefaultTask(existing, seed) : buildDefaultScheduledTask(seed, userId, result.length));
+    const existing = findMatchingDefaultTask(cleanTasks, seed, usedIds);
+    if (existing) {
+      usedIds.add(existing.id);
+      result.push(normalizeDefaultTask(existing, seed));
+    } else {
+      result.push(buildDefaultScheduledTask(seed, userId, result.length));
+    }
   }
 
   for (const task of cleanTasks) {
-    if (!result.some((item) => item.id === task.id) && !DEFAULT_TASK_SEEDS.some((seed) => matchesDefaultTaskSeed(task, seed))) {
+    if (!usedIds.has(task.id) && !result.some((item) => item.id === task.id)) {
       result.push(task);
     }
   }
