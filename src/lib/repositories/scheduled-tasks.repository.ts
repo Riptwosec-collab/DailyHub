@@ -1,4 +1,12 @@
 import { getMockDb, createId, calculateMockNextRun } from "@/lib/mock-db";
+import {
+  DEFAULT_TASK_SEEDS,
+  buildDefaultScheduledTask,
+  isLegacyLongReadTask,
+  matchesDefaultTaskSeed,
+  mergeDefaultScheduledTasks,
+  normalizeDefaultTask,
+} from "@/lib/default-scheduled-tasks";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScheduledTask, ScheduledTaskStatus } from "@/types/scheduled-task";
 import { mapTaskRow, mapTaskToRow, type ScheduledTaskRow } from "./mappers";
@@ -30,6 +38,38 @@ export interface CreateTaskInput {
   isActive?: boolean;
 }
 
+function isUnfilteredDefaultQuery(query: TaskQuery) {
+  return !query.search
+    && (!query.type || query.type === "All")
+    && (!query.status || query.status === "All")
+    && typeof query.isActive !== "boolean";
+}
+
+async function ensureSupabaseDefaultTasks(userId: string, existingTasks: ScheduledTask[]) {
+  const supabase = createAdminClient();
+  const cleanTasks = existingTasks.filter((task) => !isLegacyLongReadTask(task));
+  if (!supabase) return mergeDefaultScheduledTasks(cleanTasks, userId);
+
+  const missingSeeds = DEFAULT_TASK_SEEDS.filter((seed) => !cleanTasks.some((task) => matchesDefaultTaskSeed(task, seed)));
+  if (!missingSeeds.length) {
+    return mergeDefaultScheduledTasks(cleanTasks, userId);
+  }
+
+  const defaultTasks = missingSeeds.map((seed, index) => buildDefaultScheduledTask(seed, userId, cleanTasks.length + index));
+  const { data, error } = await supabase
+    .from("scheduled_tasks")
+    .insert(defaultTasks.map(mapTaskToRow))
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error || !data) {
+    return mergeDefaultScheduledTasks([...cleanTasks, ...defaultTasks], userId);
+  }
+
+  const inserted = (data as ScheduledTaskRow[]).map(mapTaskRow);
+  return mergeDefaultScheduledTasks([...cleanTasks, ...inserted], userId);
+}
+
 export async function listScheduledTasks(query: TaskQuery = {}) {
   if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
@@ -43,19 +83,31 @@ export async function listScheduledTasks(query: TaskQuery = {}) {
 
     const { data, error } = await request;
     if (error) throw error;
-    return (data as ScheduledTaskRow[]).map(mapTaskRow);
+
+    const rows = (data as ScheduledTaskRow[]).map(mapTaskRow).filter((task) => !isLegacyLongReadTask(task));
+    if (query.userId && isUnfilteredDefaultQuery(query)) {
+      return ensureSupabaseDefaultTasks(query.userId, rows);
+    }
+
+    return rows;
   }
 
   const db = getMockDb();
   const search = query.search?.toLowerCase() ?? "";
-  return db.scheduledTasks.filter((task) => {
+  const filtered = db.scheduledTasks.filter((task) => {
     const matchesUser = !query.userId || task.userId === query.userId;
     const matchesType = !query.type || query.type === "All" || task.type === query.type;
     const matchesStatus = !query.status || query.status === "All" || task.status === query.status;
     const matchesActive = typeof query.isActive !== "boolean" || task.isActive === query.isActive;
     const matchesSearch = !search || [task.name, task.type, task.status, task.dataSources.join(" ")].join(" ").toLowerCase().includes(search);
-    return matchesUser && matchesType && matchesStatus && matchesActive && matchesSearch;
+    return matchesUser && matchesType && matchesStatus && matchesActive && matchesSearch && !isLegacyLongReadTask(task);
   });
+
+  if (isUnfilteredDefaultQuery(query)) {
+    return mergeDefaultScheduledTasks(filtered, query.userId ?? "user_001");
+  }
+
+  return filtered;
 }
 
 export async function getScheduledTaskById(id: string, userId?: string) {
@@ -65,11 +117,13 @@ export async function getScheduledTaskById(id: string, userId?: string) {
     if (userId) request = request.eq("user_id", userId);
     const { data, error } = await request.single();
     if (error || !data) return null;
-    return mapTaskRow(data as ScheduledTaskRow);
+    const task = mapTaskRow(data as ScheduledTaskRow);
+    return isLegacyLongReadTask(task) ? null : task;
   }
 
   const task = getMockDb().scheduledTasks.find((item) => item.id === id && (!userId || item.userId === userId));
-  return task ?? null;
+  if (!task || isLegacyLongReadTask(task)) return null;
+  return task;
 }
 
 export async function createScheduledTask(input: CreateTaskInput) {
@@ -99,7 +153,9 @@ export async function createScheduledTask(input: CreateTaskInput) {
 
   if (shouldUseSupabase()) {
     const supabase = createAdminClient()!;
-    const { data, error } = await supabase.from("scheduled_tasks").insert(mapTaskToRow(task)).select("*").single();
+    const matchingSeed = DEFAULT_TASK_SEEDS.find((seed) => matchesDefaultTaskSeed(task, seed));
+    const taskToCreate = matchingSeed ? normalizeDefaultTask(task, matchingSeed) : task;
+    const { data, error } = await supabase.from("scheduled_tasks").insert(mapTaskToRow(taskToCreate)).select("*").single();
     if (error) throw error;
     return mapTaskRow(data as ScheduledTaskRow);
   }
@@ -117,12 +173,13 @@ export async function updateScheduledTask(id: string, patch: Partial<ScheduledTa
     if (userId) request = request.eq("user_id", userId);
     const { data, error } = await request.select("*").single();
     if (error || !data) return null;
-    return mapTaskRow(data as ScheduledTaskRow);
+    const task = mapTaskRow(data as ScheduledTaskRow);
+    return isLegacyLongReadTask(task) ? null : task;
   }
 
   const db = getMockDb();
   const index = db.scheduledTasks.findIndex((item) => item.id === id && (!userId || item.userId === userId));
-  if (index === -1) return null;
+  if (index === -1 || isLegacyLongReadTask(db.scheduledTasks[index])) return null;
   db.scheduledTasks[index] = { ...db.scheduledTasks[index], ...patch, updatedAt };
   return db.scheduledTasks[index];
 }
@@ -155,10 +212,10 @@ export async function listDueScheduledTasks(nowIso = new Date().toISOString()) {
       .order("next_run_at", { ascending: true })
       .limit(25);
     if (error) throw error;
-    return (data as ScheduledTaskRow[]).map(mapTaskRow);
+    return (data as ScheduledTaskRow[]).map(mapTaskRow).filter((task) => !isLegacyLongReadTask(task));
   }
 
-  return getMockDb().scheduledTasks.filter((task) => task.isActive && task.nextRunAt && task.nextRunAt <= nowIso);
+  return getMockDb().scheduledTasks.filter((task) => task.isActive && task.nextRunAt && task.nextRunAt <= nowIso && !isLegacyLongReadTask(task));
 }
 
 export function isValidStatus(value: string): value is ScheduledTaskStatus {
