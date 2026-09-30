@@ -1,22 +1,21 @@
 name: DailyHub Scheduled Jobs
 
+# PAUSED: automatic schedule is intentionally disabled until explicitly resumed.
 on:
-  schedule:
-    # Run every 15 minutes. GitHub schedules use UTC.
-    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       force_run:
-        description: "Manual testing: run all tasks now and send Telegram for every topic. Scheduled cron still uses false."
+        description: "Manual testing input retained while workflow is paused. Jobs remain disabled until resumed."
         required: false
-        default: "true"
+        default: "false"
         type: choice
         options:
-          - "true"
           - "false"
+          - "true"
 
 jobs:
   trigger-cron-api:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
